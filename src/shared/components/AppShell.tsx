@@ -417,8 +417,6 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
 
 function ProfileCard({ role, portal, wide, onPortalChange }: { role: Role; portal: Portal; wide: boolean; onPortalChange?: (p: string) => void }) {
   const dept = department(role, portal)
-  const { range, label } = useTimeRange()
-  const stats = departmentStats(role, portal, range)
   return (
     <div className="border-b border-line px-2.5 py-3 lg:px-3">
       <div className={`flex flex-col items-center gap-1.5 ${wide ? 'lg:hidden' : ''}`} title={`${portalMeta[portal].label} · ${dept.unit}`}>
@@ -453,29 +451,6 @@ function ProfileCard({ role, portal, wide, onPortalChange }: { role: Role; porta
             </Popover>
           ) : (
             <div className="truncate rounded-lg bg-canvas px-2.5 py-1.5 text-[11px] text-muted">{dept.scope}</div>
-          )}
-          {stats.length > 0 && (
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.dl
-                key={`${role}-${portal}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.14 }}
-                className="mt-2.5 grid gap-px overflow-hidden rounded-lg bg-line"
-                style={{ gridTemplateColumns: `repeat(${stats.length}, minmax(0, 1fr))` }}
-                title={role === 'reviewer' ? 'Your review queue' : `${dept.unit} · people reached in ${label.toLowerCase()}`}
-              >
-                {stats.map((s) => (
-                  <div key={s.label} className="min-w-0 bg-surface px-2 py-1.5">
-                    <dt className="truncate text-[10px] text-faint">{s.label}</dt>
-                    <dd className={`text-[13px] font-semibold tabular-nums ${s.tone === 'warn' ? 'text-warn' : s.tone === 'good' ? 'text-good' : ''}`}>
-                      <CountUp value={s.value} />
-                    </dd>
-                  </div>
-                ))}
-              </motion.dl>
-            </AnimatePresence>
           )}
         </div>
       )}
