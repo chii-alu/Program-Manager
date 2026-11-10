@@ -1,25 +1,27 @@
 import React from 'react'
 
-/** CHII wordmark: a compact mark plus the centre name. */
-export function ChiiMark({ tone = 'dark', compact = false }: { tone?: 'dark' | 'light'; compact?: boolean }) {
-  const fg = tone === 'light' ? 'text-white' : 'text-brand'
-  const sub = tone === 'light' ? 'text-white/70' : 'text-muted'
+const ALT = 'ALU Center for Health Innovation and Impact'
+
+/**
+ * CHII wordmark, shared with the CHII dashboard (assets in /public/logos).
+ * Navy on light backgrounds, white in dark mode or when `tone="light"` forces it
+ * (for a navy panel). `compact` is the square tile with just the ALU letters.
+ * `height` is a Tailwind height class for the full wordmark.
+ */
+export function ChiiMark({ tone = 'auto', compact = false, height = 'h-6' }: { tone?: 'auto' | 'light'; compact?: boolean; height?: string }) {
+  if (compact) {
+    return (
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand" title={ALT}>
+        <img src="/logos/alu-mark.png" alt={ALT} className="h-3 w-auto brightness-0 invert" />
+      </span>
+    )
+  }
+  if (tone === 'light') return <img src="/logos/chii-white.png" alt={ALT} className={`${height} w-auto max-w-full object-contain`} />
   return (
-    <div className="flex min-w-0 items-center gap-2.5">
-      <div
-        className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
-          tone === 'light' ? 'bg-white text-brand' : 'bg-brand text-white'
-        }`}
-      >
-        <span className="text-[13px] font-bold tracking-tight">ALU</span>
-      </div>
-      {!compact && (
-        <div className="min-w-0 leading-tight">
-          <div className={`truncate text-sm font-semibold ${fg}`}>MELA Manager</div>
-          <div className={`truncate text-[11px] ${sub}`}>Center for Health Innovation & Impact</div>
-        </div>
-      )}
-    </div>
+    <span className="block min-w-0">
+      <img src="/logos/chii.png" alt={ALT} className={`${height} w-auto max-w-full object-contain dark:hidden`} />
+      <img src="/logos/chii-white.png" alt="" aria-hidden className={`hidden ${height} w-auto max-w-full object-contain dark:block`} />
+    </span>
   )
 }
 

@@ -36,7 +36,7 @@ export default function PublicForm(props: Props) {
         </div>
       )}
       <div className="mx-auto w-full max-w-lg px-4 py-6 sm:py-10">
-        <ChiiMark />
+        <ChiiMark height="h-8" />
         <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-surface">
           {state === 'closed' ? (
             <div className="px-6 py-14 text-center">

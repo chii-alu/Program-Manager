@@ -5,6 +5,9 @@
 @import 'tailwindcss';
 /* END TAILWIND IMPORTS — ALL OTHER CSS MUST GO BELOW THIS LINE */
 
+/* Theme is switched by the `.dark` class on <html> (see useTheme), not the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Playfair Display', Georgia, serif;

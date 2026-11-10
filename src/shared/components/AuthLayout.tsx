@@ -46,16 +46,7 @@ const capabilities = [
 function BrandPanel() {
   return (
     <aside className="hidden flex-col bg-brand px-12 py-12 text-white lg:flex">
-      <div className="flex items-center gap-3">
-        <span className="text-[40px] font-black leading-none tracking-tighter">ALU</span>
-        <span className="text-[13px] font-bold uppercase leading-[1.1] tracking-wide">
-          Center for
-          <br />
-          Health Innovation
-          <br />
-          and Impact
-        </span>
-      </div>
+      <ChiiMark tone="light" height="h-12" />
       <p className="mt-8 text-[15px] leading-7 text-white/90">
         Manage every CHII intervention in one place, from sign-up to feedback. Track each young person across HEMP,
         HENT and HECO with one CHII ID.
