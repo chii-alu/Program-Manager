@@ -48,7 +48,7 @@ export function setupPwa() {
   // In the Next.js app, public/sw.js is served from the origin root.
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     fetch('/sw.js', { method: 'HEAD' })
-      .then((r) => r.ok && navigator.serviceWorker.register('/sw.js'))
+      .then((r) => (r.ok ? navigator.serviceWorker.register('/sw.js') : undefined))
       .catch(() => undefined)
   }
 

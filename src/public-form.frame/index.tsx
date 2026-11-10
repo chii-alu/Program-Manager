@@ -8,12 +8,6 @@ export const args = {
   preview: false,
 }
 
-export const argTypes = {
-  kind: { control: 'radio', options: ['registration', 'attendance', 'feedback'] },
-  state: { control: 'radio', options: ['open', 'closed', 'submitted'] },
-  preview: { control: 'boolean' },
-}
-
 type Props = Partial<typeof args> & { onExitPreview?: () => void }
 
 const titles = {

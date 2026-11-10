@@ -36,25 +36,10 @@ const DATA = 'data-exports'
 const APPLICATIONS = 'applications'
 const FORM = 'public-form'
 
-/** The size every frame draws at, unless one exports its own. */
-export const viewport = 'web'
-
 export const args = {
   role: 'admin',
   signInFails: false,
 }
-
-export const argTypes = {
-  role: { control: 'select', options: ['admin', 'pillar_lead', 'pillar_staff', 'reviewer', 'none'] },
-  signInFails: { control: 'boolean' },
-}
-
-export const folders = [
-  { id: 'auth', name: 'Auth', frames: [SIGN_IN, RESET] },
-  { id: 'app', name: 'Workspace', frames: [OVERVIEW, ANALYTICS, INTERVENTIONS, SESSION, PARTICIPANTS, PERSON, FEEDBACKS] },
-  { id: 'data', name: 'Data', frames: [CHII_DB, SHEET, IMPORT, STAFF, DATA] },
-  { id: 'review', name: 'Review & public', frames: [APPLICATIONS, FORM] },
-]
 
 const routes: Record<string, string> = {
   overview: OVERVIEW,
@@ -87,7 +72,6 @@ export default function MelaManager(props: Props) {
   const [personId, setPersonId] = useState('CHII-000214')
   const [sessionId, setSessionId] = useState('s2')
   const [sheet, setSheet] = useState<'participants' | 'feedback'>('participants')
-  const [welcome, setWelcome] = useState(false)
   const [newSession, setNewSession] = useState(false)
 
   // The role control re-renders in place: adopt it and its home portal.
@@ -101,7 +85,6 @@ export default function MelaManager(props: Props) {
   const enter = (r: string, p: string) => {
     setRole(r)
     setPortal(r === 'admin' ? p : p === 'admin' ? defaultPortal(r) : p)
-    setWelcome(true)
     setStep(OVERVIEW)
   }
 
@@ -147,7 +130,6 @@ export default function MelaManager(props: Props) {
     onNavigate: navigate,
     onPortalChange: (p: string) => setPortal(p),
     onSignOut: () => {
-      setWelcome(false)
       setAuthState('default')
       setStep(SIGN_IN)
     },
@@ -177,7 +159,7 @@ export default function MelaManager(props: Props) {
         />
       )
     case OVERVIEW:
-      return <Overview {...shared} welcome={welcome} onCloseWelcome={() => setWelcome(false)} onOpenSession={openSession} />
+      return <Overview {...shared} onOpenSession={openSession} />
     case ANALYTICS:
       return <Analytics {...shared} />
     case INTERVENTIONS:

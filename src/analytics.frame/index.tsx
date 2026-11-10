@@ -18,12 +18,6 @@ export const args = {
   chart: 'area',
 }
 
-export const argTypes = {
-  role: { control: 'select', options: ['admin', 'pillar_lead', 'pillar_staff', 'reviewer', 'none'] },
-  portal: { control: 'radio', options: ['admin', 'hent', 'hemp', 'heco'] },
-  chart: { control: 'radio', options: ['area', 'bar', 'line'] },
-}
-
 type Props = Partial<typeof args> & {
   onNavigate?: (to: string) => void
   onPortalChange?: (p: string) => void

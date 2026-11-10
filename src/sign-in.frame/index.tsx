@@ -13,13 +13,6 @@ export const args = {
   showDemo: true,
 }
 
-export const argTypes = {
-  state: { control: 'select', options: ['default', 'error', 'signing-in', 'google', 'callback'] },
-  email: { control: 'text' },
-  error: { control: 'text' },
-  showDemo: { control: 'boolean' },
-}
-
 type Props = Partial<typeof args> & {
   onSignIn?: (email: string, password: string) => void
   onGoogle?: () => void

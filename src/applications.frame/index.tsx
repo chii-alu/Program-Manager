@@ -13,12 +13,6 @@ export const args = {
   selected: 'CHII-000231',
 }
 
-export const argTypes = {
-  role: { control: 'select', options: ['admin', 'pillar_lead', 'pillar_staff', 'reviewer', 'none'] },
-  portal: { control: 'radio', options: ['admin', 'hent', 'hemp', 'heco'] },
-  selected: { control: 'select', options: ['CHII-000231', 'CHII-000284', 'CHII-000317', 'CHII-000341', 'CHII-000263', 'CHII-000215'] },
-}
-
 type Props = Partial<typeof args> & {
   onNavigate?: (to: string) => void
   onPortalChange?: (p: string) => void

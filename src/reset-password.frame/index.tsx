@@ -8,11 +8,6 @@ export const args = {
   email: 'amara.okafor@chii.alu.edu',
 }
 
-export const argTypes = {
-  state: { control: 'radio', options: ['default', 'sending', 'sent'] },
-  email: { control: 'text' },
-}
-
 type Props = Partial<typeof args> & { onBack?: () => void; onSubmit?: () => void }
 
 export default function ResetPassword(props: Props) {

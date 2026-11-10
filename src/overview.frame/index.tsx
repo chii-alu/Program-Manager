@@ -7,7 +7,6 @@ import { CountUp, Delta } from '../shared/components/StatStrip'
 import { EmptyState } from '../shared/components/EmptyState'
 import { previous, seriesFor, totals, useTimeRange } from '../shared/lib/time'
 import { CalendarX2, CheckCircle2 } from 'lucide-react'
-import { WelcomeModal } from '../shared/components/WelcomeModal'
 import { NewSessionModal } from '../shared/components/NewSessionModal'
 import { ChartTooltip, Legend, axisProps } from '../shared/components/charts'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -15,13 +14,6 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 export const args = {
   role: 'admin',
   portal: 'admin',
-  welcome: false,
-}
-
-export const argTypes = {
-  role: { control: 'select', options: ['admin', 'pillar_lead', 'pillar_staff', 'reviewer', 'none'] },
-  portal: { control: 'radio', options: ['admin', 'hent', 'hemp', 'heco'] },
-  welcome: { control: 'boolean' },
 }
 
 type Props = Partial<typeof args> & {
@@ -29,14 +21,12 @@ type Props = Partial<typeof args> & {
   onPortalChange?: (p: string) => void
   onSignOut?: () => void
   onOpenSession?: (id: string) => void
-  onCloseWelcome?: () => void
 }
 
 const filters: ('all' | SessionStatus)[] = ['all', 'open', 'upcoming', 'completed', 'draft']
 
 export default function Overview(props: Props) {
-  const { role: r, portal: p, welcome, onNavigate, onPortalChange, onSignOut, onOpenSession, onCloseWelcome } = { ...args, ...props }
-  const [welcomeOpen, setWelcomeOpen] = useState(welcome)
+  const { role: r, portal: p, onNavigate, onPortalChange, onSignOut, onOpenSession } = { ...args, ...props }
   const [newOpen, setNewOpen] = useState(false)
   const nav = (to: string) => (to === 'new-session' ? setNewOpen(true) : onNavigate?.(to))
   const role = r as Role
@@ -59,15 +49,6 @@ export default function Overview(props: Props) {
 
   return (
     <AppShell role={role} portal={portal} active="overview" onNavigate={nav} onPortalChange={onPortalChange} onSignOut={onSignOut}>
-      <WelcomeModal
-        open={welcomeOpen && role !== 'none'}
-        role={role}
-        portal={portal}
-        onClose={() => {
-          setWelcomeOpen(false)
-          onCloseWelcome?.()
-        }}
-      />
       <NewSessionModal open={newOpen} onClose={() => setNewOpen(false)} pillars={pillars} />
       {role === 'reviewer' ? (
         <ReviewerHome name={firstName} onNavigate={onNavigate} />

@@ -20,13 +20,6 @@ export const args = {
   tab: 'forms',
 }
 
-export const argTypes = {
-  role: { control: 'select', options: ['admin', 'pillar_lead', 'pillar_staff', 'reviewer', 'none'] },
-  portal: { control: 'radio', options: ['admin', 'hent', 'hemp', 'heco'] },
-  sessionId: { control: 'select', options: ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'] },
-  tab: { control: 'radio', options: ['forms', 'people', 'attendance', 'feedback', 'details'] },
-}
-
 type Props = Partial<typeof args> & {
   onNavigate?: (to: string) => void
   onPortalChange?: (p: string) => void
