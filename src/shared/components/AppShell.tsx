@@ -66,9 +66,9 @@ type NavGroup = { title: string; items: NavItem[] }
 const SB_KEY = 'mela-sidebar'
 function readSidebar(): { width: number; collapsed: boolean } {
   try {
-    return { width: 248, collapsed: false, ...JSON.parse(localStorage.getItem(SB_KEY) || '{}') }
+    return { width: 232, collapsed: false, ...JSON.parse(localStorage.getItem(SB_KEY) || '{}') }
   } catch {
-    return { width: 248, collapsed: false }
+    return { width: 232, collapsed: false }
   }
 }
 
@@ -172,7 +172,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
   const startDrag = (e: React.PointerEvent) => {
     e.preventDefault()
     const startX = e.clientX
-    const startW = collapsed && !peeking ? 68 : sb.width
+    const startW = collapsed && !peeking ? 64 : sb.width
     let latest = sb
     setDragging(true)
     const move = (ev: PointerEvent) => {
@@ -195,17 +195,17 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
   return (
     <div className={`relative flex h-full overflow-hidden bg-canvas text-ink ${dragging ? 'cursor-col-resize select-none' : ''}`}>
       {/* Holds the rail's place in the layout while the sidebar peeks over the page */}
-      {overlay && <div aria-hidden className="hidden w-[68px] shrink-0 md:block" />}
+      {overlay && <div aria-hidden className="hidden w-[64px] shrink-0 md:block" />}
       {/* Sidebar: rail on tablets, resizable on desktop, peeks open on hover when collapsed */}
       <aside
-        style={{ ['--sbw' as string]: `${collapsed && !peeking ? 68 : sb.width}px` }}
+        style={{ ['--sbw' as string]: `${collapsed && !peeking ? 64 : sb.width}px` }}
         onMouseEnter={peekEnter}
         onMouseLeave={peekLeave}
-        className={`hidden w-[68px] shrink-0 flex-col border-r border-line bg-surface md:flex lg:w-[var(--sbw)] ${
-          overlay ? 'absolute inset-y-0 left-0 z-30 shadow-xl' : 'relative'
+        className={`hidden w-[64px] shrink-0 flex-col border-r border-line bg-surface md:flex lg:w-[var(--sbw)] ${
+          overlay ? 'absolute inset-y-0 left-0 z-30 shadow-[4px_0_16px_rgba(0,0,0,0.12)]' : 'relative'
         } ${dragging ? '' : 'transition-[width] duration-200 ease-out'}`}
       >
-        <div className="flex h-14 items-center gap-2 border-b border-line px-4">
+        <div className="flex h-16 items-center gap-2 border-b border-line px-3">
           <span className={wide ? 'lg:hidden' : ''}>
             <ChiiMark compact />
           </span>
@@ -230,7 +230,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
         <nav className="scrollbar-thin flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-3 lg:px-3">
           {groups.map((g, gi) => (
             <div key={g.title} className={gi > 0 ? `mt-4 border-t border-line pt-4 ${wide ? 'lg:mt-5 lg:border-0 lg:pt-0' : ''}` : ''}>
-              <div className={`mb-1 truncate px-2.5 text-[11px] font-medium text-faint ${L}`}>{g.title}</div>
+              <div className={`mb-1.5 truncate px-2 text-[9px] font-bold uppercase tracking-[0.12em] text-faint ${L}`}>{g.title}</div>
               <ul className="space-y-0.5">
                 {g.items.map((it) => (
                   <li key={it.key}>
@@ -253,7 +253,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
           aria-label="Resize sidebar"
           title="Drag to resize · double-click to reset"
           onPointerDown={startDrag}
-          onDoubleClick={() => persist({ width: 248, collapsed: false })}
+          onDoubleClick={() => persist({ width: 232, collapsed: false })}
           className="group absolute inset-y-0 -right-1.5 z-20 hidden w-3 cursor-col-resize lg:block"
         >
           <span className={`absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 transition-colors duration-150 ease-out ${dragging ? 'bg-brand-600' : 'bg-transparent group-hover:bg-brand-200'}`} />
@@ -262,7 +262,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-3 sm:gap-3 sm:px-5">
+        <header className="relative z-10 flex h-16 shrink-0 items-center gap-2 border-b border-line bg-surface px-3 shadow-[var(--shadow-bar)] sm:gap-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-2 md:hidden">
             <ChiiMark compact />
             <span className="truncate text-sm font-semibold">{portalMeta[portal].label}</span>
@@ -465,11 +465,11 @@ function FooterButton({ wide, icon: Icon, label, onClick, danger }: { wide: bool
       type="button"
       onClick={onClick}
       title={label}
-      className={`flex h-9 w-full items-center justify-center gap-2.5 rounded-lg px-2.5 text-sm text-body transition-colors duration-150 ease-out ${wide ? 'lg:justify-start' : ''} ${
-        danger ? 'hover:bg-bad-bg hover:text-bad' : 'hover:bg-canvas'
+      className={`flex h-10 w-full items-center justify-center gap-3 rounded-md px-2.5 text-[12px] font-bold uppercase tracking-wide text-muted transition-colors duration-150 ease-out ${wide ? 'lg:justify-start' : ''} ${
+        danger ? 'hover:bg-bad-bg hover:text-bad' : 'hover:bg-canvas hover:text-ink'
       }`}
     >
-      <Icon className="h-4 w-4 shrink-0 text-muted" />
+      <Icon className="h-4 w-4 shrink-0" />
       <span className={`truncate ${wide ? 'hidden lg:inline' : 'hidden'}`}>{label}</span>
     </button>
   )
@@ -483,14 +483,16 @@ function SideLink({ item, active, wide, onClick }: { item: NavItem; active: bool
       onClick={onClick}
       title={item.label}
       aria-current={active ? 'page' : undefined}
-      className={`group relative flex h-10 w-full items-center justify-center gap-2.5 rounded-lg px-2.5 text-sm transition-colors duration-150 ease-out ${wide ? 'lg:h-9 lg:justify-start' : ''} ${
-        active ? 'bg-brand-50 font-semibold text-brand-600' : 'text-body hover:bg-canvas hover:text-ink'
+      className={`group relative flex min-h-10 w-full items-center justify-center gap-3 rounded-md px-2 py-1.5 text-[13px] transition-colors duration-150 ease-out ${wide ? 'lg:justify-start' : ''} ${
+        active ? 'bg-brand/8 font-bold text-brand dark:bg-brand-50 dark:text-brand-600' : 'font-semibold text-body hover:bg-canvas hover:text-ink'
       }`}
     >
-      {active && <motion.span layoutId="nav-active" className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-brand-600" transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }} />}
-      <Icon className={`h-[18px] w-[18px] shrink-0 ${wide ? 'lg:h-4 lg:w-4' : ''} ${active ? 'text-brand-600' : 'text-muted group-hover:text-ink'}`} />
-      <span className={`min-w-0 flex-1 truncate text-left ${wide ? 'hidden lg:block' : 'hidden'}`}>{item.label}</span>
-      {item.count != null && <span className={`rounded-full bg-canvas px-1.5 text-[11px] font-medium tabular-nums text-muted ${wide ? 'hidden lg:block' : 'hidden'}`}>{item.count}</span>}
+      {/* Executive sidebar: the icon sits in a tile, tinted at rest and filled when active */}
+      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md transition-colors duration-150 ease-out ${active ? 'bg-brand text-white' : 'bg-brand-50 text-brand group-hover:bg-brand-100'}`}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className={`min-w-0 flex-1 truncate text-left leading-snug ${wide ? 'hidden lg:block' : 'hidden'}`}>{item.label}</span>
+      {item.count != null && <span className={`rounded-full bg-canvas px-1.5 text-[11px] font-semibold tabular-nums text-muted ${wide ? 'hidden lg:block' : 'hidden'}`}>{item.count}</span>}
     </button>
   )
 }

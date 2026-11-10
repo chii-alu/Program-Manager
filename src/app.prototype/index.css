@@ -1,5 +1,5 @@
 /* @import url() FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE, ABOVE THE TAILWIND IMPORT — DO NOT DELETE THIS COMMENT */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* CRITICAL: THE FOLLOWING TAILWIND IMPORT MUST NEVER BE DELETED — DO NOT DELETE THIS COMMENT */
 @import 'tailwindcss';
@@ -8,34 +8,62 @@
 /* Theme is switched by the `.dark` class on <html> (see useTheme), not the OS setting. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Design tokens, ported from the CHII Executive dashboard (CHII-Dashboard/src/theme/tokens.ts
+ * and globals.css). Token names are unchanged so every component keeps working; only the
+ * values moved to the executive palette.
+ */
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Playfair Display', Georgia, serif;
+  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  --color-ink: #0e1a33;
-  --color-body: #36415a;
-  --color-muted: #667089;
-  --color-faint: #98a0b3;
-  --color-line: #e3e7ef;
-  --color-line-strong: #cfd5e1;
-  --color-canvas: #f4f6fa;
+  /* Neutrals (executive: ink / text / textMuted / textFaint / border / pageBg) */
+  --color-ink: #111827;
+  --color-body: #374151;
+  --color-muted: #6b7280;
+  --color-faint: #9ca3af;
+  --color-line: #e5e7eb;
+  --color-line-strong: #d1d5db;
+  --color-canvas: #f8f9fa;
   --color-surface: #ffffff;
 
-  --color-brand: #13306b;
-  --color-brand-hover: #0d2456;
-  --color-brand-600: #2752b8;
-  --color-brand-50: #eef3fc;
-  --color-brand-100: #dce6f8;
-  --color-brand-200: #b9cbef;
+  /* Brand: blue900 is the card-header / KPI fill, navy the hero, blue600 the section accent */
+  --color-brand: #14306b;
+  --color-brand-hover: #102c5e;
+  --color-brand-600: #185fa5;
+  --color-brand-50: #e6f1fb;
+  --color-brand-100: #cfe2f8;
+  --color-brand-200: #85b7eb;
+  --color-brand-label: #b5d4f4;
 
-  --color-good: #15803d;
-  --color-good-bg: #e7f6ec;
-  --color-warn: #a16207;
-  --color-warn-bg: #fdf3dc;
-  --color-bad: #b91c1c;
-  --color-bad-bg: #fdecec;
+  /* Executive chart series + the pink pip on card headers */
+  --color-navy: #102c5e;
+  --color-sky: #479bd6;
+  --color-orange: #d45f2c;
+  --color-accent: #d17a86;
+
+  /* Status — never used as a chart series */
+  --color-good: #16a34a;
+  --color-good-bg: #dcfce7;
+  --color-warn: #b45309;
+  --color-warn-bg: #fef3c7;
+  --color-bad: #dc2626;
+  --color-bad-bg: #fee2e2;
+
+  --radius-card: 10px;
 }
 
+:root {
+  /* Chart chrome (executive CHART tokens) */
+  --chart-grid: rgba(0, 33, 71, 0.06);
+  --chart-cursor: rgba(0, 33, 71, 0.04);
+  --chart-tip-border: rgba(0, 33, 71, 0.12);
+  --card-border: rgba(0, 33, 71, 0.08);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-bar: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* The executive dashboard is light-only; these are the same roles stepped for a dark surface. */
 .dark {
   color-scheme: dark;
   --color-ink: #e8ecf5;
@@ -47,12 +75,18 @@
   --color-canvas: #0a101c;
   --color-surface: #111929;
 
-  --color-brand: #3a6fe0;
-  --color-brand-hover: #5282ea;
+  --color-brand: #1b3a75;
+  --color-brand-hover: #234a94;
   --color-brand-600: #82a9f5;
   --color-brand-50: #16233f;
   --color-brand-100: #1d2f55;
   --color-brand-200: #2b4580;
+  --color-brand-label: #b5d4f4;
+
+  --color-navy: #6d9be8;
+  --color-sky: #5fb0ea;
+  --color-orange: #f07a4c;
+  --color-accent: #e08a96;
 
   --color-good: #4ade80;
   --color-good-bg: #10281b;
@@ -60,6 +94,11 @@
   --color-warn-bg: #2c220a;
   --color-bad: #f87171;
   --color-bad-bg: #321416;
+
+  --chart-grid: rgba(255, 255, 255, 0.07);
+  --chart-cursor: rgba(255, 255, 255, 0.05);
+  --chart-tip-border: rgba(255, 255, 255, 0.14);
+  --card-border: rgba(255, 255, 255, 0.09);
 }
 
 html, body, #root { height: 100%; }
@@ -68,6 +107,12 @@ body {
   color: var(--color-ink);
   background: var(--color-canvas);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Executive: brand-coloured focus ring instead of the browser default */
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
 }
 
 .scrollbar-thin { scrollbar-width: thin; scrollbar-color: var(--color-line-strong) transparent; }

@@ -4,18 +4,21 @@ import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 
 export type Stat = { label: string; value: number; display?: string; suffix?: string; prev?: number; hint?: string; primary?: boolean }
 
-/** One hairline-divided strip; the primary figure is larger and carries the period delta. */
+/**
+ * Executive KPI tiles: navy fill, light-blue uppercase label, white figure.
+ * The primary figure is slightly larger and carries the period delta.
+ */
 export function StatStrip({ items }: { items: Stat[] }) {
   return (
-    <dl className={`grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line ${items.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-4'}`}>
+    <dl className={`grid grid-cols-2 gap-3 ${items.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-4'}`}>
       {items.map((s, i) => (
         <div
           key={s.label}
-          className={`min-w-0 bg-surface px-4 py-3.5 sm:col-span-1 sm:px-5 ${s.primary || (i === items.length - 1 && (items.length - (items[0]?.primary ? 1 : 0)) % 2 === 1) ? 'col-span-2' : ''}`}
+          className={`min-w-0 rounded-[var(--radius-card)] bg-brand px-4 py-3.5 text-center sm:col-span-1 ${s.primary || (i === items.length - 1 && (items.length - (items[0]?.primary ? 1 : 0)) % 2 === 1) ? 'col-span-2' : ''}`}
         >
-          <dt className="truncate text-xs text-muted">{s.label}</dt>
-          <dd className="mt-1 flex flex-wrap items-baseline gap-x-2">
-            <span className={`font-semibold tabular-nums tracking-tight ${s.primary ? 'text-3xl' : 'text-xl'}`}>
+          <dt className="truncate text-[10px] font-extrabold uppercase tracking-[0.06em] text-brand-label">{s.label}</dt>
+          <dd className="mt-2 flex flex-wrap items-center justify-center gap-x-2.5">
+            <span className={`font-bold leading-none tabular-nums text-white ${s.primary ? 'text-[28px]' : 'text-2xl'}`}>
               {s.display ?? (
                 <>
                   <CountUp value={s.value} />
@@ -25,8 +28,8 @@ export function StatStrip({ items }: { items: Stat[] }) {
             </span>
             {s.prev != null && <Delta now={s.value} prev={s.prev} />}
           </dd>
-          {s.hint && <dd className="mt-0.5 truncate text-[11px] text-faint">{s.hint}</dd>}
-          {s.prev != null && !s.hint && <dd className="mt-0.5 truncate text-[11px] text-faint">vs previous period</dd>}
+          {s.hint && <dd className="mt-1.5 truncate text-[9.5px] tracking-[0.02em] text-brand-label/80">{s.hint}</dd>}
+          {s.prev != null && !s.hint && <dd className="mt-1.5 truncate text-[9.5px] tracking-[0.02em] text-brand-label/80">vs previous period</dd>}
         </div>
       ))}
     </dl>

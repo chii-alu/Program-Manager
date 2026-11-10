@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { AreaChart as AreaIcon, BarChart3, Download, Info, Layers, LineChart as LineIcon, X } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AppShell } from '../shared/components/AppShell'
-import { Button, PageHeader, Panel, PillarTag } from '../shared/components/ui'
+import { Button, PageHeader, Panel, PillarTag, PanelHeader } from '../shared/components/ui'
 import { ChartTooltip, axisProps, chartColors } from '../shared/components/charts'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { CountUp, Delta } from '../shared/components/StatStrip'
@@ -98,9 +98,9 @@ export default function Analytics(props: Props) {
 
   const anim = { isAnimationActive: !reduce, animationDuration: DUR, animationEasing: 'ease-out' as const }
   const keys = metric === 'reach' ? pillars.map((pl) => ({ key: pl, color: chartColors[pl] })) : [
-    { key: 'registered', color: 'var(--color-brand-200)' },
-    { key: 'attended', color: 'var(--color-brand-600)' },
-    { key: 'completed', color: 'var(--color-brand)' },
+    { key: 'registered', color: 'var(--color-sky)' },
+    { key: 'attended', color: 'var(--color-navy)' },
+    { key: 'completed', color: 'var(--color-orange)' },
   ]
 
   return (
@@ -192,30 +192,30 @@ export default function Analytics(props: Props) {
             <ResponsiveContainer width="100%" height="100%">
               {chart === 'bar' ? (
                 <BarChart data={shaped} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--color-line)" />
+                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
                   <XAxis dataKey="label" {...axisProps} minTickGap={16} />
                   <YAxis {...axisProps} width={40} />
-                  <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-canvas)' }} />
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
                   {keys.map((k) => (
                     <Bar key={k.key} dataKey={k.key} name={cap(k.key)} stackId={metric === 'reach' ? '1' : undefined} fill={k.color} radius={metric === 'reach' ? 0 : [3, 3, 0, 0]} {...anim} />
                   ))}
                 </BarChart>
               ) : chart === 'line' ? (
                 <LineChart data={shaped} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--color-line)" />
+                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
                   <XAxis dataKey="label" {...axisProps} minTickGap={16} />
                   <YAxis {...axisProps} width={40} />
-                  <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-line-strong)' }} />
+                  <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-line-strong)', strokeDasharray: '3 3' }} />
                   {keys.map((k) => (
-                    <Line key={k.key} dataKey={k.key} name={cap(k.key)} type="monotone" stroke={k.color} strokeWidth={2} dot={false} activeDot={{ r: 4 }} {...anim} />
+                    <Line key={k.key} dataKey={k.key} name={cap(k.key)} type="monotone" stroke={k.color} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} {...anim} />
                   ))}
                 </LineChart>
               ) : (
                 <AreaChart data={shaped} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--color-line)" />
+                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
                   <XAxis dataKey="label" {...axisProps} minTickGap={16} />
                   <YAxis {...axisProps} width={40} />
-                  <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-line-strong)' }} />
+                  <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-line-strong)', strokeDasharray: '3 3' }} />
                   {keys.map((k) => (
                     <Area key={k.key} dataKey={k.key} name={cap(k.key)} type="monotone" stackId={metric === 'reach' ? '1' : undefined} stroke={k.color} fill={k.color} fillOpacity={metric === 'reach' ? 0.85 : 0.18} strokeWidth={metric === 'reach' ? 0 : 2} {...anim} />
                   ))}
@@ -251,10 +251,10 @@ export default function Analytics(props: Props) {
               <div className="-ml-2 mt-3" style={{ height: Math.max(180, npsData.length * 30) }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={npsData} layout="vertical" margin={{ top: 0, right: 28, left: 4, bottom: 0 }}>
-                    <CartesianGrid horizontal={false} stroke="var(--color-line)" />
+                    <CartesianGrid horizontal={false} stroke="var(--chart-grid)" />
                     <XAxis type="number" domain={[-100, 100]} {...axisProps} />
                     <YAxis type="category" dataKey="name" {...axisProps} width={120} />
-                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-canvas)' }} />
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
                     <Bar
                       dataKey="nps"
                       name="NPS"
@@ -314,7 +314,7 @@ export default function Analytics(props: Props) {
                     <PieChart>
                       <Pie data={genderData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={60} paddingAngle={2} stroke="none" onClick={(d: { key?: 'F' | 'M' }) => setCross((c) => ({ ...c, gender: c.gender === d.key ? undefined : d.key }))} className="cursor-pointer" {...anim}>
                         {genderData.map((g, i) => (
-                          <Cell key={g.key} fill={['var(--color-brand)', 'var(--color-brand-200)'][i]} fillOpacity={cross.gender && cross.gender !== g.key ? 0.3 : 1} />
+                          <Cell key={g.key} fill={g.key === 'F' ? chartColors.female : chartColors.male} fillOpacity={cross.gender && cross.gender !== g.key ? 0.3 : 1} />
                         ))}
                       </Pie>
                       <Tooltip content={<ChartTooltip />} />
@@ -349,11 +349,11 @@ export default function Analytics(props: Props) {
             <div className="-ml-3 mt-3 h-44">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={rate} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--color-line)" />
+                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
                   <XAxis dataKey="label" {...axisProps} minTickGap={18} />
                   <YAxis {...axisProps} width={40} domain={[50, 100]} unit="%" />
-                  <Tooltip content={<ChartTooltip suffix="%" />} cursor={{ stroke: 'var(--color-line-strong)' }} />
-                  <Line dataKey="rate" name="Attendance" type="monotone" stroke="var(--color-brand-600)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} {...anim} />
+                  <Tooltip content={<ChartTooltip suffix="%" />} cursor={{ stroke: 'var(--color-line-strong)', strokeDasharray: '3 3' }} />
+                  <Line dataKey="rate" name="Attendance" type="monotone" stroke="var(--color-navy)" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} {...anim} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -363,10 +363,10 @@ export default function Analytics(props: Props) {
             <div className="-ml-3 mt-3 h-44">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={ageData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--color-line)" />
+                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
                   <XAxis dataKey="bucket" {...axisProps} />
                   <YAxis {...axisProps} width={40} allowDecimals={false} />
-                  <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-canvas)' }} />
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
                   <Bar dataKey="people" name="People" radius={[4, 4, 0, 0]} className="cursor-pointer" onClick={(d: { bucket?: string }) => setCross((c) => ({ ...c, age: c.age === d.bucket ? undefined : d.bucket }))} {...anim}>
                     {ageData.map((a) => (
                       <Cell key={a.bucket} fill="var(--color-brand)" fillOpacity={cross.age && cross.age !== a.bucket ? 0.3 : 1} />
@@ -444,13 +444,9 @@ export default function Analytics(props: Props) {
   )
 }
 
+/** Executive card header, bled to the edges of the padded panel it sits in. */
 function ChartHead({ title, sub }: { title: string; sub: string }) {
-  return (
-    <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-      <h2 className="text-sm font-semibold">{title}</h2>
-      <p className="text-xs text-muted">{sub}</p>
-    </div>
-  )
+  return <PanelHeader title={title} sub={sub} className="-mx-4 -mt-4 sm:-mx-5 sm:-mt-5" />
 }
 
 function Segmented({ value, onChange, items, iconOnly }: { value: string; onChange: (v: string) => void; items: { id: string; label: string; icon?: React.ComponentType<{ className?: string }> }[]; iconOnly?: boolean }) {

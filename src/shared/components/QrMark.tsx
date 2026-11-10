@@ -30,7 +30,7 @@ export function QrMark({ seed, size = 168 }: { seed: string; size?: number }) {
       if (on) cells.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} />)
     }
   return (
-    <svg viewBox={`0 0 ${n} ${n}`} width={size} height={size} fill="#0e1a33" shapeRendering="crispEdges" aria-label="QR code">
+    <svg viewBox={`0 0 ${n} ${n}`} width={size} height={size} fill="#111827" shapeRendering="crispEdges" aria-label="QR code">
       {cells}
     </svg>
   )

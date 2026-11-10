@@ -466,11 +466,11 @@ function FeedbackTab({ attended, feedback }: { attended: number; feedback: numbe
           <div className="-ml-4 mt-3 h-44">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dist} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke="var(--color-line)" />
+                <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
                 <XAxis dataKey="score" {...axisProps} />
                 <YAxis {...axisProps} width={32} allowDecimals={false} />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-canvas)' }} />
-                <Bar dataKey="n" name="Responses" fill="var(--color-brand)" radius={[4, 4, 0, 0]} barSize={28} />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
+                <Bar dataKey="n" name="Responses" fill="var(--color-navy)" radius={[4, 4, 0, 0]} barSize={28} />
               </BarChart>
             </ResponsiveContainer>
           </div>

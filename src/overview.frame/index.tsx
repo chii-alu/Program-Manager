@@ -139,30 +139,28 @@ export default function Overview(props: Props) {
 
             <div className="min-w-0 space-y-5 lg:order-1">
             {/* Trend */}
-            <Panel>
-              <div className="flex flex-col gap-2 border-b border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                <div>
-                  <h2 className="text-sm font-semibold">Registrations vs attendance</h2>
-                  <p className="text-xs text-muted">
-                    {label} · {showRate}% of registrants showed up
-                  </p>
-                </div>
+            <Panel
+              title="Registrations vs attendance"
+              sub={`${label} · ${showRate}% of registrants showed up`}
+              headerRight={
                 <Legend
+                  onDark
                   items={[
-                    { label: 'Registered', color: 'var(--color-brand-200)' },
-                    { label: 'Attended', color: 'var(--color-brand)' },
+                    { label: 'Registered', color: 'var(--color-sky)' },
+                    { label: 'Attended', color: 'var(--color-navy)' },
                   ]}
                 />
-              </div>
+              }
+            >
               <div className="h-52 px-2 pb-2 pt-4 sm:h-60">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={trend} margin={{ top: 4, right: 12, left: -16, bottom: 0 }}>
-                    <CartesianGrid vertical={false} stroke="var(--color-line)" />
+                    <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
                     <XAxis dataKey="label" {...axisProps} minTickGap={16} />
                     <YAxis {...axisProps} width={44} />
-                    <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-line-strong)' }} />
-                    <Area type="monotone" dataKey="registered" name="Registered" stroke="var(--color-brand-200)" fill="var(--color-brand-50)" strokeWidth={2} animationDuration={280} animationEasing="ease-out" />
-                    <Area type="monotone" dataKey="attended" name="Attended" stroke="var(--color-brand)" fill="var(--color-brand-100)" fillOpacity={0.6} strokeWidth={2} animationDuration={280} animationEasing="ease-out" />
+                    <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-line-strong)', strokeDasharray: '3 3' }} />
+                    <Area type="monotone" dataKey="registered" name="Registered" stroke="var(--color-sky)" fill="var(--color-sky)" fillOpacity={0.18} strokeWidth={2.5} animationDuration={280} animationEasing="ease-out" />
+                    <Area type="monotone" dataKey="attended" name="Attended" stroke="var(--color-navy)" fill="var(--color-navy)" fillOpacity={0.22} strokeWidth={2.5} animationDuration={280} animationEasing="ease-out" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>

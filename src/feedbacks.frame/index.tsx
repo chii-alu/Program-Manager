@@ -69,25 +69,27 @@ export default function Feedbacks(props: Props) {
               { label: 'Relevance', value: 0, display: `${avg('relevance')}/5`, hint: 'average score' },
             ]}
           />
-          <Panel className="px-4 pb-2 pt-3.5">
-            <div className="flex items-baseline justify-between gap-2">
-              <h2 className="text-sm font-semibold">Score distribution</h2>
-              {score != null ? (
-                <button type="button" onClick={() => setScore(null)} className="text-xs font-semibold text-brand-600 hover:underline">
+          <Panel
+            title="Score distribution"
+            headerRight={
+              score != null ? (
+                <button type="button" onClick={() => setScore(null)} className="text-[10px] font-bold uppercase tracking-wide text-white/90 hover:underline">
                   Showing score {score} · clear
                 </button>
               ) : (
-                <span className="text-xs text-muted">Click a bar to filter</span>
-              )}
-            </div>
-            <div className="mt-2 h-[92px]">
+                <span className="text-[10px] text-white/70">Click a bar to filter</span>
+              )
+            }
+            className="pb-2"
+          >
+            <div className="mt-3 h-[92px] px-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dist} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--color-line)" />
+                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
                   <XAxis dataKey="score" {...axisProps} interval={0} />
                   <YAxis {...axisProps} width={36} allowDecimals={false} />
-                  <Tooltip cursor={{ fill: 'var(--color-canvas)' }} content={<ChartTooltip />} />
-                  <Bar dataKey="count" name="Responses" radius={[3, 3, 0, 0]} onClick={(d: { score?: string }) => setScore((s) => (s === Number(d.score) ? null : Number(d.score)))} className="cursor-pointer">
+                  <Tooltip cursor={{ fill: 'var(--chart-cursor)' }} content={<ChartTooltip />} />
+                  <Bar dataKey="count" name="Responses" radius={[4, 4, 0, 0]} onClick={(d: { score?: string }) => setScore((s) => (s === Number(d.score) ? null : Number(d.score)))} className="cursor-pointer">
                     {dist.map((d) => {
                       const n = Number(d.score)
                       const base = n >= 9 ? 'var(--color-good)' : n >= 7 ? 'var(--color-line-strong)' : 'var(--color-bad)'

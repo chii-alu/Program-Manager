@@ -18,23 +18,24 @@ export function AdminOnly() {
 
 const statusStyle: Record<SessionStatus, string> = {
   open: 'bg-good-bg text-good',
-  upcoming: 'bg-brand-50 text-brand-600',
+  upcoming: 'bg-brand-50 text-brand',
   completed: 'bg-canvas text-muted',
   draft: 'bg-warn-bg text-warn',
 }
 
 export function StatusBadge({ status }: { status: SessionStatus }) {
   return (
-    <span className={`inline-flex h-6 items-center gap-1.5 whitespace-nowrap rounded-full px-2 text-xs font-medium capitalize ${statusStyle[status]}`}>
+    <span className={`inline-flex h-6 items-center gap-1.5 whitespace-nowrap rounded-full px-2 text-[11px] font-semibold capitalize ${statusStyle[status]}`}>
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
       {status}
     </span>
   )
 }
 
+/** Executive pill: brand-tinted, uppercase. */
 export const PillarTag: React.FC<{ pillar: Pillar }> = ({ pillar }) => {
   return (
-    <span className="inline-flex h-5 items-center whitespace-nowrap rounded border border-line bg-surface px-1.5 text-[11px] font-semibold tracking-wide text-body">
+    <span className="inline-flex h-5 items-center whitespace-nowrap rounded bg-brand-50 px-1.5 text-[10px] font-bold uppercase tracking-wide text-brand">
       {pillar}
     </span>
   )
@@ -51,6 +52,11 @@ export function HealthDot({ tone }: { tone: 'good' | 'warn' | 'bad' }) {
   )
 }
 
+/**
+ * Page hero, after the executive dashboard's navy page header: crumbs as a small
+ * tracked label, the title in white, actions on the right. Buttons inside adapt
+ * to the navy through the `hero` class.
+ */
 export function PageHeader({
   title,
   description,
@@ -63,20 +69,22 @@ export function PageHeader({
   actions?: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="hero flex flex-col gap-4 rounded-[var(--radius-card)] bg-brand-hover px-5 py-4 text-white sm:flex-row sm:items-end sm:justify-between sm:px-6 sm:py-5">
       <div className="min-w-0">
         {crumbs && (
-          <ol className="mb-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+          <ol className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/60">
             {crumbs.map((c, i) => (
               <li key={c} className="flex items-center gap-1.5">
-                {i > 0 && <span className="text-faint">/</span>}
-                <span className={i === crumbs.length - 1 ? 'font-medium text-ink' : ''}>{c}</span>
+                {i > 0 && <span className="text-white/40">/</span>}
+                <span className={i === crumbs.length - 1 ? 'text-white/85' : ''}>{c}</span>
               </li>
             ))}
           </ol>
         )}
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
-        {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+        <h1 className="text-lg font-semibold tracking-tight sm:text-xl">{title}</h1>
+        {description && (
+          <p className="mt-1 text-[13px] leading-5 text-white/75 [&_.text-brand-600]:text-white [&_.text-ink]:text-white [&_.text-muted]:text-white/60">{description}</p>
+        )}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -96,19 +104,39 @@ export function Button({
 }) {
   const v =
     variant === 'primary'
-      ? 'bg-brand text-white hover:bg-brand-hover'
-      : 'border border-line-strong bg-surface text-ink hover:bg-canvas'
+      ? 'bg-brand text-white hover:bg-brand-hover [.hero_&]:bg-white [.hero_&]:text-brand [.hero_&]:hover:bg-brand-50'
+      : 'border border-line bg-surface text-body hover:bg-canvas [.hero_&]:border-white/30 [.hero_&]:bg-white/10 [.hero_&]:text-white [.hero_&]:hover:bg-white/20'
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-sm font-semibold transition-colors duration-150 ease-out ${v} ${className}`}
+      className={`inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md px-3.5 text-[13px] font-semibold transition-colors duration-150 ease-out ${v} ${className}`}
     >
       {children}
     </button>
   )
 }
 
-export function Panel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <section className={`min-w-0 rounded-xl border border-line bg-surface ${className}`}>{children}</section>
+/** Executive ChartCard header: navy bar, pink pip, uppercase title, optional caption. */
+export function PanelHeader({ title, sub, right, className = '' }: { title: string; sub?: React.ReactNode; right?: React.ReactNode; className?: string }) {
+  return (
+    <div className={`flex items-center gap-2.5 rounded-t-[calc(var(--radius-card)_-_1px)] bg-brand px-5 py-[11px] ${className}`}>
+      <span className="h-[15px] w-[3px] shrink-0 rounded-full bg-accent" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-semibold uppercase leading-none tracking-[0.04em] text-white">{title}</p>
+        {sub && <p className="mt-1 text-[10px] leading-relaxed text-white/75">{sub}</p>}
+      </div>
+      {right}
+    </div>
+  )
+}
+
+/** Executive card: white, 10px radius, hairline navy-tinted border. With a `title` it gets the navy header. */
+export function Panel({ children, className = '', title, sub, headerRight }: { children: React.ReactNode; className?: string; title?: string; sub?: React.ReactNode; headerRight?: React.ReactNode }) {
+  return (
+    <section className={`min-w-0 rounded-[var(--radius-card)] bg-surface ${className}`} style={{ border: '1px solid var(--card-border)' }}>
+      {title && <PanelHeader title={title} sub={sub} right={headerRight} />}
+      {children}
+    </section>
+  )
 }

@@ -289,7 +289,7 @@ export function DataTable<T>({
                   {cols.map((c, i) => (
                     <th
                       key={c.key}
-                      className={`border-b border-line bg-canvas/60 px-3 text-left text-xs font-medium text-muted first:pl-4 sm:first:pl-5 ${c.numeric ? 'text-right' : ''} ${hide(c)} ${
+                      className={`border-b border-line bg-canvas px-3 text-left text-[10px] font-bold uppercase tracking-[0.06em] text-faint first:pl-4 sm:first:pl-5 ${c.numeric ? 'text-right' : ''} ${hide(c)} ${
                         stickyFirst && i === 0 ? 'sticky left-0 z-10 bg-surface' : ''
                       }`}
                     >
@@ -305,7 +305,7 @@ export function DataTable<T>({
                       />
                     </th>
                   ))}
-                  {rowActions && <th className="w-px border-b border-line bg-canvas/60 pr-4" aria-label="Actions" />}
+                  {rowActions && <th className="w-px border-b border-line bg-canvas pr-4" aria-label="Actions" />}
                 </tr>
               </thead>
               <tbody key={current}>

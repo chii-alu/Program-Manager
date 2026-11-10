@@ -45,7 +45,7 @@ const capabilities = [
 
 function BrandPanel() {
   return (
-    <aside className="hidden flex-col bg-brand px-12 py-12 text-white lg:flex">
+    <aside className="hidden flex-col bg-brand-hover px-12 py-12 text-white lg:flex">
       <ChiiMark tone="light" height="h-12" />
       <p className="mt-8 text-[15px] leading-7 text-white/90">
         Manage every CHII intervention in one place, from sign-up to feedback. Track each young person across HEMP,
