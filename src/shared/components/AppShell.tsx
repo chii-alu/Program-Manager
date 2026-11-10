@@ -113,9 +113,28 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
   const primary = bottomFor(role)
   const me = roleMeta[role]
   const collapsed = sb.collapsed
+
+  // Hovering the collapsed rail peeks it open over the page; it shrinks back on leave.
+  const [peek, setPeek] = useState<'off' | 'open' | 'closing'>('off')
+  const peekTimer = useRef<number | undefined>(undefined)
+  const peeking = collapsed && peek === 'open'
+  const overlay = collapsed && peek !== 'off'
+  const peekEnter = () => {
+    window.clearTimeout(peekTimer.current)
+    if (!collapsed || !window.matchMedia('(hover: hover)').matches) return
+    peekTimer.current = window.setTimeout(() => setPeek('open'), 120)
+  }
+  const peekLeave = () => {
+    window.clearTimeout(peekTimer.current)
+    setPeek((p) => (p === 'open' ? 'closing' : 'off'))
+    peekTimer.current = window.setTimeout(() => setPeek('off'), 200)
+  }
+  useEffect(() => () => window.clearTimeout(peekTimer.current), [])
+
   const go = (k: string) => {
     setMoreOpen(false)
     setPaletteOpen(false)
+    peekLeave()
     onNavigate?.(k)
   }
 
@@ -141,6 +160,8 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
   }, [])
 
   const persist = (next: { width: number; collapsed: boolean }) => {
+    window.clearTimeout(peekTimer.current)
+    setPeek('off')
     setSb(next)
     try {
       localStorage.setItem(SB_KEY, JSON.stringify(next))
@@ -169,15 +190,21 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
     window.addEventListener('pointerup', up, { once: true })
   }
 
-  const wide = !collapsed
+  const wide = !collapsed || peeking
   const L = wide ? 'hidden lg:block' : 'hidden'
 
   return (
-    <div className={`flex h-full overflow-hidden bg-canvas text-ink ${dragging ? 'cursor-col-resize select-none' : ''}`}>
-      {/* Sidebar: rail on tablets, resizable on desktop */}
+    <div className={`relative flex h-full overflow-hidden bg-canvas text-ink ${dragging ? 'cursor-col-resize select-none' : ''}`}>
+      {/* Holds the rail's place in the layout while the sidebar peeks over the page */}
+      {overlay && <div aria-hidden className="hidden w-[68px] shrink-0 md:block" />}
+      {/* Sidebar: rail on tablets, resizable on desktop, peeks open on hover when collapsed */}
       <aside
-        style={{ ['--sbw' as string]: `${collapsed ? 68 : sb.width}px` }}
-        className={`relative hidden w-[68px] shrink-0 flex-col border-r border-line bg-surface md:flex lg:w-[var(--sbw)] ${dragging ? '' : 'transition-[width] duration-200 ease-out'}`}
+        style={{ ['--sbw' as string]: `${collapsed && !peeking ? 68 : sb.width}px` }}
+        onMouseEnter={peekEnter}
+        onMouseLeave={peekLeave}
+        className={`hidden w-[68px] shrink-0 flex-col border-r border-line bg-surface md:flex lg:w-[var(--sbw)] ${
+          overlay ? 'absolute inset-y-0 left-0 z-30 shadow-xl' : 'relative'
+        } ${dragging ? '' : 'transition-[width] duration-200 ease-out'}`}
       >
         <div className="flex h-14 items-center gap-2 border-b border-line px-4">
           <span className={wide ? 'lg:hidden' : ''}>
@@ -186,7 +213,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
           <span className={`min-w-0 flex-1 ${L}`}>
             <ChiiMark />
           </span>
-          {wide && (
+          {wide && !peeking && (
             <button
               type="button"
               onClick={() => persist({ ...sb, collapsed: true })}
@@ -221,10 +248,13 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
             <button
               type="button"
               onClick={() => persist({ ...sb, collapsed: false })}
-              title="Expand sidebar"
-              className="hidden h-9 w-full place-items-center rounded-lg text-muted hover:bg-canvas hover:text-ink lg:grid"
+              title={peeking ? 'Keep sidebar open' : 'Expand sidebar'}
+              className={`hidden h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm text-muted transition-colors duration-150 ease-out hover:bg-canvas hover:text-ink lg:flex ${
+                peeking ? 'lg:justify-start' : 'lg:justify-center'
+              }`}
             >
-              <ChevronsRight className="h-4 w-4" />
+              <ChevronsRight className="h-4 w-4 shrink-0" />
+              {peeking && <span className="truncate">Keep open</span>}
             </button>
           )}
           <FooterButton wide={wide} icon={theme === 'dark' ? Sun : Moon} label={theme === 'dark' ? 'Light mode' : 'Dark mode'} onClick={toggle} />
@@ -239,7 +269,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
           title="Drag to resize · double-click to reset"
           onPointerDown={startDrag}
           onDoubleClick={() => persist({ width: 248, collapsed: false })}
-          className="group absolute inset-y-0 -right-1.5 z-20 hidden w-3 cursor-col-resize lg:block"
+          className={`group absolute inset-y-0 -right-1.5 z-20 hidden w-3 cursor-col-resize ${overlay ? '' : 'lg:block'}`}
         >
           <span className={`absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 transition-colors duration-150 ease-out ${dragging ? 'bg-brand-600' : 'bg-transparent group-hover:bg-brand-200'}`} />
         </div>
@@ -386,20 +416,12 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
 /* ---------------- Sidebar pieces ---------------- */
 
 function ProfileCard({ role, portal, wide, onPortalChange }: { role: Role; portal: Portal; wide: boolean; onPortalChange?: (p: string) => void }) {
-  const me = roleMeta[role]
   const dept = department(role, portal)
   const { range, label } = useTimeRange()
   const stats = departmentStats(role, portal, range)
-  const avatar = (
-    <span className="relative shrink-0">
-      <Avatar initials={me.initials} />
-      <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-good ring-2 ring-surface" />
-    </span>
-  )
   return (
     <div className="border-b border-line px-2.5 py-3 lg:px-3">
-      <div className={`flex flex-col items-center gap-1.5 ${wide ? 'lg:hidden' : ''}`} title={`${me.user} · ${me.label} · ${dept.unit}`}>
-        {avatar}
+      <div className={`flex flex-col items-center gap-1.5 ${wide ? 'lg:hidden' : ''}`} title={`${portalMeta[portal].label} · ${dept.unit}`}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
             key={portal}
@@ -415,31 +437,12 @@ function ProfileCard({ role, portal, wide, onPortalChange }: { role: Role; porta
       </div>
       {wide && (
         <div className="hidden lg:block">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={`${role}-${portal}`}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
-              className="flex items-center gap-2.5"
-            >
-              {avatar}
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[13px] font-semibold">{me.user}</div>
-                <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
-                  <span className="shrink-0 rounded bg-brand-50 px-1.5 py-px text-[10px] font-semibold text-brand-600">{me.label}</span>
-                  <span className="truncate text-[11px] text-muted">{dept.unit}</span>
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
           {role === 'admin' ? (
             <Popover
               align="left"
               width="w-[calc(100%)] min-w-[220px]"
               trigger={({ toggle }) => (
-                <button type="button" onClick={toggle} className="mt-2.5 flex w-full items-center gap-2 rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-left transition-colors duration-150 ease-out hover:border-line-strong">
+                <button type="button" onClick={toggle} className="flex w-full items-center gap-2 rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-left transition-colors duration-150 ease-out hover:border-line-strong">
                   <span className="text-xs font-semibold">{portalMeta[portal].label}</span>
                   <span className="min-w-0 flex-1 truncate text-[11px] text-muted">{dept.scope}</span>
                   <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted" />
@@ -449,7 +452,7 @@ function ProfileCard({ role, portal, wide, onPortalChange }: { role: Role; porta
               {(close) => <PortalList portal={portal} onPick={(p) => (onPortalChange?.(p), close())} />}
             </Popover>
           ) : (
-            <div className="mt-2.5 truncate rounded-lg bg-canvas px-2.5 py-1.5 text-[11px] text-muted">{dept.scope}</div>
+            <div className="truncate rounded-lg bg-canvas px-2.5 py-1.5 text-[11px] text-muted">{dept.scope}</div>
           )}
           {stats.length > 0 && (
             <AnimatePresence mode="wait" initial={false}>
