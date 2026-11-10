@@ -8,7 +8,6 @@ import {
   Check,
   ChevronDown,
   ChevronsLeft,
-  ChevronsRight,
   ChevronsUpDown,
   ClipboardCheck,
   CornerDownLeft,
@@ -173,7 +172,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
   const startDrag = (e: React.PointerEvent) => {
     e.preventDefault()
     const startX = e.clientX
-    const startW = collapsed ? 68 : sb.width
+    const startW = collapsed && !peeking ? 68 : sb.width
     let latest = sb
     setDragging(true)
     const move = (ev: PointerEvent) => {
@@ -244,20 +243,6 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
         </nav>
 
         <div className="space-y-0.5 border-t border-line p-2.5 lg:p-3">
-          {collapsed && (
-            <button
-              type="button"
-              onClick={() => persist({ ...sb, collapsed: false })}
-              title={peeking ? 'Keep sidebar open' : 'Expand sidebar'}
-              className={`hidden h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm text-muted transition-colors duration-150 ease-out hover:bg-canvas hover:text-ink lg:flex ${
-                peeking ? 'lg:justify-start' : 'lg:justify-center'
-              }`}
-            >
-              <ChevronsRight className="h-4 w-4 shrink-0" />
-              {peeking && <span className="truncate">Keep open</span>}
-            </button>
-          )}
-          <FooterButton wide={wide} icon={theme === 'dark' ? Sun : Moon} label={theme === 'dark' ? 'Light mode' : 'Dark mode'} onClick={toggle} />
           <FooterButton wide={wide} icon={LogOut} label="Sign out" onClick={onSignOut} danger />
         </div>
 
@@ -269,7 +254,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
           title="Drag to resize · double-click to reset"
           onPointerDown={startDrag}
           onDoubleClick={() => persist({ width: 248, collapsed: false })}
-          className={`group absolute inset-y-0 -right-1.5 z-20 hidden w-3 cursor-col-resize ${overlay ? '' : 'lg:block'}`}
+          className="group absolute inset-y-0 -right-1.5 z-20 hidden w-3 cursor-col-resize lg:block"
         >
           <span className={`absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 transition-colors duration-150 ease-out ${dragging ? 'bg-brand-600' : 'bg-transparent group-hover:bg-brand-200'}`} />
         </div>
