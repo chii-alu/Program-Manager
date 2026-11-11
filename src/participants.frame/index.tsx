@@ -36,7 +36,7 @@ export default function Participants(props: Props) {
   const avgAtt = rows.length ? Math.round(rows.reduce((n, x) => n + x.attendance, 0) / rows.length) : 0
 
   const columns: Column<Participant>[] = [
-    { key: 'id', label: 'CHII ID', render: (x) => <span className="font-mono text-[13px] font-medium text-brand-600">{x.id}</span> },
+    { key: 'id', label: 'CHII ID', render: (x) => <span className="whitespace-nowrap font-mono text-[13px] font-medium text-brand-600">{x.id}</span> },
     {
       key: 'name',
       label: 'Name',
@@ -69,7 +69,7 @@ export default function Participants(props: Props) {
     { key: 'status', label: 'Status', render: (x) => <StatusPill s={x.status} /> },
     { key: 'sessions', label: 'Sessions', numeric: true },
     { key: 'attendance', label: 'Attendance', numeric: true, value: (x) => x.attendance, render: (x) => <Attendance pct={x.attendance} /> },
-    { key: 'lastActive', label: 'Last active', hideBelow: 'lg', filterable: false },
+    { key: 'lastActive', className: 'whitespace-nowrap', label: 'Last active', hideBelow: 'lg', filterable: false },
   ]
 
   return (

@@ -90,7 +90,7 @@ export default function Person(props: Props) {
             <div className="min-w-0">
               <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">{showId ? person.name : 'Identity restricted'}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
-                <button type="button" className="inline-flex items-center gap-1 font-mono text-[13px] font-medium text-brand-600 hover:underline" title="Copy CHII ID">
+                <button type="button" className="inline-flex items-center gap-1 whitespace-nowrap font-mono text-[13px] font-medium text-brand-600 hover:underline" title="Copy CHII ID">
                   {person.id} <Copy className="h-3 w-3" />
                 </button>
                 <span className="text-faint">·</span>

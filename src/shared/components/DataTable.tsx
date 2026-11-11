@@ -154,7 +154,7 @@ export function DataTable<T>({
   const hide = (c: Column<T>) => (c.hideBelow === 'xl' ? 'hidden xl:table-cell' : c.hideBelow === 'lg' ? 'hidden lg:table-cell' : '')
 
   return (
-    <section className="min-w-0 rounded-xl border border-line bg-surface">
+    <section className="min-w-0 rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-surface">
       {exportable && (
         <ExportModal
           open={!!exportFmt}
@@ -171,7 +171,7 @@ export function DataTable<T>({
       {above}
 
       {/* Toolbar */}
-      <div className="flex flex-col gap-2 border-b border-line p-3 sm:p-4 lg:flex-row lg:items-center">
+      <div className="flex flex-col gap-2 border-b border-line px-3 py-2.5 sm:px-4 lg:flex-row lg:items-center">
         <div className="flex min-w-0 gap-2 lg:flex-1">
           <label className="relative min-w-0 flex-1 lg:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
@@ -182,7 +182,7 @@ export function DataTable<T>({
                 setPage(0)
               }}
               placeholder={searchPlaceholder}
-              className="h-9 w-full rounded-lg border border-line-strong bg-surface pl-9 pr-8 text-sm outline-none placeholder:text-faint focus:border-brand-600 focus:ring-3 focus:ring-brand-100"
+              className="h-9 w-full rounded-md border border-line bg-surface pl-9 pr-8 text-[13px] outline-none placeholder:text-faint focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
             />
             {q && (
               <button type="button" aria-label="Clear search" onClick={() => setQ('')} className="absolute right-2 top-1/2 grid h-5 w-5 -translate-y-1/2 place-items-center rounded text-faint hover:text-ink">
@@ -209,7 +209,7 @@ export function DataTable<T>({
           <Popover
             width="w-56"
             trigger={({ toggle }) => (
-              <button type="button" onClick={toggle} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-sm font-medium text-body hover:bg-canvas">
+              <button type="button" onClick={toggle} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[13px] font-semibold text-body hover:bg-canvas">
                 <Columns3 className="h-4 w-4" /> Columns
                 {hidden.length > 0 && <span className="text-xs text-muted">−{hidden.length}</span>}
               </button>
@@ -236,7 +236,7 @@ export function DataTable<T>({
             <Popover
               width="w-48"
               trigger={({ toggle }) => (
-                <button type="button" onClick={toggle} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-sm font-medium text-body hover:bg-canvas">
+                <button type="button" onClick={toggle} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[13px] font-semibold text-body hover:bg-canvas">
                   <Download className="h-4 w-4" /> Export <ChevronDown className="h-3.5 w-3.5 text-muted" />
                 </button>
               )}
@@ -257,7 +257,7 @@ export function DataTable<T>({
 
       {/* Active filters */}
       {(active.length > 0 || q) && (
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-line px-3 py-2 sm:px-4">
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-line bg-canvas/40 px-3 py-2 sm:px-4">
           {q && <Chip label={`“${q}”`} onRemove={() => setQ('')} />}
           {active.map(([k, f]) => (
             <Chip
@@ -283,13 +283,13 @@ export function DataTable<T>({
         <>
           {/* Desktop / tablet table */}
           <div className={`scrollbar-thin overflow-x-auto ${mobileRow ? 'hidden md:block' : ''}`}>
-            <table className="w-full border-separate border-spacing-0 text-sm">
+            <table className="w-full border-separate border-spacing-0 text-[13px]">
               <thead>
                 <tr>
                   {cols.map((c, i) => (
                     <th
                       key={c.key}
-                      className={`border-b border-line bg-canvas px-3 text-left text-[10px] font-bold uppercase tracking-[0.06em] text-faint first:pl-4 sm:first:pl-5 ${c.numeric ? 'text-right' : ''} ${hide(c)} ${
+                      className={`whitespace-nowrap border-b-2 border-line bg-canvas px-3 text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-muted first:pl-4 sm:first:pl-5 ${c.numeric ? 'text-right' : ''} ${hide(c)} ${
                         stickyFirst && i === 0 ? 'sticky left-0 z-10 bg-surface' : ''
                       }`}
                     >
@@ -305,7 +305,7 @@ export function DataTable<T>({
                       />
                     </th>
                   ))}
-                  {rowActions && <th className="w-px border-b border-line bg-canvas pr-4" aria-label="Actions" />}
+                  {rowActions && <th className="w-px border-b-2 border-line bg-canvas pr-4" aria-label="Actions" />}
                 </tr>
               </thead>
               <tbody key={current}>
@@ -324,7 +324,7 @@ export function DataTable<T>({
                     {cols.map((c, i) => (
                       <td
                         key={c.key}
-                        className={`border-b border-line px-3 ${compact ? 'py-2' : 'py-2.5'} align-middle transition-colors duration-150 ease-out first:pl-4 group-last:border-0 group-hover:bg-canvas group-data-[hl]:bg-brand-50 sm:first:pl-5 ${
+                        className={`border-b border-line px-3 ${compact ? 'py-2' : 'py-2.5'} align-middle leading-5 text-body transition-colors duration-150 ease-out first:pl-4 first:font-medium first:text-ink group-last:border-0 group-hover:bg-canvas group-data-[hl]:bg-brand-50 sm:first:pl-5 ${
                           c.numeric ? 'text-right tabular-nums' : ''
                         } ${hide(c)} ${stickyFirst && i === 0 ? 'sticky left-0 z-10 bg-surface' : ''} ${c.className ?? ''}`}
                       >
@@ -369,7 +369,7 @@ export function DataTable<T>({
 
       {/* Footer */}
       {view.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-3 py-2.5 text-xs text-muted sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-canvas/60 px-3 py-2 text-xs text-muted sm:px-4">
           <div className="flex items-center gap-3">
             <span className="tabular-nums">
               {current * size + 1}–{Math.min(view.length, current * size + size)} of {view.length.toLocaleString()}
@@ -384,7 +384,7 @@ export function DataTable<T>({
                 setPage(0)
               }}
               aria-label="Rows per page"
-              className="hidden h-8 rounded-md border border-line bg-surface px-2 text-xs outline-none sm:block"
+              className="hidden h-7 rounded-md border border-line bg-surface px-2 text-[11px] font-medium outline-none sm:block"
             >
               {[10, 25, 50].map((n) => (
                 <option key={n} value={n}>
@@ -392,13 +392,13 @@ export function DataTable<T>({
                 </option>
               ))}
             </select>
-            <button type="button" aria-label="Previous page" disabled={current === 0} onClick={() => setPage(current - 1)} className="grid h-8 w-8 place-items-center rounded-md border border-line text-ink hover:bg-canvas disabled:opacity-40">
+            <button type="button" aria-label="Previous page" disabled={current === 0} onClick={() => setPage(current - 1)} className="grid h-7 w-7 place-items-center rounded-md border border-line bg-surface text-ink hover:bg-canvas disabled:opacity-40">
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="tabular-nums">
               {current + 1} / {pages}
             </span>
-            <button type="button" aria-label="Next page" disabled={current >= pages - 1} onClick={() => setPage(current + 1)} className="grid h-8 w-8 place-items-center rounded-md border border-line text-ink hover:bg-canvas disabled:opacity-40">
+            <button type="button" aria-label="Next page" disabled={current >= pages - 1} onClick={() => setPage(current + 1)} className="grid h-7 w-7 place-items-center rounded-md border border-line bg-surface text-ink hover:bg-canvas disabled:opacity-40">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -581,7 +581,7 @@ function HeaderMenu<T>({
           {col.label}
           {sortDir === 1 && <ArrowUp className="h-3 w-3" />}
           {sortDir === -1 && <ArrowDown className="h-3 w-3" />}
-          {activeF ? <Filter className="h-3 w-3" /> : <ChevronDown className="h-3 w-3 opacity-50" />}
+          {activeF ? <Filter className="h-3 w-3" /> : <ChevronDown className="h-3 w-3 opacity-40" />}
         </button>
       )}
     >

@@ -40,8 +40,8 @@ export default function Feedbacks(props: Props) {
   const dist = Array.from({ length: 11 }, (_, i) => ({ score: String(i), count: inPeriod.filter((f) => f.nps === i).length }))
 
   const columns: Column<FeedbackRow>[] = [
-    { key: 'chiiId', label: 'CHII ID', render: (f) => <span className="font-mono text-[13px] font-medium text-brand-600">{f.chiiId}</span> },
-    { key: 'date', label: 'Date', filterable: false, value: (f) => f.date },
+    { key: 'chiiId', label: 'CHII ID', render: (f) => <span className="whitespace-nowrap font-mono text-[13px] font-medium text-brand-600">{f.chiiId}</span> },
+    { key: 'date', className: 'whitespace-nowrap', label: 'Date', filterable: false, value: (f) => f.date },
     { key: 'pillar', label: 'Pillar', render: (f) => <PillarTag pillar={f.pillar} /> },
     { key: 'intervention', label: 'Intervention' },
     { key: 'session', label: 'Session', hideBelow: 'xl', render: (f) => <span className="block max-w-[200px] truncate">{f.session}</span> },

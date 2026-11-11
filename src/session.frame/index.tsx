@@ -211,13 +211,13 @@ function PeopleTab({ role, selective, intervention, session, onOpenPerson }: { r
   }
 
   const columns: Column<Entry>[] = [
-    { key: 'id', label: 'CHII ID', render: (x) => <span className="font-mono text-[13px] font-medium text-brand-600">{x.id}</span> },
+    { key: 'id', label: 'CHII ID', render: (x) => <span className="whitespace-nowrap font-mono text-[13px] font-medium text-brand-600">{x.id}</span> },
     { key: 'name', label: 'Name', restricted: true, filterable: false, render: (x) => <span className="block max-w-[200px] truncate font-medium">{x.name}</span> },
     { key: 'email', label: 'Email', restricted: true, exportOnly: true },
     { key: 'gender', label: 'Gender', hideBelow: 'lg' },
     { key: 'country', label: 'Country' },
     { key: 'age', label: 'Age', numeric: true, hideBelow: 'xl' },
-    { key: 'submitted', label: selective ? 'Applied' : 'Registered', filterable: false, hideBelow: 'lg' },
+    { key: 'submitted', className: 'whitespace-nowrap', label: selective ? 'Applied' : 'Registered', filterable: false, hideBelow: 'lg' },
     ...(selective
       ? [{ key: 'score', label: 'Score /20', numeric: true, value: (x: Entry) => x.score ?? '', render: (x: Entry) => (x.score != null ? <span className={`font-semibold ${x.score >= 16 ? 'text-good' : ''}`}>{x.score}</span> : <span className="text-xs text-warn">Unscored</span>) } as Column<Entry>]
       : []),

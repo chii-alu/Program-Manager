@@ -157,7 +157,7 @@ function MobileLine({ id, title, meta }: { id: string; title: string; meta: stri
   )
 }
 
-const idCell = (id: string) => <span className="font-mono text-[13px] font-medium text-brand-600">{id}</span>
+const idCell = (id: string) => <span className="whitespace-nowrap font-mono text-[13px] font-medium text-brand-600">{id}</span>
 
 const peopleCols: Column<Participant>[] = [
   { key: 'id', label: 'CHII ID', render: (x) => idCell(x.id) },
@@ -176,14 +176,14 @@ const attCols: Column<Attendance>[] = [
   { key: 'chiiId', label: 'CHII ID', render: (x) => idCell(x.chiiId) },
   { key: 'session', label: 'Session' },
   { key: 'pillar', label: 'Pillar', render: (x) => <PillarTag pillar={x.pillar} /> },
-  { key: 'date', label: 'Date', filterable: false },
+  { key: 'date', className: 'whitespace-nowrap', label: 'Date', filterable: false },
   { key: 'time', label: 'Checked in', filterable: false },
   { key: 'method', label: 'Method' },
 ]
 
 const fbCols: Column<FeedbackRow>[] = [
   { key: 'chiiId', label: 'CHII ID', render: (x) => idCell(x.chiiId) },
-  { key: 'date', label: 'Date', filterable: false },
+  { key: 'date', className: 'whitespace-nowrap', label: 'Date', filterable: false },
   { key: 'pillar', label: 'Pillar', render: (x) => <PillarTag pillar={x.pillar} /> },
   { key: 'session', label: 'Session' },
   { key: 'satisfaction', label: 'Satisfaction', numeric: true },

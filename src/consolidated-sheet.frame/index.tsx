@@ -182,7 +182,7 @@ export default function ConsolidatedSheet(props: Props) {
                           <td
                             key={c.key}
                             className={`whitespace-nowrap border-b border-line px-3 py-2 group-hover:bg-canvas ${c.numeric ? 'text-right tabular-nums' : ''} ${
-                              i === 0 ? 'sticky left-0 z-10 border-r bg-surface pl-4 font-mono text-[13px] font-medium text-brand-600' : 'text-body'
+                              i === 0 ? 'sticky left-0 z-10 border-r bg-surface pl-4 whitespace-nowrap font-mono text-[13px] font-medium text-brand-600' : 'text-body'
                             }`}
                           >
                             {r[c.key] === '' ? <span className="text-faint">—</span> : r[c.key]}
