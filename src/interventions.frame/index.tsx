@@ -48,7 +48,7 @@ export default function Interventions(props: Props) {
           onCloseNew?.()
         }}
       />
-      <div className="mx-auto max-w-[1240px] space-y-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+      <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-5">
         <PageHeader
           crumbs={[portalMeta[portal].label, 'Interventions']}
           title="Interventions"

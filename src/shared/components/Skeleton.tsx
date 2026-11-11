@@ -7,7 +7,7 @@ export function Bone({ className = '', style }: { className?: string; style?: Re
 /** Mirrors the common page layout: header, a summary strip, then a table panel. */
 export function PageSkeleton() {
   return (
-    <div className="mx-auto max-w-[1240px] space-y-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8" aria-busy="true" aria-label="Loading">
+    <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-5" aria-busy="true" aria-label="Loading">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
           <Bone className="h-3 w-28" />
@@ -32,7 +32,7 @@ export function PageSkeleton() {
 /** For chart-led pages: a hero chart, then a row of two smaller panels. */
 export function ChartsPageSkeleton() {
   return (
-    <div className="mx-auto max-w-[1240px] space-y-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8" aria-busy="true" aria-label="Loading">
+    <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-5" aria-busy="true" aria-label="Loading">
       <div className="space-y-2">
         <Bone className="h-3 w-28" />
         <Bone className="h-7 w-64 max-w-full" />

@@ -53,7 +53,7 @@ export default function Overview(props: Props) {
       {role === 'reviewer' ? (
         <ReviewerHome name={firstName} onNavigate={onNavigate} />
       ) : (
-        <div className="mx-auto max-w-[1240px] space-y-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-5">
           <PageHeader
             crumbs={[portalMeta[portal].label, 'Overview']}
             title={`${greeting}, ${firstName}`}
@@ -312,7 +312,7 @@ const applicants = [
 function ReviewerHome({ name, onNavigate }: { name: string; onNavigate?: (to: string) => void }) {
   const left = queue.reduce((n, q) => n + (q.total - q.done), 0)
   return (
-    <div className="mx-auto max-w-[1100px] space-y-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+    <div className="mx-auto max-w-[1100px] space-y-5 px-4 py-5 sm:px-5">
       <PageHeader
         crumbs={['Review', 'Queue']}
         title={`${left} applications to score`}

@@ -73,7 +73,7 @@ export default function Person(props: Props) {
           <li>The action is recorded with your name.</li>
         </ul>
       </Modal>
-      <div className="mx-auto max-w-[1240px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+      <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-5">
         {anonymised && (
           <div className="mb-4 rounded-lg border border-warn/20 bg-warn-bg px-3.5 py-2.5 text-sm text-warn">This person was anonymised. Their identity fields are now empty.</div>
         )}

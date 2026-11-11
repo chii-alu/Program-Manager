@@ -42,7 +42,7 @@ export default function Session(props: Props) {
   return (
     <AppShell role={role} portal={portal} active="interventions" onNavigate={onNavigate} onPortalChange={onPortalChange} onSignOut={onSignOut}>
       <ShareModal form={share} onClose={() => setShare(null)} />
-      <div className="mx-auto max-w-[1240px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+      <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-5">
         <button type="button" onClick={onBack} className="-ml-1 flex items-center gap-1.5 rounded-md px-1 py-1 text-sm font-medium text-muted hover:text-ink">
           <ArrowLeft className="h-4 w-4" /> Interventions
         </button>

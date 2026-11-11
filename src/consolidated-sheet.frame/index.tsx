@@ -64,7 +64,7 @@ export default function ConsolidatedSheet(props: Props) {
         defaultFormat={exporting ?? 'xlsx'}
         canSeeRestricted={showId}
       />
-      <div className="mx-auto max-w-[1400px] space-y-4 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+      <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-5 sm:px-5">
         <PageHeader
           crumbs={['Database', pillarLabel, sheet === 'feedback' ? 'Feedback' : 'Participants']}
           title={`${pillarLabel} ${sheet === 'feedback' ? 'feedback' : 'participants'}`}
