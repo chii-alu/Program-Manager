@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react'
-import { Copy, MessageSquareText, UserRound } from 'lucide-react'
+import { Copy, MessageSquareText, Star, Target, TrendingUp, UserRound } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AppShell } from '../shared/components/AppShell'
 import { PageHeader, Panel, PillarTag } from '../shared/components/ui'
 import { Column, DataTable } from '../shared/components/DataTable'
-import { StatStrip } from '../shared/components/StatStrip'
-import { ChartTooltip, axisProps } from '../shared/components/charts'
+import { StatCards } from '../shared/components/StatStrip'
+import { ChartTooltip, axisProps, gridProps, valueAxisProps, categoryAxisProps, valueLabelProps } from '../shared/components/charts'
 import { FeedbackRow, Portal, Role, feedbackRows, pillarsFor, portalMeta } from '../shared/data/mela'
 import { inRange, previous, useTimeRange } from '../shared/lib/time'
 import { toast } from '../shared/lib/notify'
@@ -61,12 +61,12 @@ export default function Feedbacks(props: Props) {
         />
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-          <StatStrip
+          <StatCards
             items={[
-              { label: 'Responses', value: inPeriod.length, prev: prev.length, primary: true },
-              { label: 'NPS', value: nps(inPeriod), display: `${nps(inPeriod) > 0 ? '+' : ''}${nps(inPeriod)}`, hint: `previous period ${nps(prev) > 0 ? '+' : ''}${nps(prev)}` },
-              { label: 'Satisfaction', value: 0, display: `${avg('satisfaction')}/5`, hint: 'average score' },
-              { label: 'Relevance', value: 0, display: `${avg('relevance')}/5`, hint: 'average score' },
+              { label: 'Responses', value: inPeriod.length, prev: prev.length, icon: MessageSquareText, hint: 'vs previous period' },
+              { label: 'NPS', value: nps(inPeriod), display: `${nps(inPeriod) > 0 ? '+' : ''}${nps(inPeriod)}`, icon: TrendingUp, hint: `previous period ${nps(prev) > 0 ? '+' : ''}${nps(prev)}` },
+              { label: 'Satisfaction', value: 0, display: `${avg('satisfaction')}/5`, icon: Star, hint: 'average score' },
+              { label: 'Relevance', value: 0, display: `${avg('relevance')}/5`, icon: Target, hint: 'average score' },
             ]}
           />
           <Panel
@@ -85,9 +85,9 @@ export default function Feedbacks(props: Props) {
             <div className="mt-3 h-[92px] px-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dist} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
-                  <XAxis dataKey="score" {...axisProps} interval={0} />
-                  <YAxis {...axisProps} width={36} allowDecimals={false} />
+                  <CartesianGrid vertical={false} {...gridProps} />
+                  <XAxis dataKey="score" {...categoryAxisProps} interval={0} />
+                  <YAxis {...valueAxisProps} width={36} allowDecimals={false} />
                   <Tooltip cursor={{ fill: 'var(--chart-cursor)' }} content={<ChartTooltip />} />
                   <Bar dataKey="count" name="Responses" radius={[4, 4, 0, 0]} onClick={(d: { score?: string }) => setScore((s) => (s === Number(d.score) ? null : Number(d.score)))} className="cursor-pointer">
                     {dist.map((d) => {

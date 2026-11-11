@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { AreaChart as AreaIcon, BarChart3, Download, Info, Layers, LineChart as LineIcon, X } from 'lucide-react'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AppShell } from '../shared/components/AppShell'
 import { Button, PageHeader, Panel, PillarTag, PanelHeader } from '../shared/components/ui'
-import { ChartTooltip, axisProps, chartColors } from '../shared/components/charts'
+import { ChartTooltip, Funnel, axisProps, categoryAxisProps, chartColors, gridProps, lineProps, valueAxisProps, valueLabelProps } from '../shared/components/charts'
+import { DonutRing } from '../shared/components/DonutRing'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { CountUp, Delta } from '../shared/components/StatStrip'
 import { ExportModal } from '../shared/components/ExportModal'
@@ -192,9 +193,9 @@ export default function Analytics(props: Props) {
             <ResponsiveContainer width="100%" height="100%">
               {chart === 'bar' ? (
                 <BarChart data={shaped} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+                  <CartesianGrid vertical={false} {...gridProps} />
                   <XAxis dataKey="label" {...axisProps} minTickGap={16} />
-                  <YAxis {...axisProps} width={40} />
+                  <YAxis {...valueAxisProps} width={40} />
                   <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
                   {keys.map((k) => (
                     <Bar key={k.key} dataKey={k.key} name={cap(k.key)} stackId={metric === 'reach' ? '1' : undefined} fill={k.color} radius={metric === 'reach' ? 0 : [3, 3, 0, 0]} {...anim} />
@@ -202,19 +203,19 @@ export default function Analytics(props: Props) {
                 </BarChart>
               ) : chart === 'line' ? (
                 <LineChart data={shaped} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+                  <CartesianGrid vertical={false} {...gridProps} />
                   <XAxis dataKey="label" {...axisProps} minTickGap={16} />
-                  <YAxis {...axisProps} width={40} />
+                  <YAxis {...valueAxisProps} width={40} />
                   <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-line-strong)', strokeDasharray: '3 3' }} />
                   {keys.map((k) => (
-                    <Line key={k.key} dataKey={k.key} name={cap(k.key)} type="monotone" stroke={k.color} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} {...anim} />
+                    <Line key={k.key} dataKey={k.key} name={cap(k.key)} stroke={k.color} {...lineProps} {...anim} />
                   ))}
                 </LineChart>
               ) : (
                 <AreaChart data={shaped} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+                  <CartesianGrid vertical={false} {...gridProps} />
                   <XAxis dataKey="label" {...axisProps} minTickGap={16} />
-                  <YAxis {...axisProps} width={40} />
+                  <YAxis {...valueAxisProps} width={40} />
                   <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-line-strong)', strokeDasharray: '3 3' }} />
                   {keys.map((k) => (
                     <Area key={k.key} dataKey={k.key} name={cap(k.key)} type="monotone" stackId={metric === 'reach' ? '1' : undefined} stroke={k.color} fill={k.color} fillOpacity={metric === 'reach' ? 0.85 : 0.18} strokeWidth={metric === 'reach' ? 0 : 2} {...anim} />
@@ -250,16 +251,17 @@ export default function Analytics(props: Props) {
             ) : (
               <div className="-ml-2 mt-3" style={{ height: Math.max(180, npsData.length * 30) }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={npsData} layout="vertical" margin={{ top: 0, right: 28, left: 4, bottom: 0 }}>
-                    <CartesianGrid horizontal={false} stroke="var(--chart-grid)" />
-                    <XAxis type="number" domain={[-100, 100]} {...axisProps} />
-                    <YAxis type="category" dataKey="name" {...axisProps} width={120} />
+                  {/* Executive ranked bars: label column, hidden value axis, figure at the end of each bar */}
+                  <BarChart data={npsData} layout="vertical" margin={{ top: 0, right: 44, left: 4, bottom: 0 }} barCategoryGap={10}>
+                    <XAxis type="number" domain={[-100, 100]} hide />
+                    <YAxis type="category" dataKey="name" tick={{ fill: 'var(--color-body)', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} width={120} />
+                    <ReferenceLine x={0} stroke="var(--color-line-strong)" />
                     <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
                     <Bar
                       dataKey="nps"
                       name="NPS"
                       radius={[0, 4, 4, 0]}
-                      barSize={14}
+                      barSize={18}
                       className="cursor-pointer"
                       onClick={(d: { name?: string }) => setCross((c) => ({ ...c, intervention: c.intervention === d.name ? undefined : d.name }))}
                       onMouseEnter={(d: { name?: string }) => setHover(d.name ?? null)}
@@ -268,8 +270,9 @@ export default function Analytics(props: Props) {
                     >
                       {npsData.map((d) => {
                         const dim = (cross.intervention && cross.intervention !== d.name) || (hover && hover !== d.name)
-                        return <Cell key={d.name} fill={d.nps >= 30 ? 'var(--color-brand)' : d.nps >= 0 ? 'var(--color-brand-200)' : 'var(--color-bad)'} fillOpacity={dim ? 0.3 : 1} />
+                        return <Cell key={d.name} fill={d.nps >= 30 ? 'var(--color-navy)' : d.nps >= 0 ? 'var(--color-brand-200)' : 'var(--color-bad)'} fillOpacity={dim ? 0.4 : 1} />
                       })}
+                      <LabelList dataKey="nps" position="right" {...valueLabelProps} fill="var(--color-brand-600)" formatter={(v: number) => (v > 0 ? `+${v}` : String(v))} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -281,63 +284,23 @@ export default function Analytics(props: Props) {
             {/* Funnel */}
             <Panel className="p-4 sm:p-5">
               <ChartHead title="Registration to feedback" sub="Where people drop out" />
-              <ol className="mt-4 space-y-3">
-                {funnel.map((f, i) => {
-                  const pct = funnel[0].value ? (f.value / funnel[0].value) * 100 : 0
-                  const step = i > 0 && funnel[i - 1].value ? Math.round((f.value / funnel[i - 1].value) * 100) : null
-                  return (
-                    <li key={f.stage} className="group">
-                      <div className="flex items-baseline justify-between gap-2 text-sm">
-                        <span className="font-medium">{f.stage}</span>
-                        <span className="tabular-nums">
-                          <span className="font-semibold">
-                            <CountUp value={f.value} />
-                          </span>
-                          {step !== null && <span className={`ml-2 text-xs ${step < 50 ? 'text-bad' : 'text-muted'}`}>{step}%</span>}
-                        </span>
-                      </div>
-                      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-canvas">
-                        <motion.div className="h-full origin-left rounded-full bg-brand" style={{ opacity: 1 - i * 0.18 }} initial={false} animate={{ width: `${pct}%` }} transition={{ duration: reduce ? 0 : 0.28, ease: [0.23, 1, 0.32, 1] }} />
-                      </div>
-                    </li>
-                  )
-                })}
-              </ol>
+              <div className="mt-4">
+                <Funnel steps={funnel.map((f) => ({ label: f.stage, value: f.value }))} />
+              </div>
             </Panel>
 
             {/* Gender: click a slice to filter */}
             <Panel className="p-4 sm:p-5">
               <ChartHead title="Gender" sub={`${people.length} people · click to filter`} />
-              <div className="mt-2 flex items-center gap-4">
-                <div className="relative h-32 w-32 shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={genderData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={60} paddingAngle={2} stroke="none" onClick={(d: { key?: 'F' | 'M' }) => setCross((c) => ({ ...c, gender: c.gender === d.key ? undefined : d.key }))} className="cursor-pointer" {...anim}>
-                        {genderData.map((g, i) => (
-                          <Cell key={g.key} fill={g.key === 'F' ? chartColors.female : chartColors.male} fillOpacity={cross.gender && cross.gender !== g.key ? 0.3 : 1} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<ChartTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
-                    <div>
-                      <div className="text-lg font-semibold tabular-nums">{people.length ? Math.round((genderData[0].value / (people.length || 1)) * 100) : 0}%</div>
-                      <div className="text-[11px] text-muted">female</div>
-                    </div>
-                  </div>
-                </div>
-                <ul className="min-w-0 flex-1 space-y-1">
-                  {genderData.map((g, i) => (
-                    <li key={g.key}>
-                      <button type="button" onClick={() => setCross((c) => ({ ...c, gender: c.gender === g.key ? undefined : g.key }))} className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors duration-150 ease-out hover:bg-canvas ${cross.gender === g.key ? 'bg-brand-50' : ''}`}>
-                        <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: ['var(--color-brand)', 'var(--color-brand-200)'][i] }} />
-                        <span className="min-w-0 flex-1 truncate text-left text-body">{g.name}</span>
-                        <span className="font-medium tabular-nums">{g.value}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+              <div className="mt-3">
+                <DonutRing
+                  data={genderData}
+                  colors={{ F: chartColors.female, M: chartColors.male }}
+                  totalLabel="people"
+                  selected={cross.gender ?? null}
+                  onSelect={(d) => setCross((c) => ({ ...c, gender: c.gender === d.key ? undefined : (d.key as 'F' | 'M') }))}
+                  animate={!reduce}
+                />
               </div>
             </Panel>
           </div>
@@ -349,11 +312,11 @@ export default function Analytics(props: Props) {
             <div className="-ml-3 mt-3 h-44">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={rate} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+                  <CartesianGrid vertical={false} {...gridProps} />
                   <XAxis dataKey="label" {...axisProps} minTickGap={18} />
-                  <YAxis {...axisProps} width={40} domain={[50, 100]} unit="%" />
+                  <YAxis {...valueAxisProps} width={40} domain={[50, 100]} unit="%" />
                   <Tooltip content={<ChartTooltip suffix="%" />} cursor={{ stroke: 'var(--color-line-strong)', strokeDasharray: '3 3' }} />
-                  <Line dataKey="rate" name="Attendance" type="monotone" stroke="var(--color-navy)" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} {...anim} />
+                  <Line dataKey="rate" name="Attendance" stroke="var(--color-navy)" {...lineProps} {...anim} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -362,15 +325,16 @@ export default function Analytics(props: Props) {
             <ChartHead title="Age" sub="Click a bar to filter" />
             <div className="-ml-3 mt-3 h-44">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={ageData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
-                  <XAxis dataKey="bucket" {...axisProps} />
-                  <YAxis {...axisProps} width={40} allowDecimals={false} />
+                <BarChart data={ageData} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid vertical={false} {...gridProps} />
+                  <XAxis dataKey="bucket" {...categoryAxisProps} />
+                  <YAxis {...valueAxisProps} width={40} allowDecimals={false} />
                   <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
-                  <Bar dataKey="people" name="People" radius={[4, 4, 0, 0]} className="cursor-pointer" onClick={(d: { bucket?: string }) => setCross((c) => ({ ...c, age: c.age === d.bucket ? undefined : d.bucket }))} {...anim}>
+                  <Bar dataKey="people" name="People" radius={[4, 4, 0, 0]} barSize={30} className="cursor-pointer" onClick={(d: { bucket?: string }) => setCross((c) => ({ ...c, age: c.age === d.bucket ? undefined : d.bucket }))} {...anim}>
                     {ageData.map((a) => (
-                      <Cell key={a.bucket} fill="var(--color-brand)" fillOpacity={cross.age && cross.age !== a.bucket ? 0.3 : 1} />
+                      <Cell key={a.bucket} fill="var(--color-navy)" fillOpacity={cross.age && cross.age !== a.bucket ? 0.4 : 1} />
                     ))}
+                    <LabelList dataKey="people" position="top" {...valueLabelProps} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

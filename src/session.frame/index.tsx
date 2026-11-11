@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { ArrowLeft, Check, Copy, ExternalLink, Eye, Link2, QrCode, Search, Trash2, UserPlus } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AppShell } from '../shared/components/AppShell'
 import { Button, Panel, PillarTag, StatusBadge } from '../shared/components/ui'
 import { Modal } from '../shared/components/Modal'
 import { Field, inputClass } from '../shared/components/NewSessionModal'
-import { ChartTooltip, axisProps } from '../shared/components/charts'
+import { ChartTooltip, axisProps, gridProps, valueAxisProps, categoryAxisProps, valueLabelProps } from '../shared/components/charts'
 import { QrMark } from '../shared/components/QrMark'
 import { Participant, Portal, Role, canSeeIdentity, feedbackRows, participants, sessions } from '../shared/data/mela'
 import { Column, DataTable } from '../shared/components/DataTable'
@@ -465,12 +465,14 @@ function FeedbackTab({ attended, feedback }: { attended: number; feedback: numbe
           <h3 className="text-sm font-semibold">Satisfaction scores</h3>
           <div className="-ml-4 mt-3 h-44">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dist} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
-                <XAxis dataKey="score" {...axisProps} />
-                <YAxis {...axisProps} width={32} allowDecimals={false} />
+              <BarChart data={dist} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid vertical={false} {...gridProps} />
+                <XAxis dataKey="score" {...categoryAxisProps} />
+                <YAxis {...valueAxisProps} width={32} allowDecimals={false} />
                 <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
-                <Bar dataKey="n" name="Responses" fill="var(--color-navy)" radius={[4, 4, 0, 0]} barSize={28} />
+                <Bar dataKey="n" name="Responses" fill="var(--color-navy)" radius={[4, 4, 0, 0]} barSize={30}>
+                  <LabelList dataKey="n" position="top" {...valueLabelProps} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>

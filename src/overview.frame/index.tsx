@@ -1,14 +1,14 @@
 import React, { useState } from 'react'
-import { AlertTriangle, ArrowRight, ChevronRight, CircleAlert, Plus, QrCode, EyeOff } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CalendarDays, ChevronRight, CircleAlert, DoorOpen, Plus, QrCode, EyeOff, UserCheck, Users } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
-import { Button, HealthDot, PageHeader, Panel, PillarTag, StatusBadge } from '../shared/components/ui'
+import { Button, PageHeader, Panel, PillarTag, StatusBadge } from '../shared/components/ui'
 import { Portal, Role, SessionStatus, attention, pillarStats, pillarsFor, portalMeta, roleMeta, sessions } from '../shared/data/mela'
-import { CountUp, Delta } from '../shared/components/StatStrip'
+import { CountUp, Delta, StatCards } from '../shared/components/StatStrip'
 import { EmptyState } from '../shared/components/EmptyState'
 import { previous, seriesFor, totals, useTimeRange } from '../shared/lib/time'
 import { CalendarX2, CheckCircle2 } from 'lucide-react'
 import { NewSessionModal } from '../shared/components/NewSessionModal'
-import { ChartTooltip, Legend, axisProps } from '../shared/components/charts'
+import { ChartTooltip, Legend, axisProps, gridProps, valueAxisProps, categoryAxisProps, valueLabelProps } from '../shared/components/charts'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 export const args = {
@@ -75,36 +75,23 @@ export default function Overview(props: Props) {
           />
 
           {/* Pillar summary: one panel, divided, not a strip of tiles */}
-          <Panel>
-            <div className={`grid divide-y divide-line ${pillars.length > 1 ? 'sm:grid-cols-3 sm:divide-x sm:divide-y-0' : ''}`}>
-              {pillars.length > 1 ? (
-                pillars.map((pl) => {
-                  const s = pillarStats[pl]
-                  return (
-                    <div key={pl} className="flex items-center justify-between gap-4 px-4 py-3.5 sm:block sm:px-5 sm:py-4">
-                      <div className="flex items-center gap-2 sm:justify-between">
-                        <span className="text-sm font-semibold">{pl}</span>
-                        <HealthDot tone={s.health} />
-                      </div>
-                      <div className="text-right sm:mt-3 sm:text-left">
-                        <div className="flex items-baseline justify-end gap-2 sm:justify-start">
-                          <span className="text-xl font-semibold tabular-nums tracking-tight sm:text-[26px]">
-                            <CountUp value={now[pl]} />
-                          </span>
-                          <Delta now={now[pl]} prev={prev[pl]} />
-                        </div>
-                        <div className="text-xs text-muted">
-                          people reached · {s.sessions} sessions · {label.toLowerCase()}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })
-              ) : (
-                <SinglePillar pillar={pillars[0]} reached={now[pillars[0]]} prev={prev[pillars[0]]} />
-              )}
-            </div>
-          </Panel>
+          {pillars.length > 1 ? (
+            <StatCards
+              columns={3}
+              items={pillars.map((pl) => {
+                const s = pillarStats[pl]
+                return {
+                  label: `${pl} · people reached`,
+                  value: now[pl],
+                  prev: prev[pl],
+                  icon: Users,
+                  hint: `${s.sessions} sessions · ${label.toLowerCase()} · ${healthLabel[s.health]}`,
+                }
+              })}
+            />
+          ) : (
+            <SinglePillar pillar={pillars[0]} reached={now[pillars[0]]} prev={prev[pillars[0]]} />
+          )}
 
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
             {/* Needs attention: first on phones, right rail on desktop */}
@@ -155,9 +142,9 @@ export default function Overview(props: Props) {
               <div className="h-52 px-2 pb-2 pt-4 sm:h-60">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={trend} margin={{ top: 4, right: 12, left: -16, bottom: 0 }}>
-                    <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+                    <CartesianGrid vertical={false} {...gridProps} />
                     <XAxis dataKey="label" {...axisProps} minTickGap={16} />
-                    <YAxis {...axisProps} width={44} />
+                    <YAxis {...valueAxisProps} width={44} />
                     <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-line-strong)', strokeDasharray: '3 3' }} />
                     <Area type="monotone" dataKey="registered" name="Registered" stroke="var(--color-sky)" fill="var(--color-sky)" fillOpacity={0.18} strokeWidth={2.5} animationDuration={280} animationEasing="ease-out" />
                     <Area type="monotone" dataKey="attended" name="Attended" stroke="var(--color-navy)" fill="var(--color-navy)" fillOpacity={0.22} strokeWidth={2.5} animationDuration={280} animationEasing="ease-out" />
@@ -291,31 +278,20 @@ export default function Overview(props: Props) {
   )
 }
 
+const healthLabel = { good: 'On track', warn: 'Needs a look', bad: 'At risk' } as const
+
 function SinglePillar({ pillar, reached, prev }: { pillar: 'HENT' | 'HEMP' | 'HECO'; reached: number; prev: number }) {
   const s = pillarStats[pillar]
-  const items = [
-    { label: 'People reached', value: <span className="flex items-baseline gap-2"><CountUp value={reached} /><Delta now={reached} prev={prev} /></span>, big: true },
-    { label: 'Sessions', value: String(s.sessions) },
-    { label: 'Open now', value: String(s.open) },
-    { label: 'Check-ins', value: s.attendances.toLocaleString() },
-  ]
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-[1.6fr_1fr_1fr_1fr]">
-      {items.map((it, i) => (
-        <div
-          key={it.label}
-          className={`px-4 py-3.5 sm:px-5 sm:py-4 ${i > 0 ? 'sm:border-l sm:border-line' : ''} ${i % 2 === 1 ? 'border-l border-line sm:border-l' : ''} ${
-            i > 1 ? 'border-t border-line sm:border-t-0' : ''
-          }`}
-        >
-          <div className="flex items-center justify-between gap-2 text-xs text-muted">
-            {it.label}
-            {i === 0 && <HealthDot tone={s.health} />}
-          </div>
-          <div className={`mt-1.5 font-semibold tabular-nums tracking-tight ${it.big ? 'text-[26px]' : 'text-xl'}`}>{it.value}</div>
-        </div>
-      ))}
-    </div>
+    <StatCards
+      columns={4}
+      items={[
+        { label: 'People reached', value: reached, prev, icon: Users, hint: healthLabel[s.health] },
+        { label: 'Sessions', value: s.sessions, icon: CalendarDays },
+        { label: 'Open now', value: s.open, icon: DoorOpen },
+        { label: 'Check-ins', value: s.attendances, icon: UserCheck },
+      ]}
+    />
   )
 }
 

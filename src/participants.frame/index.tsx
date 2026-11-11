@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react'
-import { ExternalLink, Mail, UserRound, Users } from 'lucide-react'
+import { CalendarCheck, ExternalLink, Layers, Mail, UserPlus, UserRound, Users } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
 import { PageHeader, PillarTag } from '../shared/components/ui'
 import { Column, DataTable } from '../shared/components/DataTable'
-import { StatStrip } from '../shared/components/StatStrip'
+import { StatCards } from '../shared/components/StatStrip'
 import { Participant, Portal, Role, canSeeIdentity, participants, pillarsFor, portalMeta } from '../shared/data/mela'
 import { inRange, previous, useTimeRange } from '../shared/lib/time'
 import { toast } from '../shared/lib/notify'
@@ -87,12 +87,12 @@ export default function Participants(props: Props) {
           }
         />
 
-        <StatStrip
+        <StatCards
           items={[
-            { label: 'Active people', value: rows.length, prev: prevRows.length, primary: true },
-            { label: 'New this period', value: fresh, hint: 'first registration in range' },
-            { label: 'Cross-pillar', value: cross, hint: `${rows.length ? Math.round((cross / rows.length) * 100) : 0}% of active` },
-            { label: 'Avg. attendance', value: avgAtt, suffix: '%' },
+            { label: 'Active people', value: rows.length, prev: prevRows.length, icon: Users, hint: 'vs previous period' },
+            { label: 'New this period', value: fresh, icon: UserPlus, hint: 'first registration in range' },
+            { label: 'Cross-pillar', value: cross, icon: Layers, hint: `${rows.length ? Math.round((cross / rows.length) * 100) : 0}% of active` },
+            { label: 'Avg. attendance', value: avgAtt, suffix: '%', icon: CalendarCheck, hint: 'attended ÷ registered' },
           ]}
         />
 

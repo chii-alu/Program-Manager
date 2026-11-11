@@ -35,6 +35,77 @@ export const axisProps = {
   tickLine: false,
 } as const
 
+/** Executive grid: dashed hairlines, horizontal only unless overridden. */
+export const gridProps = { strokeDasharray: '3 3', stroke: 'var(--chart-grid)' } as const
+
+/** Executive category axis (bold 11px body text) and value axis (10px faint). */
+export const categoryAxisProps = { tick: { fill: 'var(--color-body)', fontSize: 11, fontWeight: 600 }, axisLine: false, tickLine: false } as const
+export const valueAxisProps = { tick: { fill: 'var(--color-faint)', fontSize: 10 }, axisLine: false, tickLine: false } as const
+
+/** A dot filled with its series colour and ringed in the surface colour (recharts' default fill is white). */
+function LineDot(props: { cx?: number; cy?: number; stroke?: string; index?: number }): React.ReactElement<SVGElement> {
+  const { cx, cy, stroke, index } = props
+  if (cx == null || cy == null) return <g key={index} />
+  return <circle key={index} cx={cx} cy={cy} r={CHART.dotRadius} fill={stroke} stroke="var(--color-surface)" strokeWidth={2} />
+}
+
+/** Executive line: 2.5px, surface-ringed 4px dots, 6px active dot. */
+export const lineProps = {
+  type: 'monotone',
+  strokeWidth: CHART.lineWidth,
+  dot: LineDot,
+  activeDot: { r: CHART.activeDotRadius, strokeWidth: 0 },
+} as const
+
+/** Executive value label on bars: 10px bold body text. */
+export const valueLabelProps = { fontSize: 10, fontWeight: 700, fill: 'var(--color-body)' } as const
+
+/** Executive empty state for a chart area. */
+export function ChartEmpty({ height = 250, text = 'In coming data' }: { height?: number | string; text?: string }) {
+  return (
+    <div className="grid place-items-center text-sm text-faint" style={{ height }}>
+      {text}
+    </div>
+  )
+}
+
+/**
+ * Executive Funnel: steps scaled against the largest, tinted track, bars fading by depth,
+ * value and step-conversion on the right.
+ */
+export function Funnel({ steps, color = 'var(--color-navy)', onSelect, selected }: { steps: { key?: string; label: string; value: number }[]; color?: string; onSelect?: (s: { key?: string; label: string; value: number }) => void; selected?: string | null }) {
+  const max = Math.max(...steps.map((s) => s.value), 1)
+  return (
+    <ol className="space-y-2.5">
+      {steps.map((s, i) => {
+        const width = Math.max(6, Math.round((s.value / max) * 100))
+        const conv = i > 0 && steps[i - 1].value > 0 ? Math.round((s.value / steps[i - 1].value) * 100) : null
+        const dim = selected && (s.key ?? s.label) !== selected
+        const Row = onSelect ? 'button' : 'div'
+        return (
+          <li key={s.key ?? s.label}>
+            <Row
+              {...(onSelect ? { type: 'button' as const, onClick: () => onSelect(s) } : {})}
+              className={`block w-full text-left transition-opacity duration-150 ease-out ${dim ? 'opacity-40' : ''} ${onSelect ? 'cursor-pointer' : ''}`}
+            >
+              <div className="mb-1 flex items-center justify-between text-[11px]">
+                <span className="font-semibold text-body">{s.label}</span>
+                <span className="font-bold tabular-nums text-brand dark:text-brand-600">
+                  {s.value.toLocaleString()}
+                  {conv !== null && <span className="font-medium text-faint"> · {conv}%</span>}
+                </span>
+              </div>
+              <div className="h-6 overflow-hidden rounded-sm" style={{ background: 'color-mix(in oklab, ' + color + ' 8%, transparent)' }}>
+                <div className="h-full rounded-sm transition-[width] duration-300 ease-out" style={{ width: `${width}%`, background: color, opacity: 1 - i * 0.13 }} />
+              </div>
+            </Row>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
 type TipProps = { active?: boolean; payload?: { name: string; value: number; color?: string; fill?: string; stroke?: string }[]; label?: string; suffix?: string }
 
 /** Executive ChartTip: white card, a square swatch per series, figures in brand navy. */
