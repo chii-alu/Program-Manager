@@ -198,9 +198,29 @@ export function PanelHeader({ title, sub, info, right, className = '' }: { title
 }
 
 /** Executive card: white, 10px radius, hairline navy-tinted border. With a `title` it gets the navy header. */
-export function Panel({ children, className = '', title, sub, info, headerRight }: { children: React.ReactNode; className?: string; title?: string; sub?: React.ReactNode; info?: React.ReactNode; headerRight?: React.ReactNode }) {
+export function Panel({
+  children,
+  className = '',
+  title,
+  sub,
+  info,
+  headerRight,
+  accentBorder = false,
+}: {
+  children: React.ReactNode
+  className?: string
+  title?: string
+  sub?: React.ReactNode
+  info?: React.ReactNode
+  headerRight?: React.ReactNode
+  /** Brand-blue border instead of the hairline, to make a panel stand out. */
+  accentBorder?: boolean
+}) {
   return (
-    <section className={`min-w-0 rounded-[var(--radius-card)] bg-surface ${className}`} style={{ border: '1px solid var(--card-border)' }}>
+    <section
+      className={`min-w-0 rounded-[var(--radius-card)] bg-surface ${className}`}
+      style={{ border: accentBorder ? '1.5px solid var(--color-brand-600)' : '1px solid var(--card-border)' }}
+    >
       {title && <PanelHeader title={title} sub={sub} info={info} right={headerRight} />}
       {children}
     </section>

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { ArrowLeft, Check, Copy, ExternalLink, Eye, Link2, QrCode, Search, Trash2, UserPlus } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AppShell } from '../shared/components/AppShell'
-import { Button, Panel, PillarTag, StatusBadge } from '../shared/components/ui'
+import { Button, Panel, PanelHeader, PillarTag, StatusBadge } from '../shared/components/ui'
 import { Modal } from '../shared/components/Modal'
 import { Field, inputClass } from '../shared/components/NewSessionModal'
 import { ChartTooltip, axisProps, gridProps, valueAxisProps, categoryAxisProps, valueLabelProps } from '../shared/components/charts'
@@ -448,6 +448,7 @@ function FeedbackTab({ attended, feedback }: { attended: number; feedback: numbe
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <Panel className="p-4 sm:p-5">
+        <PanelHeader title="Feedback summary" sub="Scores from this session's feedback form" className="-mx-4 -mt-4 mb-4 sm:-mx-5 sm:-mt-5" />
         <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
           {[
             ['Response rate', `${rate}%`, rate < 40 ? 'text-warn' : ''],

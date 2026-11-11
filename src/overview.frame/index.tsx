@@ -139,12 +139,13 @@ export default function Overview(props: Props) {
 
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
             {/* Needs attention: first on phones, right rail on desktop */}
-            <Panel className="lg:order-2 lg:self-start">
-              <div className="flex items-center justify-between border-b border-line px-4 py-3 sm:px-5">
-                <h2 className="flex items-center gap-2 text-sm font-semibold">
-                  <CircleAlert className="h-4 w-4 text-warn" /> Needs attention
+            <Panel accentBorder className="lg:order-2 lg:self-start">
+              {/* Red header bar, in the chart-card style, so the alert list stands out */}
+              <div className="flex items-center justify-between gap-2.5 rounded-t-[calc(var(--radius-card)_-_1.5px)] bg-alert px-4 py-[11px] sm:px-5">
+                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.04em] text-white">
+                  <CircleAlert className="h-4 w-4" /> Needs attention
                 </h2>
-                <span className="rounded-full bg-warn-bg px-2 text-xs font-semibold tabular-nums text-warn">{todo.length}</span>
+                <span className="rounded-full bg-white/20 px-2 text-xs font-semibold tabular-nums text-white">{todo.length}</span>
               </div>
               {todo.length === 0 ? (
                 <EmptyState compact icon={CheckCircle2} title="Nothing needs fixing" body="Every session in this pillar is on track." />
@@ -173,15 +174,6 @@ export default function Overview(props: Props) {
             <Panel
               title="Registrations vs attendance"
               sub={`${label} · ${showRate}% of registrants showed up`}
-              headerRight={
-                <Legend
-                  onDark
-                  items={[
-                    { label: 'Registered', color: 'var(--color-sky)' },
-                    { label: 'Attended', color: 'var(--color-navy)' },
-                  ]}
-                />
-              }
             >
               <div className="h-52 px-2 pb-2 pt-4 sm:h-60">
                 <ResponsiveContainer width="100%" height="100%">
@@ -194,6 +186,16 @@ export default function Overview(props: Props) {
                     <Area type="monotone" dataKey="attended" name="Attended" stroke="var(--color-navy)" fill="var(--color-navy)" fillOpacity={0.22} strokeWidth={2.5} animationDuration={280} animationEasing="ease-out" />
                   </AreaChart>
                 </ResponsiveContainer>
+              </div>
+              {/* Executive ChartLegend: centred swatch row beneath the chart */}
+              <div className="pb-3.5 pt-1">
+                <Legend
+                  center
+                  items={[
+                    { label: 'Registered', color: 'var(--color-sky)' },
+                    { label: 'Attended', color: 'var(--color-navy)' },
+                  ]}
+                />
               </div>
             </Panel>
 

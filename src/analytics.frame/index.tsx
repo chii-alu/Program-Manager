@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { AreaChart as AreaIcon, BarChart3, Download, Info, Layers, LineChart as LineIcon, X } from 'lucide-react'
+import { AreaChart as AreaIcon, BarChart3, Download, Layers, LineChart as LineIcon, X } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AppShell } from '../shared/components/AppShell'
 import { Button, PageHeader, Panel, PillarTag, PanelHeader } from '../shared/components/ui'
@@ -129,15 +129,13 @@ export default function Analytics(props: Props) {
 
         {/* Hero: reach over time, with its own chart controls */}
         <Panel className="p-4 sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <ChartHead
+            title={metric === 'reach' ? 'People reached' : 'Registrations'}
+            sub={metric === 'reach' ? 'Participations per day, across the pillars shown' : 'Form registrations in the period'}
+          />
+          <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-sm text-muted">
-                {metric === 'reach' ? 'People reached' : 'Registrations'}
-                <span title={metric === 'reach' ? 'Participations per day, across the pillars shown' : 'Form registrations in the period'}>
-                  <Info className="h-3.5 w-3.5 text-faint" />
-                </span>
-              </div>
-              <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
+              <div className="flex flex-wrap items-baseline gap-x-3">
                 <span className="text-4xl font-semibold tabular-nums tracking-tight sm:text-5xl">
                   <CountUp value={heroNow} />
                 </span>

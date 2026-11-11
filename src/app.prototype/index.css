@@ -50,6 +50,8 @@
   --color-warn-bg: #fef3c7;
   --color-bad: #dc2626;
   --color-bad-bg: #fee2e2;
+  /* Deep alert red for header bars (dashboard Program Quality scale) */
+  --color-alert: #a81b2d;
 
   --radius-card: 10px;
 }
@@ -100,6 +102,7 @@
   --color-warn-bg: #2c220a;
   --color-bad: #f87171;
   --color-bad-bg: #321416;
+  --color-alert: #a81b2d;
 
   --chart-grid: rgba(255, 255, 255, 0.07);
   --chart-cursor: rgba(255, 255, 255, 0.05);
