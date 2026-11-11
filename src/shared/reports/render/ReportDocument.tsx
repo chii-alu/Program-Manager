@@ -1,0 +1,153 @@
+/**
+ * The report as a reader sees it: cover, contents, sections and the automatic methodology
+ * appendix (spec §4 "Automatic appendices"). The PDF export (build step 5) prints this view.
+ */
+import React from 'react'
+import { metricsUsed } from '../blocks'
+import { indicatorByCode } from '../indicators'
+import { FILTERS } from '../metrics'
+import { comparisonPeriod, fmtRange } from '../periods'
+import { templateById } from '../templates'
+import type { FilterKey, Report, Viewer } from '../types'
+import { BlockView } from './BlockView'
+
+const AUDIENCE_LABEL = { internal: 'Internal · Confidential', partner: 'Partner / Donor', public: 'Public' } as const
+const DATE_RULE_LABEL = { session: 'session date (when the cohort or session started)', registration: 'registration date (when the person registered or applied)', response: 'response date (when feedback was submitted)' } as const
+
+export function ReportDocument({ report, viewer }: { report: Report; viewer: Viewer }) {
+  const sections = report.sections ?? []
+  const blocks = report.blocks ?? []
+  const used = metricsUsed(blocks)
+  const filters = Object.entries(report.scope.filters).filter(([, v]) => v?.length) as [FilterKey, string[]][]
+  const single = report.scope.pillars.length === 1 ? report.scope.pillars[0] : null
+
+  return (
+    <article className="mx-auto w-full max-w-[860px] space-y-6">
+      {/* Cover */}
+      <Page>
+        <div
+          className="-m-10 mb-0 flex min-h-[340px] flex-col justify-end p-10 text-white"
+          style={{
+            background: report.cover.imageDataUrl ? `linear-gradient(180deg, rgba(16,44,94,0.25), rgba(16,44,94,0.94)), url(${report.cover.imageDataUrl}) center/cover` : '#102c5e',
+          }}
+        >
+          {report.cover.showLogo && <img src="/logos/chii-white.png" alt="ALU Center for Health Innovation and Impact" className="mb-auto h-7 w-auto self-start" />}
+          {report.cover.pillarColour && single && <span className="mb-3 w-fit rounded bg-white/15 px-2 py-0.5 text-[11px] font-bold tracking-wide">{single}</span>}
+          <h1 className="font-display text-[34px] font-semibold leading-tight">{report.title || 'Untitled report'}</h1>
+          {report.subtitle && <p className="mt-2 text-[15px] text-white/80">{report.subtitle}</p>}
+        </div>
+        <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-3 text-[13px]">
+          <Meta k="Period" v={`${report.period.label} · ${fmtRange(report.period.start, report.period.end)}`} />
+          <Meta k="Covers" v={report.scope.interventions.length ? report.scope.interventions.join(', ') : report.scope.pillars.join(', ')} />
+          <Meta k="Prepared by" v={report.preparedBy || '—'} />
+          <Meta k="Audience" v={AUDIENCE_LABEL[report.audience]} />
+          <Meta k="Template" v={templateById(report.templateId)?.name ?? 'Blank'} />
+          <Meta k="Comparison" v={report.comparison === 'none' ? 'None' : comparisonPeriod(report.period, report.comparison).label} />
+        </dl>
+
+        {/* Contents */}
+        <nav className="mt-10 border-t border-line pt-6">
+          <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.1em] text-muted">Contents</h2>
+          <ol className="space-y-1.5 text-[13.5px]">
+            {sections.map((s, i) => (
+              <li key={s.id} className="flex items-baseline gap-3">
+                <span className="w-5 text-right font-display text-muted">{i + 1}</span>
+                <span className="text-ink">{s.title}</span>
+              </li>
+            ))}
+            <li className="flex items-baseline gap-3">
+              <span className="w-5 text-right font-display text-muted">A</span>
+              <span className="text-ink">Methodology and definitions</span>
+            </li>
+          </ol>
+        </nav>
+      </Page>
+
+      {/* Sections */}
+      {sections.map((s, i) => {
+        const list = blocks.filter((b) => b.sectionId === s.id)
+        const kpis = list.filter((b) => b.type === 'kpi')
+        const rest = list.filter((b) => b.type !== 'kpi')
+        return (
+          <Page key={s.id}>
+            <SectionHeading n={String(i + 1)} title={s.title} />
+            {kpis.length > 0 && (
+              <div className={`grid gap-3 ${kpis.length >= 4 ? 'grid-cols-2 sm:grid-cols-4' : kpis.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+                {kpis.map((b) => (
+                  <BlockView key={b.id} block={b} report={report} viewer={viewer} />
+                ))}
+              </div>
+            )}
+            <div className="mt-5 space-y-7">
+              {rest.map((b) => (
+                <div key={b.id} className="break-inside-avoid">
+                  <BlockView block={b} report={report} viewer={viewer} />
+                </div>
+              ))}
+              {!list.length && <p className="text-sm text-faint">This section has no content yet.</p>}
+            </div>
+          </Page>
+        )
+      })}
+
+      {/* Appendix A: methodology, generated from the indicator dictionary */}
+      <Page>
+        <SectionHeading n="A" title="Methodology and definitions" />
+        <div className="space-y-3 text-[13px] leading-6 text-body">
+          <p>
+            Every number in this report comes from the CHII metrics layer, so it is defined and counted the same way as on the platform dashboard. People are counted once by CHII ID.
+          </p>
+          <p>
+            <b className="text-ink">Period rule.</b> Records are counted in {report.period.label} ({fmtRange(report.period.start, report.period.end)}) by their {DATE_RULE_LABEL[report.dateRule]}. A metric that can’t use this rule uses
+            its own default, noted below.
+          </p>
+          {filters.length > 0 && (
+            <p>
+              <b className="text-ink">Filters.</b> {filters.map(([k, v]) => `${FILTERS[k].label}: ${v.join(', ')}`).join(' · ')}.
+            </p>
+          )}
+          <p>
+            <b className="text-ink">Small numbers.</b> To protect individuals, counts under {report.audience === 'internal' ? 5 : 10} people are shown as “&lt;{report.audience === 'internal' ? 5 : 10}”, and where one hidden value could be worked out from a total, a
+            second value is hidden and shown as “—”. Rates and averages based on fewer than {report.audience === 'internal' ? 5 : 10} people are not shown.
+          </p>
+        </div>
+        <dl className="mt-5 divide-y divide-line border-y border-line">
+          {used.map((code) => {
+            const ind = indicatorByCode.get(code)!
+            return (
+              <div key={code} className="grid gap-1 py-2.5 sm:grid-cols-[220px_minmax(0,1fr)] sm:gap-4">
+                <dt className="text-[13px] font-semibold text-ink">{ind.name}</dt>
+                <dd className="text-[12.5px] leading-5 text-body">
+                  {ind.definition}
+                  {!ind.dateRules.includes(report.dateRule) && <span className="text-muted"> Counted by {DATE_RULE_LABEL[ind.defaultDateRule].split(' (')[0]}.</span>}
+                </dd>
+              </div>
+            )
+          })}
+        </dl>
+      </Page>
+    </article>
+  )
+}
+
+function Page({ children }: { children: React.ReactNode }) {
+  return <section className="overflow-hidden rounded-md border border-line bg-surface p-10 shadow-[0_2px_4px_rgba(16,44,94,0.05),0_12px_32px_-12px_rgba(16,44,94,0.18)]">{children}</section>
+}
+
+function SectionHeading({ n, title }: { n: string; title: string }) {
+  return (
+    <header className="mb-5 flex items-baseline gap-3 border-b-2 border-brand pb-2.5">
+      <span className="font-display text-xl text-brand-600">{n}</span>
+      <h2 className="font-display text-[22px] font-semibold text-ink">{title}</h2>
+    </header>
+  )
+}
+
+function Meta({ k, v }: { k: string; v: string }) {
+  return (
+    <div>
+      <dt className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-muted">{k}</dt>
+      <dd className="mt-0.5 text-ink">{v}</dd>
+    </div>
+  )
+}

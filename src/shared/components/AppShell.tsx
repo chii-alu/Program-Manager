@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
   BarChart3,
+  FileBarChart2,
   Bell,
   BellOff,
   BookOpen,
@@ -952,6 +953,7 @@ function navFor(role: Role, portal: Portal): NavGroup[] {
         items: [
           { key: 'overview', label: 'Review queue', short: 'Queue', icon: LayoutGrid },
           { key: 'applications', label: 'Applications', short: 'Apps', icon: ClipboardCheck, count: 23 },
+          { key: 'reports', label: 'Reports', icon: FileBarChart2 },
         ],
       },
     ]
@@ -979,6 +981,7 @@ function navFor(role: Role, portal: Portal): NavGroup[] {
       title: 'Tools',
       items: [
         { key: 'import', label: 'Import a sheet', icon: Upload },
+        { key: 'reports', label: 'Reports', icon: FileBarChart2 },
         ...(role === 'admin'
           ? [
               { key: 'staff', label: 'Staff access', icon: ShieldCheck },

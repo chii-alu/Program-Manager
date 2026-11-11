@@ -15,6 +15,7 @@ import ImportSheet from '../import-sheet.frame'
 import StaffAccess from '../staff-access.frame'
 import DataExports from '../data-exports.frame'
 import Applications from '../applications.frame'
+import Reports from '../reports.frame'
 import PublicForm from '../public-form.frame'
 import { resolveAccount } from '../shared/lib/auth'
 import { roleMeta } from '../shared/data/mela'
@@ -32,6 +33,7 @@ const CHII_DB = 'chii-database'
 const SHEET = 'consolidated-sheet'
 const IMPORT = 'import-sheet'
 const STAFF = 'staff-access'
+const REPORTS = 'reports'
 const DATA = 'data-exports'
 const APPLICATIONS = 'applications'
 const FORM = 'public-form'
@@ -54,6 +56,7 @@ const routes: Record<string, string> = {
   staff: STAFF,
   data: DATA,
   applications: APPLICATIONS,
+  reports: REPORTS,
 }
 
 const defaultPortal = (role: string) => (role === 'admin' ? 'admin' : role === 'pillar_lead' ? 'hent' : 'hemp')
@@ -182,6 +185,8 @@ export default function MelaManager(props: Props) {
       return <StaffAccess {...shared} />
     case DATA:
       return <DataExports {...shared} />
+    case REPORTS:
+      return <Reports {...shared} />
     case APPLICATIONS:
       return <Applications {...shared} />
     case FORM:
