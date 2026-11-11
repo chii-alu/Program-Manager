@@ -63,10 +63,10 @@ export default function Feedbacks(props: Props) {
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
           <StatCards
             items={[
-              { label: 'Responses', value: inPeriod.length, prev: prev.length, icon: MessageSquareText, hint: 'vs previous period' },
-              { label: 'NPS', value: nps(inPeriod), display: `${nps(inPeriod) > 0 ? '+' : ''}${nps(inPeriod)}`, icon: TrendingUp, hint: `previous period ${nps(prev) > 0 ? '+' : ''}${nps(prev)}` },
-              { label: 'Satisfaction', value: 0, display: `${avg('satisfaction')}/5`, icon: Star, hint: 'average score' },
-              { label: 'Relevance', value: 0, display: `${avg('relevance')}/5`, icon: Target, hint: 'average score' },
+              { label: 'Responses', value: inPeriod.length, prev: prev.length, icon: MessageSquareText, hint: 'vs previous period', tip: 'Feedback forms submitted in the selected period, one per person per session' },
+              { label: 'NPS', value: nps(inPeriod), display: `${nps(inPeriod) > 0 ? '+' : ''}${nps(inPeriod)}`, icon: TrendingUp, hint: `previous period ${nps(prev) > 0 ? '+' : ''}${nps(prev)}`, tip: 'Net Promoter Score: % who scored 9–10 minus % who scored 0–6. Ranges from −100 to +100' },
+              { label: 'Satisfaction', value: 0, display: `${avg('satisfaction')}/5`, icon: Star, hint: 'average score', tip: 'Average answer to “How satisfied were you with this session?” on a 1–5 scale' },
+              { label: 'Relevance', value: 0, display: `${avg('relevance')}/5`, icon: Target, hint: 'average score', tip: 'Average answer to “How relevant was this to your goals?” on a 1–5 scale' },
             ]}
           />
           <Panel

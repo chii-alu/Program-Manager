@@ -1,5 +1,5 @@
 /* @import url() FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE, ABOVE THE TAILWIND IMPORT — DO NOT DELETE THIS COMMENT */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
 
 /* CRITICAL: THE FOLLOWING TAILWIND IMPORT MUST NEVER BE DELETED — DO NOT DELETE THIS COMMENT */
 @import 'tailwindcss';
@@ -60,6 +60,10 @@
   --chart-cursor: rgba(0, 33, 71, 0.04);
   --chart-tip-border: rgba(0, 33, 71, 0.12);
   --card-border: rgba(0, 33, 71, 0.08);
+  /* HEMP header stat cards (CHII-Dashboard components/hemp/header-stats-panel.tsx) */
+  --stat-label: #06241a;
+  --stat-border: rgba(16, 44, 94, 0.12);
+  --stat-hint: rgba(14, 68, 124, 0.55);
   --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-bar: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
@@ -101,6 +105,9 @@
   --chart-cursor: rgba(255, 255, 255, 0.05);
   --chart-tip-border: rgba(255, 255, 255, 0.14);
   --card-border: rgba(255, 255, 255, 0.09);
+  --stat-label: #e8ecf5;
+  --stat-border: rgba(255, 255, 255, 0.12);
+  --stat-hint: rgba(130, 169, 245, 0.7);
 }
 
 html, body, #root { height: 100%; }
@@ -108,7 +115,6 @@ body {
   font-family: var(--font-sans);
   color: var(--color-ink);
   background: var(--color-canvas);
-  -webkit-font-smoothing: antialiased;
 }
 
 /* Executive: brand-coloured focus ring instead of the browser default */

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Lock } from 'lucide-react'
+import { Info, Lock } from 'lucide-react'
 import { Pillar, SessionStatus } from '../data/mela'
 
 export function AdminOnly() {
@@ -117,13 +117,79 @@ export function Button({
   )
 }
 
+/** Shows `children` while the trigger is hovered or focused (keyboard users get it too). */
+function useHoverTip() {
+  const [open, setOpen] = React.useState(false)
+  const handlers = {
+    onMouseEnter: () => setOpen(true),
+    onMouseLeave: () => setOpen(false),
+    onFocus: () => setOpen(true),
+    onBlur: () => setOpen(false),
+  }
+  return { open, handlers }
+}
+
+/**
+ * HEMP stat-card tooltip (CHII-Dashboard components/hemp/header-stats-panel.tsx):
+ * a faint ⓘ beside the label; on hover a small white box with deep-blue text below it.
+ */
+export function StatTip({ tip }: { tip: string }) {
+  const { open, handlers } = useHoverTip()
+  return (
+    <span {...handlers} tabIndex={0} role="button" aria-label={tip} className="relative flex shrink-0 cursor-pointer text-brand-deep/50 outline-none">
+      <Info className="h-3 w-3" />
+      {open && (
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-[100] w-[140px] -translate-x-1/2 whitespace-normal rounded-md bg-surface px-2.5 py-[7px] text-center text-[9px] font-normal normal-case leading-[1.4] tracking-normal text-brand-deep shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+          style={{ border: '1px solid var(--stat-border)' }}
+        >
+          {tip}
+        </span>
+      )}
+    </span>
+  )
+}
+
+/**
+ * Executive/HEMP InfoDot (CHII-Dashboard components/ui → InfoDot): an 11px "i" badge in
+ * the accent colour; on hover a wider white explanation box.
+ */
+export function InfoDot({ tip, onDark = false }: { tip: React.ReactNode; onDark?: boolean }) {
+  const { open, handlers } = useHoverTip()
+  return (
+    <span {...handlers} tabIndex={0} role="button" aria-label="More information" className="relative inline-flex shrink-0 cursor-pointer outline-none">
+      <span
+        className={`flex h-[11px] w-[11px] select-none items-center justify-center rounded-full border text-[7px] font-extrabold leading-none ${
+          onDark ? 'border-white bg-white/15 text-white' : 'border-brand-600 bg-brand-600/15 text-brand-600'
+        }`}
+      >
+        i
+      </span>
+      {open && (
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-[100] w-[200px] -translate-x-1/2 rounded-[7px] bg-surface px-3 py-[9px] text-left text-[10.5px] font-normal normal-case leading-[1.55] tracking-normal text-ink shadow-[0_6px_20px_rgba(0,0,0,0.22)]"
+        >
+          {tip}
+        </span>
+      )}
+    </span>
+  )
+}
+
 /** Executive ChartCard header: navy bar, pink pip, uppercase title, optional caption. */
-export function PanelHeader({ title, sub, right, className = '' }: { title: string; sub?: React.ReactNode; right?: React.ReactNode; className?: string }) {
+export function PanelHeader({ title, sub, info, right, className = '' }: { title: string; sub?: React.ReactNode; info?: React.ReactNode; right?: React.ReactNode; className?: string }) {
+  // As on the dashboard's ChartCard, the "i" dot explains the chart: `info` if given, otherwise the caption.
+  const tip = info ?? sub
   return (
     <div className={`flex items-center gap-2.5 rounded-t-[calc(var(--radius-card)_-_1px)] bg-brand px-5 py-[11px] ${className}`}>
       <span className="h-[15px] w-[3px] shrink-0 rounded-full bg-accent" />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-semibold uppercase leading-none tracking-[0.04em] text-white">{title}</p>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <p className="truncate text-xs font-semibold uppercase leading-none tracking-[0.04em] text-white">{title}</p>
+          {tip && <InfoDot tip={tip} onDark />}
+        </div>
         {sub && <p className="mt-1 text-[10px] leading-relaxed text-white/75">{sub}</p>}
       </div>
       {right}
@@ -132,10 +198,10 @@ export function PanelHeader({ title, sub, right, className = '' }: { title: stri
 }
 
 /** Executive card: white, 10px radius, hairline navy-tinted border. With a `title` it gets the navy header. */
-export function Panel({ children, className = '', title, sub, headerRight }: { children: React.ReactNode; className?: string; title?: string; sub?: React.ReactNode; headerRight?: React.ReactNode }) {
+export function Panel({ children, className = '', title, sub, info, headerRight }: { children: React.ReactNode; className?: string; title?: string; sub?: React.ReactNode; info?: React.ReactNode; headerRight?: React.ReactNode }) {
   return (
     <section className={`min-w-0 rounded-[var(--radius-card)] bg-surface ${className}`} style={{ border: '1px solid var(--card-border)' }}>
-      {title && <PanelHeader title={title} sub={sub} right={headerRight} />}
+      {title && <PanelHeader title={title} sub={sub} info={info} right={headerRight} />}
       {children}
     </section>
   )

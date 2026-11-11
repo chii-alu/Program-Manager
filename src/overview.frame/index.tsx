@@ -2,12 +2,13 @@ import React, { useState } from 'react'
 import { AlertTriangle, ArrowRight, CalendarDays, ChevronRight, CircleAlert, DoorOpen, Plus, QrCode, EyeOff, UserCheck, Users } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
 import { Button, PageHeader, Panel, PillarTag, StatusBadge } from '../shared/components/ui'
-import { Portal, Role, SessionStatus, attention, pillarStats, pillarsFor, portalMeta, roleMeta, sessions } from '../shared/data/mela'
+import { Portal, Role, Session, SessionStatus, attention, pillarStats, pillarsFor, portalMeta, roleMeta, sessions } from '../shared/data/mela'
 import { CountUp, Delta, StatCards } from '../shared/components/StatStrip'
 import { EmptyState } from '../shared/components/EmptyState'
 import { previous, seriesFor, totals, useTimeRange } from '../shared/lib/time'
 import { CalendarX2, CheckCircle2 } from 'lucide-react'
 import { NewSessionModal } from '../shared/components/NewSessionModal'
+import { Column, ColFilter, HeaderMenu } from '../shared/components/DataTable'
 import { ChartTooltip, Legend, axisProps, gridProps, valueAxisProps, categoryAxisProps, valueLabelProps } from '../shared/components/charts'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
@@ -25,6 +26,16 @@ type Props = Partial<typeof args> & {
 
 const filters: ('all' | SessionStatus)[] = ['all', 'open', 'upcoming', 'completed', 'draft']
 
+/** Columns of the All sessions table; `value` drives sorting and the column filters. */
+const sessionCols: Column<Session>[] = [
+  { key: 'name', label: 'Session', value: (s) => s.name },
+  { key: 'dates', label: 'Dates', value: (s) => s.dates },
+  { key: 'status', label: 'Status', value: (s) => s.status },
+  { key: 'registered', label: 'Reg.', value: (s) => s.registered, numeric: true },
+  { key: 'attended', label: 'Attended', value: (s) => s.attended, numeric: true },
+  { key: 'feedback', label: 'Feedback', value: (s) => s.feedback, numeric: true },
+]
+
 export default function Overview(props: Props) {
   const { role: r, portal: p, onNavigate, onPortalChange, onSignOut, onOpenSession } = { ...args, ...props }
   const [newOpen, setNewOpen] = useState(false)
@@ -34,7 +45,39 @@ export default function Overview(props: Props) {
   const [filter, setFilter] = useState<(typeof filters)[number]>('all')
   const pillars = pillarsFor(portal)
   const mine = sessions.filter((s) => pillars.includes(s.pillar))
-  const shown = mine.filter((s) => filter === 'all' || s.status === filter)
+  const byStatus = mine.filter((s) => filter === 'all' || s.status === filter)
+
+  // Excel-style column menus: sort, tick values to filter, number ranges.
+  const [colFilters, setColFilters] = useState<Record<string, ColFilter>>({})
+  const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null)
+  const colVal = (key: string, s: Session) => sessionCols.find((c) => c.key === key)!.value!(s)
+  const colActive = Object.entries(colFilters).filter(([, f]) => f.values?.length || f.min != null || f.max != null)
+  const shown = byStatus
+    .filter((s) =>
+      colActive.every(([k, f]) => {
+        const v = colVal(k, s)
+        if (f.values?.length) return f.values.includes(String(v))
+        const n = Number(v)
+        return (f.min == null || n >= f.min) && (f.max == null || n <= f.max)
+      }),
+    )
+    .sort((a, b) => {
+      if (!sort) return 0
+      const x = colVal(sort.key, a)
+      const y = colVal(sort.key, b)
+      return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true })) * sort.dir
+    })
+  const setColFilter = (k: string, f: ColFilter | null) =>
+    setColFilters((prev) => {
+      const next = { ...prev }
+      if (f) next[k] = f
+      else delete next[k]
+      return next
+    })
+  const clearCols = () => {
+    setColFilters({})
+    setSort(null)
+  }
   const todo = attention.filter((a) => pillars.includes(a.pillar))
   const firstName = roleMeta[role].user.split(' ')[0]
   const { range, label } = useTimeRange()
@@ -85,6 +128,7 @@ export default function Overview(props: Props) {
                   value: now[pl],
                   prev: prev[pl],
                   icon: Users,
+                  tip: `Unique people who took part in a ${pl} session in the selected period. The arrow compares with the period before.`,
                   hint: `${s.sessions} sessions · ${label.toLowerCase()} · ${healthLabel[s.health]}`,
                 }
               })}
@@ -155,19 +199,21 @@ export default function Overview(props: Props) {
 
             {/* All sessions: the primary panel */}
             <Panel>
-              <div className="flex flex-col gap-3 border-b border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                <h2 className="text-sm font-semibold">
-                  All sessions <span className="ml-1 font-normal text-muted tabular-nums">{mine.length}</span>
+              {/* Navy title bar, like the chart card headers */}
+              <div className="flex flex-col gap-3 rounded-t-[calc(var(--radius-card)_-_1px)] bg-brand px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <h2 className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.04em] text-white">
+                  <span className="h-[15px] w-[3px] shrink-0 rounded-full bg-accent" />
+                  All sessions <span className="font-normal text-white/70 tabular-nums">{mine.length}</span>
                 </h2>
                 <div className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-                  <div className="flex w-max gap-1 rounded-lg bg-canvas p-0.5">
+                  <div className="flex w-max gap-1 rounded-lg bg-white/10 p-0.5">
                     {filters.map((f) => (
                       <button
                         key={f}
                         type="button"
                         onClick={() => setFilter(f)}
                         className={`h-7 rounded-md px-2.5 text-xs font-medium capitalize transition-colors duration-150 ease-out ${
-                          filter === f ? 'bg-surface text-ink shadow-[0_0_0_1px_var(--color-line)]' : 'text-muted hover:text-ink'
+                          filter === f ? 'bg-white text-brand' : 'text-white/75 hover:text-white'
                         }`}
                       >
                         {f}
@@ -182,33 +228,40 @@ export default function Overview(props: Props) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-line text-left text-xs text-muted">
-                      <th className="px-5 py-2.5 font-medium">Session</th>
-                      <th className="px-3 py-2.5 font-medium">Dates</th>
-                      <th className="px-3 py-2.5 font-medium">Status</th>
-                      <th className="px-3 py-2.5 text-right font-medium">Reg.</th>
-                      <th className="px-3 py-2.5 text-right font-medium">Attended</th>
-                      <th className="px-5 py-2.5 text-right font-medium">Feedback</th>
+                      {sessionCols.map((c, i) => (
+                        <th key={c.key} className={`${i === 0 || i === sessionCols.length - 1 ? 'px-5' : 'px-3'} font-medium ${i < 3 ? 'text-left' : 'text-center'}`}>
+                          <HeaderMenu
+                            col={c}
+                            align={i > sessionCols.length / 2 ? 'right' : 'left'}
+                            values={Array.from(new Set(byStatus.map((s) => String(c.value!(s))))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))}
+                            filter={colFilters[c.key]}
+                            sortDir={sort?.key === c.key ? sort.dir : null}
+                            onSort={(dir) => setSort(dir ? { key: c.key, dir } : null)}
+                            onFilter={(f) => setColFilter(c.key, f)}
+                          />
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
                     {shown.map((s) => (
                       <tr key={s.id} onClick={() => onOpenSession?.(s.id)} className="cursor-pointer transition-colors duration-150 ease-out hover:bg-canvas">
-                        <td className="max-w-0 px-5 py-3">
-                          <div className="truncate font-medium">{s.name}</div>
+                        <td className="min-w-[240px] px-5 py-3">
+                          <div className="font-medium leading-5">{s.name}</div>
                           <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
                             {portal === 'admin' && <PillarTag pillar={s.pillar} />}
-                            <span className="truncate">
+                            <span>
                               {s.intervention} · {s.kind}
                             </span>
                           </div>
                         </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-body">{s.dates}</td>
-                        <td className="px-3 py-3">
+                        <td className="whitespace-nowrap px-3 py-3 text-left text-body">{s.dates}</td>
+                        <td className="px-3 py-3 text-left">
                           <StatusBadge status={s.status} />
                         </td>
-                        <td className="px-3 py-3 text-right tabular-nums">{s.registered || '—'}</td>
-                        <td className="px-3 py-3 text-right tabular-nums">{s.attended || '—'}</td>
-                        <td className="px-5 py-3 text-right tabular-nums">
+                        <td className="px-3 py-3 text-center tabular-nums">{s.registered || '—'}</td>
+                        <td className="px-3 py-3 text-center tabular-nums">{s.attended || '—'}</td>
+                        <td className="px-5 py-3 text-center tabular-nums">
                           {s.attended ? (
                             <span>
                               {s.feedback}
@@ -230,7 +283,7 @@ export default function Overview(props: Props) {
                   <li key={s.id} onClick={() => onOpenSession?.(s.id)} className="cursor-pointer px-4 py-3.5 active:bg-canvas">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">{s.name}</div>
+                        <div className="text-sm font-medium leading-5">{s.name}</div>
                         <div className="mt-1 flex items-center gap-1.5 text-xs text-muted">
                           {portal === 'admin' && <PillarTag pillar={s.pillar} />}
                           <span className="truncate">{s.dates}</span>
@@ -258,16 +311,24 @@ export default function Overview(props: Props) {
                 <EmptyState
                   compact
                   icon={CalendarX2}
-                  title={`No ${filter} sessions`}
-                  body={filter === 'draft' ? 'Drafts appear here until their forms are opened.' : 'Try another status, or create a session.'}
-                  action={{ label: 'Show all sessions', onClick: () => setFilter('all') }}
+                  title={colActive.length ? 'No sessions match these column filters' : `No ${filter} sessions`}
+                  body={colActive.length ? 'Clear a column filter to see more.' : filter === 'draft' ? 'Drafts appear here until their forms are opened.' : 'Try another status, or create a session.'}
+                  action={colActive.length ? { label: 'Clear column filters', onClick: clearCols } : { label: 'Show all sessions', onClick: () => setFilter('all') }}
                 />
               )}
 
-              <div className="border-t border-line px-4 py-2.5 sm:px-5">
+              <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5 sm:px-5">
                 <button type="button" onClick={() => onNavigate?.('interventions')} className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline">
                   View all interventions <ArrowRight className="h-3.5 w-3.5" />
                 </button>
+                {(colActive.length > 0 || sort) && (
+                  <span className="flex items-center gap-2 text-xs text-muted">
+                    {shown.length} of {byStatus.length} shown
+                    <button type="button" onClick={clearCols} className="font-semibold text-brand-600 hover:underline">
+                      Clear filters
+                    </button>
+                  </span>
+                )}
               </div>
             </Panel>
             </div>
@@ -286,10 +347,10 @@ function SinglePillar({ pillar, reached, prev }: { pillar: 'HENT' | 'HEMP' | 'HE
     <StatCards
       columns={4}
       items={[
-        { label: 'People reached', value: reached, prev, icon: Users, hint: healthLabel[s.health] },
-        { label: 'Sessions', value: s.sessions, icon: CalendarDays },
-        { label: 'Open now', value: s.open, icon: DoorOpen },
-        { label: 'Check-ins', value: s.attendances, icon: UserCheck },
+        { label: 'People reached', value: reached, prev, icon: Users, hint: healthLabel[s.health], tip: 'Unique people who took part in a session of this pillar in the selected period' },
+        { label: 'Sessions', value: s.sessions, icon: CalendarDays, tip: 'Sessions run or scheduled by this pillar' },
+        { label: 'Open now', value: s.open, icon: DoorOpen, tip: 'Sessions whose forms are currently taking registrations or applications' },
+        { label: 'Check-ins', value: s.attendances, icon: UserCheck, tip: 'Attendance records: QR check-ins, walk-ins and imported sheets' },
       ]}
     />
   )

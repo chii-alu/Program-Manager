@@ -1,6 +1,7 @@
 import React from 'react'
 import { animate, useReducedMotion } from 'framer-motion'
-import { ArrowDownRight, ArrowUpRight, Info } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
+import { StatTip } from './ui'
 
 export type Stat = { label: string; value: number; display?: string; suffix?: string; prev?: number; hint?: string; primary?: boolean }
 
@@ -32,15 +33,11 @@ export function StatCards({ items, columns }: { items: StatCardItem[]; columns?:
           <div
             key={s.label}
             className="flex min-w-0 flex-col justify-center rounded-[var(--radius-card)] bg-surface px-4 py-3.5 text-center"
-            style={{ border: '1px solid var(--chart-tip-border)', borderLeft: '5px solid var(--color-brand)' }}
+            style={{ border: '1px solid var(--stat-border)', borderLeft: '5px solid var(--color-brand)' }}
           >
             <dt className="mb-2 flex items-center justify-center gap-1">
-              <span className="truncate text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-ink">{s.label}</span>
-              {s.tip && (
-                <span title={s.tip} className="shrink-0 cursor-help text-brand-deep/50">
-                  <Info className="h-3 w-3" />
-                </span>
-              )}
+              <span className="truncate text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[color:var(--stat-label)]">{s.label}</span>
+              {s.tip && <StatTip tip={s.tip} />}
             </dt>
             <dd className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
               {Icon && <Icon className="h-[18px] w-[18px] shrink-0 text-brand-deep opacity-85" />}
@@ -54,7 +51,7 @@ export function StatCards({ items, columns }: { items: StatCardItem[]; columns?:
               </span>
               {s.prev != null && <Delta now={s.value} prev={s.prev} />}
             </dd>
-            {s.hint && <dd className="mt-1 truncate text-[9.5px] text-brand-deep/55">{s.hint}</dd>}
+            {s.hint && <dd className="mt-1 truncate text-[9.5px] text-[color:var(--stat-hint)]">{s.hint}</dd>}
           </div>
         )
       })}

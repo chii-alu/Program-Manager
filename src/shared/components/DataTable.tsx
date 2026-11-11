@@ -42,7 +42,7 @@ export type Column<T> = {
 
 export type RowAction<T> = { label: string; icon: Icon; onClick: (r: T) => void; tone?: 'bad' }
 
-type ColFilter = { values?: string[]; min?: number; max?: number }
+export type ColFilter = { values?: string[]; min?: number; max?: number }
 const entries = (o: Record<string, ColFilter>) => Object.entries(o) as [string, ColFilter][]
 
 export function DataTable<T>({
@@ -543,7 +543,7 @@ function RowActions<T>({ row, actions, kebabOnly }: { row: T; actions: RowAction
   )
 }
 
-function HeaderMenu<T>({
+export function HeaderMenu<T>({
   col,
   align,
   values,

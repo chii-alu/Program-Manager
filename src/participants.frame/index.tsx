@@ -89,10 +89,10 @@ export default function Participants(props: Props) {
 
         <StatCards
           items={[
-            { label: 'Active people', value: rows.length, prev: prevRows.length, icon: Users, hint: 'vs previous period' },
-            { label: 'New this period', value: fresh, icon: UserPlus, hint: 'first registration in range' },
-            { label: 'Cross-pillar', value: cross, icon: Layers, hint: `${rows.length ? Math.round((cross / rows.length) * 100) : 0}% of active` },
-            { label: 'Avg. attendance', value: avgAtt, suffix: '%', icon: CalendarCheck, hint: 'attended ÷ registered' },
+            { label: 'Active people', value: rows.length, prev: prevRows.length, icon: Users, hint: 'vs previous period', tip: 'People with at least one registration or check-in in the selected period, counted once by CHII ID' },
+            { label: 'New this period', value: fresh, icon: UserPlus, hint: 'first registration in range', tip: 'People whose first ever CHII registration falls in the selected period' },
+            { label: 'Cross-pillar', value: cross, icon: Layers, hint: `${rows.length ? Math.round((cross / rows.length) * 100) : 0}% of active`, tip: 'Active people who have taken part in more than one pillar (HENT, HEMP, HECO)' },
+            { label: 'Avg. attendance', value: avgAtt, suffix: '%', icon: CalendarCheck, hint: 'attended ÷ registered', tip: 'Average share of registered sessions each person actually attended' },
           ]}
         />
 

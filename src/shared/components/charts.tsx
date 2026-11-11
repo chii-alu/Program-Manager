@@ -29,8 +29,9 @@ export const chartColors = {
   axis: 'var(--color-faint)',
 }
 
+/** Executive axis labels (dates, names): 10px, dark grey #374151. */
 export const axisProps = {
-  tick: { fill: 'var(--color-muted)', fontSize: 11 },
+  tick: { fill: 'var(--color-body)', fontSize: 10 },
   axisLine: false,
   tickLine: false,
 } as const
