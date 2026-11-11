@@ -247,19 +247,21 @@ export default function Analytics(props: Props) {
             {npsData.length === 0 ? (
               <EmptyState compact title="No feedback in this period" body="NPS appears once attendees submit feedback." />
             ) : (
-              <div className="-ml-2 mt-3" style={{ height: Math.max(180, npsData.length * 30) }}>
+              <div className="mt-4 flex flex-col gap-3">
+              <div style={{ height: Math.max(300, npsData.length * 30) }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  {/* Executive ranked bars: label column, hidden value axis, figure at the end of each bar */}
-                  <BarChart data={npsData} layout="vertical" margin={{ top: 0, right: 44, left: 4, bottom: 0 }} barCategoryGap={10}>
-                    <XAxis type="number" domain={[-100, 100]} hide />
-                    <YAxis type="category" dataKey="name" tick={{ fill: 'var(--color-body)', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} width={120} />
-                    <ReferenceLine x={0} stroke="var(--color-line-strong)" />
+                  {/* Executive Outreach "Participation by Intervention": one sky-blue series, dashed grid,
+                      visible value axis, intervention names on the left, bold figure at each bar end */}
+                  <BarChart data={npsData} layout="vertical" margin={{ top: 6, right: 50, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(16, 44, 94, 0.12)" />
+                    <XAxis type="number" domain={[npsData.some((d) => d.nps < 0) ? -100 : 0, 100]} tick={{ fontSize: 10, fill: 'var(--color-faint)' }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="name" width={200} tick={{ fontSize: 10, fill: 'var(--color-body)', fontWeight: 500 }} axisLine={false} tickLine={false} />
+                    {npsData.some((d) => d.nps < 0) && <ReferenceLine x={0} stroke="var(--color-line-strong)" />}
                     <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
                     <Bar
                       dataKey="nps"
                       name="NPS"
                       radius={[0, 4, 4, 0]}
-                      barSize={18}
                       className="cursor-pointer"
                       onClick={(d: { name?: string }) => setCross((c) => ({ ...c, intervention: c.intervention === d.name ? undefined : d.name }))}
                       onMouseEnter={(d: { name?: string }) => setHover(d.name ?? null)}
@@ -268,12 +270,20 @@ export default function Analytics(props: Props) {
                     >
                       {npsData.map((d) => {
                         const dim = (cross.intervention && cross.intervention !== d.name) || (hover && hover !== d.name)
-                        return <Cell key={d.name} fill={d.nps >= 30 ? 'var(--color-navy)' : d.nps >= 0 ? 'var(--color-brand-200)' : 'var(--color-bad)'} fillOpacity={dim ? 0.4 : 1} />
+                        return <Cell key={d.name} fill="var(--color-sky)" fillOpacity={dim ? 0.35 : 1} />
                       })}
-                      <LabelList dataKey="nps" position="right" {...valueLabelProps} fill="var(--color-brand-600)" formatter={(v: number) => (v > 0 ? `+${v}` : String(v))} />
+                      <LabelList dataKey="nps" position="right" fontSize={10} fontWeight={700} fill="var(--color-brand-deep)" formatter={(v: number) => (v > 0 ? `+${v}` : String(v))} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+              </div>
+              {/* Legend row beneath, as on the dashboard */}
+              <div className="flex flex-wrap justify-center gap-3 pt-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-[2px]" style={{ background: 'var(--color-sky)' }} />
+                  <span className="text-[10px] text-muted">NPS score (−100 to +100)</span>
+                </span>
+              </div>
               </div>
             )}
           </Panel>

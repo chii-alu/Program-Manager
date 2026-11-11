@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 
 type PromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> }
 
-const icon = (size: number) =>
-  `data:image/svg+xml,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#102c5e"/><text x="32" y="40" font-family="Arial,Helvetica" font-weight="700" font-size="20" fill="#fff" text-anchor="middle">ALU</text></svg>`,
-  )}`
+// The CHII dashboard's icons (served from /public), so the installed app matches the browser tab.
+const ICON_512 = `${location.origin}/icon.png`
+const APPLE_ICON = '/apple-icon.png'
 
 export const manifest = {
   name: 'MELA Manager · CHII',
@@ -18,8 +17,7 @@ export const manifest = {
   background_color: '#f8f9fa',
   theme_color: '#102c5e',
   icons: [
-    { src: icon(192), sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
-    { src: icon(512), sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
+    { src: ICON_512, sizes: '512x512', type: 'image/png', purpose: 'any' },
   ],
 }
 
@@ -43,7 +41,7 @@ export function setupPwa() {
   add('meta', { name: 'apple-mobile-web-app-capable', content: 'yes' })
   add('meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'default' })
   add('meta', { name: 'apple-mobile-web-app-title', content: 'MELA' })
-  add('link', { rel: 'apple-touch-icon', href: icon(180) })
+  add('link', { rel: 'apple-touch-icon', href: APPLE_ICON })
 
   // In the Next.js app, public/sw.js is served from the origin root.
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
