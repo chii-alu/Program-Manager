@@ -1,13 +1,14 @@
 import React, { useState } from 'react'
-import { AlertTriangle, ArrowRight, CalendarDays, ChevronRight, CircleAlert, DoorOpen, Plus, QrCode, EyeOff, UserCheck, Users } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CalendarDays, Check, ChevronDown, ChevronRight, CircleAlert, DoorOpen, Plus, QrCode, EyeOff, RotateCcw, UserCheck, Users } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
 import { Button, PageHeader, Panel, PillarTag, StatusBadge } from '../shared/components/ui'
-import { Portal, Role, Session, SessionStatus, attention, pillarStats, pillarsFor, portalMeta, roleMeta, sessions } from '../shared/data/mela'
+import { Pillar, Portal, Role, Session, SessionStatus,attention, pillarStats, pillarsFor, portalMeta, roleMeta, sessions } from '../shared/data/mela'
 import { CountUp, Delta, StatCards } from '../shared/components/StatStrip'
 import { EmptyState } from '../shared/components/EmptyState'
 import { previous, seriesFor, totals, useTimeRange } from '../shared/lib/time'
 import { CalendarX2, CheckCircle2 } from 'lucide-react'
 import { NewSessionModal } from '../shared/components/NewSessionModal'
+import { Popover } from '../shared/components/Popover'
 import { Column, ColFilter, HeaderMenu } from '../shared/components/DataTable'
 import { ChartTooltip, Legend, axisProps, gridProps, valueAxisProps, categoryAxisProps, valueLabelProps } from '../shared/components/charts'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -24,14 +25,15 @@ type Props = Partial<typeof args> & {
   onOpenSession?: (id: string) => void
 }
 
-const filters: ('all' | SessionStatus)[] = ['all', 'open', 'upcoming', 'completed', 'draft']
+const statuses: SessionStatus[] = ['open', 'upcoming', 'completed', 'draft']
 
 /** Columns of the All sessions table; `value` drives sorting and the column filters. */
-const sessionCols: Column<Session>[] = [
+const allSessionCols: Column<Session>[] = [
   { key: 'name', label: 'Session', value: (s) => s.name },
+  { key: 'pillar', label: 'Pillar', value: (s) => s.pillar },
   { key: 'dates', label: 'Dates', value: (s) => s.dates },
   { key: 'status', label: 'Status', value: (s) => s.status },
-  { key: 'registered', label: 'Reg.', value: (s) => s.registered, numeric: true },
+  { key: 'registered', label: 'Registered', value: (s) => s.registered, numeric: true },
   { key: 'attended', label: 'Attended', value: (s) => s.attended, numeric: true },
   { key: 'feedback', label: 'Feedback', value: (s) => s.feedback, numeric: true },
 ]
@@ -42,10 +44,14 @@ export default function Overview(props: Props) {
   const nav = (to: string) => (to === 'new-session' ? setNewOpen(true) : onNavigate?.(to))
   const role = r as Role
   const portal = (role !== 'admin' && p === 'admin' ? 'hent' : p) as Portal
-  const [filter, setFilter] = useState<(typeof filters)[number]>('all')
+  const [filter, setFilter] = useState<'all' | SessionStatus>('all')
+  const [pillarFilter, setPillarFilter] = useState<'all' | Pillar>('all')
   const pillars = pillarsFor(portal)
   const mine = sessions.filter((s) => pillars.includes(s.pillar))
-  const byStatus = mine.filter((s) => filter === 'all' || s.status === filter)
+  // The Pillar column and filter only matter in the MELA view, where all three pillars show.
+  const multiPillar = pillars.length > 1
+  const sessionCols = multiPillar ? allSessionCols : allSessionCols.filter((c) => c.key !== 'pillar')
+  const byStatus = mine.filter((s) => (filter === 'all' || s.status === filter) && (pillarFilter === 'all' || s.pillar === pillarFilter))
 
   // Excel-style column menus: sort, tick values to filter, number ranges.
   const [colFilters, setColFilters] = useState<Record<string, ColFilter>>({})
@@ -77,6 +83,13 @@ export default function Overview(props: Props) {
   const clearCols = () => {
     setColFilters({})
     setSort(null)
+  }
+  const anyFilter = filter !== 'all' || pillarFilter !== 'all' || colActive.length > 0 || !!sort
+  /** Reset: Pillar and Status back to all, and every column filter and sort cleared. */
+  const resetAll = () => {
+    setFilter('all')
+    setPillarFilter('all')
+    clearCols()
   }
   const todo = attention.filter((a) => pillars.includes(a.pillar))
   const firstName = roleMeta[role].user.split(' ')[0]
@@ -199,29 +212,43 @@ export default function Overview(props: Props) {
               </div>
             </Panel>
 
-            {/* All sessions: the primary panel */}
+            </div>
+          </div>
+
+            {/* All sessions: full width under the chart and Needs attention, so every column fits */}
             <Panel>
               {/* Navy title bar, like the chart card headers */}
               <div className="flex flex-col gap-3 rounded-t-[calc(var(--radius-card)_-_1px)] bg-brand px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <h2 className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.04em] text-white">
                   <span className="h-[15px] w-[3px] shrink-0 rounded-full bg-accent" />
-                  All sessions <span className="font-normal text-white/70 tabular-nums">{mine.length}</span>
+                  All sessions{' '}
+                  <span className="font-normal normal-case text-white/70 tabular-nums">{shown.length === mine.length ? mine.length : `${shown.length} of ${mine.length}`}</span>
                 </h2>
-                <div className="no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-                  <div className="flex w-max gap-1 rounded-lg bg-white/10 p-0.5">
-                    {filters.map((f) => (
-                      <button
-                        key={f}
-                        type="button"
-                        onClick={() => setFilter(f)}
-                        className={`h-7 rounded-md px-2.5 text-xs font-medium capitalize transition-colors duration-150 ease-out ${
-                          filter === f ? 'bg-white text-brand' : 'text-white/75 hover:text-white'
-                        }`}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {multiPillar && (
+                    <HeaderFilter
+                      label="Pillar"
+                      value={pillarFilter}
+                      options={['all', ...pillars]}
+                      display={(v) => (v === 'all' ? 'All pillars' : v)}
+                      onChange={(v) => setPillarFilter(v as 'all' | Pillar)}
+                    />
+                  )}
+                  <HeaderFilter
+                    label="Status"
+                    value={filter}
+                    options={['all', ...statuses]}
+                    display={(v) => (v === 'all' ? 'All statuses' : v[0].toUpperCase() + v.slice(1))}
+                    onChange={(v) => setFilter(v as 'all' | SessionStatus)}
+                  />
+                  <button
+                    type="button"
+                    onClick={resetAll}
+                    disabled={!anyFilter}
+                    className="inline-flex h-7 items-center gap-1 rounded-md px-2.5 text-xs font-semibold text-white/85 transition-colors duration-150 ease-out hover:bg-white/10 hover:text-white disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Reset
+                  </button>
                 </div>
               </div>
 
@@ -231,7 +258,7 @@ export default function Overview(props: Props) {
                   <thead>
                     <tr className="border-b border-line text-left text-xs text-muted">
                       {sessionCols.map((c, i) => (
-                        <th key={c.key} className={`${i === 0 || i === sessionCols.length - 1 ? 'px-5' : 'px-3'} font-medium ${i < 3 ? 'text-left' : 'text-center'}`}>
+                        <th key={c.key} className={`${i === 0 || i === sessionCols.length - 1 ? 'px-5' : 'px-3'} font-medium ${c.numeric ? 'text-center' : 'text-left'}`}>
                           <HeaderMenu
                             col={c}
                             align={i > sessionCols.length / 2 ? 'right' : 'left'}
@@ -250,13 +277,15 @@ export default function Overview(props: Props) {
                       <tr key={s.id} onClick={() => onOpenSession?.(s.id)} className="cursor-pointer transition-colors duration-150 ease-out hover:bg-canvas">
                         <td className="min-w-[240px] px-5 py-3">
                           <div className="font-medium leading-5">{s.name}</div>
-                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
-                            {portal === 'admin' && <PillarTag pillar={s.pillar} />}
-                            <span>
-                              {s.intervention} · {s.kind}
-                            </span>
+                          <div className="mt-0.5 text-xs text-muted">
+                            {s.intervention} · {s.kind}
                           </div>
                         </td>
+                        {multiPillar && (
+                          <td className="px-3 py-3 text-left">
+                            <PillarTag pillar={s.pillar} />
+                          </td>
+                        )}
                         <td className="whitespace-nowrap px-3 py-3 text-left text-body">{s.dates}</td>
                         <td className="px-3 py-3 text-left">
                           <StatusBadge status={s.status} />
@@ -313,9 +342,9 @@ export default function Overview(props: Props) {
                 <EmptyState
                   compact
                   icon={CalendarX2}
-                  title={colActive.length ? 'No sessions match these column filters' : `No ${filter} sessions`}
-                  body={colActive.length ? 'Clear a column filter to see more.' : filter === 'draft' ? 'Drafts appear here until their forms are opened.' : 'Try another status, or create a session.'}
-                  action={colActive.length ? { label: 'Clear column filters', onClick: clearCols } : { label: 'Show all sessions', onClick: () => setFilter('all') }}
+                  title="No sessions match these filters"
+                  body={filter === 'draft' && !colActive.length ? 'Drafts appear here until their forms are opened.' : 'Change the Pillar or Status filter, or reset them.'}
+                  action={{ label: 'Reset filters', onClick: resetAll }}
                 />
               )}
 
@@ -333,8 +362,6 @@ export default function Overview(props: Props) {
                 )}
               </div>
             </Panel>
-            </div>
-          </div>
         </div>
       )}
     </AppShell>
@@ -342,6 +369,61 @@ export default function Overview(props: Props) {
 }
 
 const healthLabel = { good: 'On track', warn: 'Needs a look', bad: 'At risk' } as const
+
+/** A filter dropdown for the navy table header: "Pillar: All pillars ▾", highlighted while set. */
+function HeaderFilter({
+  label,
+  value,
+  options,
+  display,
+  onChange,
+}: {
+  label: string
+  value: string
+  options: string[]
+  display: (v: string) => string
+  onChange: (v: string) => void
+}) {
+  const active = value !== 'all'
+  return (
+    <Popover
+      width="w-48"
+      trigger={({ toggle, open }) => (
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={open}
+          className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors duration-150 ease-out ${
+            active ? 'bg-white text-brand' : 'bg-white/10 text-white/90 hover:bg-white/20 hover:text-white'
+          }`}
+        >
+          <span className={active ? 'text-brand/70' : 'text-white/60'}>{label}:</span>
+          <span className="font-semibold">{display(value)}</span>
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ease-out ${open ? 'rotate-180' : ''}`} />
+        </button>
+      )}
+    >
+      {(close) => (
+        <div className="p-1">
+          {options.map((o) => (
+            <button
+              key={o}
+              type="button"
+              onClick={() => {
+                onChange(o)
+                close()
+              }}
+              className="flex h-8 w-full items-center gap-2 rounded-md px-2.5 text-left text-sm text-body hover:bg-canvas"
+            >
+              <span className="flex-1">{display(o)}</span>
+              {o === value && <Check className="h-4 w-4 text-brand-600" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </Popover>
+  )
+}
 
 function SinglePillar({ pillar, reached, prev }: { pillar: 'HENT' | 'HEMP' | 'HECO'; reached: number; prev: number }) {
   const s = pillarStats[pillar]
