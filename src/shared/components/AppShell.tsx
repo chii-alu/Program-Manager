@@ -35,7 +35,7 @@ import {
   X,
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { ChiiMark } from './Brand'
+import { PortalMark } from './Brand'
 import { MenuItem, Popover } from './Popover'
 import { Modal } from './Modal'
 import { ChartsPageSkeleton, PageSkeleton } from './Skeleton'
@@ -207,10 +207,10 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
       >
         <div className="flex h-16 items-center gap-2 border-b border-line px-3">
           <span className={wide ? 'lg:hidden' : ''}>
-            <ChiiMark compact />
+            <PortalMark portal={portal} compact />
           </span>
           <span className={`min-w-0 flex-1 ${L}`}>
-            <ChiiMark />
+            <PortalMark portal={portal} />
           </span>
           {wide && !peeking && (
             <button
@@ -264,7 +264,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
         {/* Top bar */}
         <header className="relative z-10 flex h-16 shrink-0 items-center gap-2 border-b border-line bg-surface px-3 shadow-[var(--shadow-bar)] sm:gap-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-2 md:hidden">
-            <ChiiMark compact />
+            <PortalMark portal={portal} compact />
             <span className="truncate text-sm font-semibold">{portalMeta[portal].label}</span>
           </div>
           <button

@@ -25,6 +25,44 @@ export function ChiiMark({ tone = 'auto', compact = false, height = 'h-6' }: { t
   )
 }
 
+/** Pillar wordmarks, as designed for the dashboard nav (CHII-Dashboard config/navigation.ts). */
+const portalMarks = {
+  hent: { word: 'HENT', lines: ['HEALTH', 'ENTREPRENEURSHIP', 'PILLAR'], color: 'text-brand dark:text-brand-600' },
+  hemp: { word: 'HEMP', lines: ['HEALTH', 'EMPLOYMENT', 'PILLAR'], color: 'text-brand dark:text-brand-600' },
+  heco: { word: 'HECO', lines: ['HEALTH', 'ECOSYSTEMS', 'PILLAR'], color: 'text-brand dark:text-brand-600' },
+} as const
+
+type MarkPortal = keyof typeof portalMarks | 'admin'
+
+/**
+ * The mark for the portal being viewed: a pillar's wordmark (large code beside three
+ * stacked lines, in the pillar colour), or the CHII logo for the all-pillars view.
+ * `compact` is the square tile for the collapsed rail.
+ */
+export function PortalMark({ portal, compact = false }: { portal: MarkPortal; compact?: boolean }) {
+  if (portal === 'admin') return <ChiiMark compact={compact} />
+  const m = portalMarks[portal]
+  if (compact) {
+    return (
+      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-current/20 bg-surface ${m.color}`} title={`${m.word} · ${m.lines.join(' ')}`}>
+        <span className="text-[9px] font-extrabold tracking-tight">{m.word}</span>
+      </span>
+    )
+  }
+  return (
+    <span className={`flex min-w-0 items-center gap-1.5 ${m.color}`} title={`${m.word} · ${m.lines.join(' ')}`}>
+      <span className="text-[26px] font-semibold leading-none tracking-tight">{m.word}</span>
+      <span className="flex min-w-0 flex-col leading-[1.05] opacity-70">
+        {m.lines.map((line) => (
+          <span key={line} className="truncate text-[8px] font-medium tracking-tight">
+            {line}
+          </span>
+        ))}
+      </span>
+    </span>
+  )
+}
+
 export function GoogleIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
     <svg viewBox="0 0 48 48" className={className} aria-hidden>
