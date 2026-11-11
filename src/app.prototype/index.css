@@ -1,5 +1,5 @@
 /* @import url() FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE, ABOVE THE TAILWIND IMPORT — DO NOT DELETE THIS COMMENT */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Playfair+Display:wght@500;600;700&display=swap');
 
 /* CRITICAL: THE FOLLOWING TAILWIND IMPORT MUST NEVER BE DELETED — DO NOT DELETE THIS COMMENT */
 @import 'tailwindcss';
@@ -15,7 +15,7 @@
  */
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
 
   /* Neutrals (executive: ink / text / textMuted / textFaint / border / pageBg) */
   --color-ink: #111827;
@@ -28,14 +28,15 @@
   --color-surface: #ffffff;
 
   /* Brand: blue900 is the card-header / KPI fill, navy the hero, blue600 the section accent */
-  --color-brand: #14306b;
-  --color-brand-hover: #102c5e;
+  /* The one brand blue: the executive dashboard's primary navy (globals.css --brand-primary) */
+  --color-brand: #102c5e;
+  --color-brand-hover: #0b2149;
   --color-brand-600: #185fa5;
   --color-brand-50: #e6f1fb;
   --color-brand-100: #cfe2f8;
   --color-brand-200: #85b7eb;
   --color-brand-label: #b5d4f4;
-  --color-brand-deep: #0c447c;
+  --color-brand-deep: #102c5e;
 
   /* Executive chart series + the pink pip on card headers */
   --color-navy: #102c5e;
@@ -53,7 +54,7 @@
   /* Deep alert red for header bars (dashboard Program Quality scale) */
   --color-alert: #a81b2d;
 
-  --radius-card: 10px;
+  --radius-card: 14px;
 }
 
 :root {
@@ -65,7 +66,7 @@
   /* HEMP header stat cards (CHII-Dashboard components/hemp/header-stats-panel.tsx) */
   --stat-label: #06241a;
   --stat-border: rgba(16, 44, 94, 0.12);
-  --stat-hint: rgba(14, 68, 124, 0.55);
+  --stat-hint: rgba(16, 44, 94, 0.55);
   --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-bar: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
@@ -118,6 +119,35 @@ body {
   font-family: var(--font-sans);
   color: var(--color-ink);
   background: var(--color-canvas);
+}
+
+/*
+ * Navy sidebar (the deployed CHII Program Manager's white-and-blue feel). Re-scoping the
+ * colour tokens here turns everything inside the sidebar light-on-navy without touching
+ * each element: borders, labels, the portal switcher, the footer.
+ */
+.sidebar-navy {
+  --sb-bg: var(--color-brand);
+  background: var(--sb-bg);
+  --color-surface: var(--sb-bg);
+  --color-canvas: rgba(255, 255, 255, 0.08);
+  --color-line: rgba(255, 255, 255, 0.12);
+  --color-line-strong: rgba(255, 255, 255, 0.22);
+  --color-ink: #ffffff;
+  --color-body: rgba(255, 255, 255, 0.85);
+  --color-muted: rgba(255, 255, 255, 0.65);
+  --color-faint: rgba(255, 255, 255, 0.45);
+  --color-bad-bg: rgba(248, 113, 113, 0.16);
+  --color-bad: #fca5a5;
+  color: #ffffff;
+}
+
+/* Soft shadow on white cards, so the page reads as white cards on a pale field */
+:root {
+  --shadow-soft: 0 1px 2px rgba(16, 44, 94, 0.05), 0 6px 18px -8px rgba(16, 44, 94, 0.12);
+}
+.dark {
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Executive: brand-coloured focus ring instead of the browser default */

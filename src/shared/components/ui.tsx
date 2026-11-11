@@ -35,7 +35,7 @@ export function StatusBadge({ status }: { status: SessionStatus }) {
 /** Executive pill: brand-tinted, uppercase. */
 export const PillarTag: React.FC<{ pillar: Pillar }> = ({ pillar }) => {
   return (
-    <span className="inline-flex h-5 items-center whitespace-nowrap rounded bg-brand-50 px-1.5 text-[10px] font-bold uppercase tracking-wide text-brand">
+    <span className="inline-flex h-5 items-center whitespace-nowrap rounded bg-brand-50 px-1.5 text-[10px] font-bold uppercase tracking-wide text-brand dark:text-brand-600">
       {pillar}
     </span>
   )
@@ -69,7 +69,7 @@ export function PageHeader({
   actions?: React.ReactNode
 }) {
   return (
-    <div className="hero flex flex-col gap-4 rounded-[var(--radius-card)] bg-brand-hover px-5 py-4 text-white sm:flex-row sm:items-end sm:justify-between sm:px-6 sm:py-5">
+    <div className="hero flex flex-col gap-4 rounded-[var(--radius-card)] bg-brand px-5 py-4 text-white sm:flex-row sm:items-end sm:justify-between sm:px-6 sm:py-5">
       <div className="min-w-0">
         {crumbs && (
           <ol className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/60">
@@ -81,7 +81,7 @@ export function PageHeader({
             ))}
           </ol>
         )}
-        <h1 className="text-lg font-semibold tracking-tight sm:text-xl">{title}</h1>
+        <h1 className="font-display text-2xl font-semibold leading-tight sm:text-[28px]">{title}</h1>
         {description && (
           <p className="mt-1 text-[13px] leading-5 text-white/75 [&_.text-brand-600]:text-white [&_.text-ink]:text-white [&_.text-muted]:text-white/60">{description}</p>
         )}
@@ -219,7 +219,7 @@ export function Panel({
   return (
     <section
       className={`min-w-0 rounded-[var(--radius-card)] bg-surface ${className}`}
-      style={{ border: accentBorder ? '1.5px solid var(--color-brand-600)' : '1px solid var(--card-border)' }}
+      style={{ border: accentBorder ? '1.5px solid var(--color-brand-600)' : '1px solid var(--card-border)', boxShadow: 'var(--shadow-soft)' }}
     >
       {title && <PanelHeader title={title} sub={sub} info={info} right={headerRight} />}
       {children}

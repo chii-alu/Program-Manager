@@ -152,9 +152,9 @@ export default function Overview(props: Props) {
 
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
             {/* Needs attention: first on phones, right rail on desktop */}
-            <Panel accentBorder className="lg:order-2 lg:self-start">
+            <Panel className="lg:order-2 lg:self-start">
               {/* Red header bar, in the chart-card style, so the alert list stands out */}
-              <div className="flex items-center justify-between gap-2.5 rounded-t-[calc(var(--radius-card)_-_1.5px)] bg-alert px-4 py-[11px] sm:px-5">
+              <div className="flex items-center justify-between gap-2.5 rounded-t-[calc(var(--radius-card)_-_1px)] bg-alert px-4 py-[11px] sm:px-5">
                 <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.04em] text-white">
                   <CircleAlert className="h-4 w-4" /> Needs attention
                 </h2>

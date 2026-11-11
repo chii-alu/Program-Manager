@@ -39,9 +39,19 @@ type MarkPortal = keyof typeof portalMarks | 'admin'
  * stacked lines, in the pillar colour), or the CHII logo for the all-pillars view.
  * `compact` is the square tile for the collapsed rail.
  */
-export function PortalMark({ portal, compact = false }: { portal: MarkPortal; compact?: boolean }) {
-  if (portal === 'admin') return <ChiiMark compact={compact} />
-  const m = portalMarks[portal]
+/** `onDark`: white version for the navy sidebar. */
+export function PortalMark({ portal, compact = false, onDark = false }: { portal: MarkPortal; compact?: boolean; onDark?: boolean }) {
+  if (portal === 'admin') {
+    if (onDark && compact) {
+      return (
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/10 ring-1 ring-white/20" title={ALT}>
+          <img src="/logos/alu-mark.png" alt={ALT} className="h-3 w-auto brightness-0 invert" />
+        </span>
+      )
+    }
+    return <ChiiMark compact={compact} tone={onDark ? 'light' : 'auto'} />
+  }
+  const m = { ...portalMarks[portal], ...(onDark ? { color: 'text-white' } : {}) }
   if (compact) {
     return (
       <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-current/20 bg-surface ${m.color}`} title={`${m.word} · ${m.lines.join(' ')}`}>

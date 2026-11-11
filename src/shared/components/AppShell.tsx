@@ -201,16 +201,16 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
         style={{ ['--sbw' as string]: `${collapsed && !peeking ? 64 : sb.width}px` }}
         onMouseEnter={peekEnter}
         onMouseLeave={peekLeave}
-        className={`hidden w-[64px] shrink-0 flex-col border-r border-line bg-surface md:flex lg:w-[var(--sbw)] ${
+        className={`sidebar-navy hidden w-[64px] shrink-0 flex-col md:flex lg:w-[var(--sbw)] ${
           overlay ? 'absolute inset-y-0 left-0 z-30 shadow-[4px_0_16px_rgba(0,0,0,0.12)]' : 'relative'
         } ${dragging ? '' : 'transition-[width] duration-200 ease-out'}`}
       >
         <div className="flex h-16 items-center gap-2 border-b border-line px-3">
           <span className={wide ? 'lg:hidden' : ''}>
-            <PortalMark portal={portal} compact />
+            <PortalMark portal={portal} compact onDark />
           </span>
           <span className={`min-w-0 flex-1 ${L}`}>
-            <PortalMark portal={portal} />
+            <PortalMark portal={portal} onDark />
           </span>
           {wide && !peeking && (
             <button
@@ -256,7 +256,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
           onDoubleClick={() => persist({ width: 232, collapsed: false })}
           className="group absolute inset-y-0 -right-1.5 z-20 hidden w-3 cursor-col-resize lg:block"
         >
-          <span className={`absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 transition-colors duration-150 ease-out ${dragging ? 'bg-brand-600' : 'bg-transparent group-hover:bg-brand-200'}`} />
+          <span className={`absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 transition-colors duration-150 ease-out ${dragging ? 'bg-brand-600' : 'bg-transparent group-hover:bg-white/30'}`} />
         </div>
       </aside>
 
@@ -484,11 +484,11 @@ function SideLink({ item, active, wide, onClick }: { item: NavItem; active: bool
       title={item.label}
       aria-current={active ? 'page' : undefined}
       className={`group relative flex min-h-10 w-full items-center justify-center gap-3 rounded-md px-2 py-1.5 text-[13px] transition-colors duration-150 ease-out ${wide ? 'lg:justify-start' : ''} ${
-        active ? 'bg-brand/8 font-bold text-brand dark:bg-brand-50 dark:text-brand-600' : 'font-semibold text-body hover:bg-canvas hover:text-ink'
+        active ? 'bg-white/12 font-bold text-white' : 'font-medium text-white/75 hover:bg-white/8 hover:text-white'
       }`}
     >
-      {/* Executive sidebar: the icon sits in a tile, tinted at rest and filled when active */}
-      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md transition-colors duration-150 ease-out ${active ? 'bg-brand text-white' : 'bg-brand-50 text-brand group-hover:bg-brand-100'}`}>
+      {/* On the navy sidebar: the icon tile is translucent at rest and turns white when active */}
+      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md transition-colors duration-150 ease-out ${active ? 'bg-white text-brand' : 'bg-white/8 text-white/85 group-hover:bg-white/15 group-hover:text-white'}`}>
         <Icon className="h-4 w-4" />
       </span>
       <span className={`min-w-0 flex-1 truncate text-left leading-snug ${wide ? 'hidden lg:block' : 'hidden'}`}>{item.label}</span>

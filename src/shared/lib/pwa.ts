@@ -4,7 +4,7 @@ type PromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ 
 
 const icon = (size: number) =>
   `data:image/svg+xml,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#14306b"/><text x="32" y="40" font-family="Arial,Helvetica" font-weight="700" font-size="20" fill="#fff" text-anchor="middle">ALU</text></svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#102c5e"/><text x="32" y="40" font-family="Arial,Helvetica" font-weight="700" font-size="20" fill="#fff" text-anchor="middle">ALU</text></svg>`,
   )}`
 
 export const manifest = {
@@ -16,7 +16,7 @@ export const manifest = {
   display: 'standalone',
   orientation: 'portrait-primary',
   background_color: '#f8f9fa',
-  theme_color: '#14306b',
+  theme_color: '#102c5e',
   icons: [
     { src: icon(192), sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
     { src: icon(512), sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
@@ -39,7 +39,7 @@ export function setupPwa() {
     head.appendChild(el)
   }
   add('link', { rel: 'manifest', href: `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}` })
-  add('meta', { name: 'theme-color', content: '#14306b' })
+  add('meta', { name: 'theme-color', content: '#102c5e' })
   add('meta', { name: 'apple-mobile-web-app-capable', content: 'yes' })
   add('meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'default' })
   add('meta', { name: 'apple-mobile-web-app-title', content: 'MELA' })

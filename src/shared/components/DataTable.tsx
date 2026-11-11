@@ -162,7 +162,7 @@ export function DataTable<T>({
   const hide = (c: Column<T>) => (c.hideBelow === 'xl' ? 'hidden xl:table-cell' : c.hideBelow === 'lg' ? 'hidden lg:table-cell' : '')
 
   return (
-    <section className="min-w-0 rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-surface">
+    <section className="min-w-0 rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-surface shadow-[var(--shadow-soft)]">
       {exportable && (
         <ExportModal
           open={!!exportFmt}
