@@ -241,6 +241,7 @@ export default function Analytics(props: Props) {
         )}
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-5">
           {/* NPS by intervention: click to cross-filter, linked to the table below */}
           <Panel className="p-4 sm:p-5">
             <ChartHead title="NPS by intervention" sub="Click a bar to filter the page" />
@@ -287,6 +288,77 @@ export default function Analytics(props: Props) {
               </div>
             )}
           </Panel>
+
+          {/* Satisfaction & relevance: why each intervention scores the NPS it does.
+              Port of the dashboard's SatisfactionBars (charts/satisfaction-bars.tsx). */}
+          <Panel className="p-4 sm:p-5">
+            <ChartHead title="Satisfaction & relevance by intervention" sub={`Average 1–5 score per intervention · target ${QUALITY_TARGET}`} />
+            {npsData.length === 0 ? (
+              <EmptyState compact title="No feedback in this period" body="Scores appear once attendees submit feedback." />
+            ) : (
+              <div className="mt-4 flex flex-col gap-3">
+                <div style={{ height: Math.max(300, npsData.length * 34) }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={npsData} layout="vertical" barCategoryGap="26%" barGap={2} margin={{ top: 22, right: 16, left: 4, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,33,71,0.06)" horizontal={false} />
+                      <XAxis type="number" domain={[scoreFloor(npsData), 5]} ticks={scoreTicks(scoreFloor(npsData))} allowDataOverflow tick={{ fontSize: 10, fill: 'var(--color-faint)' }} axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="name" width={200} tick={{ fontSize: 10, fill: 'var(--color-body)', fontWeight: 500 }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<ScoreTip />} cursor={{ fill: 'var(--chart-cursor)' }} />
+                      {(
+                        [
+                          ['satisfaction', 'Satisfaction', 'var(--color-navy)'],
+                          ['relevance', 'Relevance', 'var(--color-sky)'],
+                        ] as const
+                      ).map(([key, name, color]) => (
+                        <Bar
+                          key={key}
+                          dataKey={key}
+                          name={name}
+                          fill={color}
+                          radius={[0, 3, 3, 0]}
+                          maxBarSize={12}
+                          className="cursor-pointer"
+                          onClick={(d: { name?: string }) => setCross((c) => ({ ...c, intervention: c.intervention === d.name ? undefined : d.name }))}
+                          onMouseEnter={(d: { name?: string }) => setHover(d.name ?? null)}
+                          onMouseLeave={() => setHover(null)}
+                          {...anim}
+                        >
+                          {npsData.map((d) => {
+                            const dim = (cross.intervention && cross.intervention !== d.name) || (hover && hover !== d.name)
+                            return <Cell key={d.name} fill={color} fillOpacity={dim ? 0.35 : 1} />
+                          })}
+                        </Bar>
+                      ))}
+                      {/* Target line, drawn over the bars as on the dashboard */}
+                      <ReferenceLine
+                        x={QUALITY_TARGET}
+                        stroke="var(--color-ink)"
+                        strokeWidth={2}
+                        strokeDasharray="4 3"
+                        label={{ value: `target ${QUALITY_TARGET}`, position: 'top', fontSize: 9.5, fontWeight: 700, fill: 'var(--color-ink)' }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Legend with the overall average for each score */}
+                <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-1">
+                  {(
+                    [
+                      ['Satisfaction', 'var(--color-navy)', avgScore(npsData, 'satisfaction')],
+                      ['Relevance', 'var(--color-sky)', avgScore(npsData, 'relevance')],
+                    ] as const
+                  ).map(([name, color, avg]) => (
+                    <span key={name} className="flex items-center gap-2 text-[11px] text-muted">
+                      <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: color }} />
+                      {name}
+                      <span className="font-mono font-semibold text-ink">{avg.toFixed(1)}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Panel>
+          </div>
 
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
             {/* Funnel */}
@@ -463,6 +535,40 @@ const pillarOf: Record<string, Pillar> = {
   'Public Sector Fellowship': 'HECO', 'Health Expert in Residence': 'HECO', 'Executive Courses': 'HECO',
 }
 
+/** The dashboard's quality target for 1–5 scores (charts/satisfaction-bars.tsx). */
+const QUALITY_TARGET = 4.5
+
+/** Axis start for 1–5 scores: 3 like the dashboard, lower only if a score falls below it. */
+function scoreFloor(rows: { responses: number; satisfaction: number; relevance: number }[]) {
+  const scored = rows.filter((r) => r.responses > 0)
+  const min = Math.min(...scored.map((r) => Math.min(r.satisfaction, r.relevance)), 3)
+  return Math.max(1, Math.floor(min))
+}
+const scoreTicks = (floor: number) => Array.from({ length: (5 - floor) * 2 + 1 }, (_, i) => floor + i * 0.5)
+
+/** Average of a 1–5 score across interventions, weighted by how many responses each has. */
+function avgScore(rows: { responses: number; satisfaction: number; relevance: number }[], key: 'satisfaction' | 'relevance') {
+  const n = rows.reduce((t, r) => t + r.responses, 0)
+  return n ? rows.reduce((t, r) => t + r[key] * r.responses, 0) / n : 0
+}
+
+/** Tooltip for 1–5 scores: one decimal, out of 5. */
+function ScoreTip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color?: string }[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="rounded-md border bg-surface px-[11px] py-2 text-[11px] shadow-[0_2px_8px_rgba(0,0,0,0.08)]" style={{ borderColor: 'var(--chart-tip-border)' }}>
+      {label && <div className="mb-1 font-bold text-ink">{label}</div>}
+      {payload.map((p) => (
+        <div key={p.name} className="flex items-center gap-[5px] text-muted">
+          <span className="inline-block h-2 w-2 rounded-[2px]" style={{ background: p.color }} />
+          {p.name}: <b className="tabular-nums text-ink">{p.value.toFixed(1)}</b>
+          <span className="text-faint">/ 5</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function interventionStats(people: typeof participants, feedback: typeof feedbackRows, pillars: Pillar[]) {
   return Object.keys(pillarOf)
     .filter((name) => pillars.includes(pillarOf[name]))
@@ -479,6 +585,7 @@ function interventionStats(people: typeof participants, feedback: typeof feedbac
         completion: ps.length ? Math.round((ps.filter((x) => x.attendance >= 75).length / ps.length) * 100) : 0,
         responses: fs.length,
         satisfaction: fs.length ? fs.reduce((n, f) => n + f.satisfaction, 0) / fs.length : 0,
+        relevance: fs.length ? fs.reduce((n, f) => n + f.relevance, 0) / fs.length : 0,
         nps: fs.length ? Math.round(((promoters - detractors) / fs.length) * 100) : 0,
       }
     })
