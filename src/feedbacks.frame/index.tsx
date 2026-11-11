@@ -1,11 +1,9 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo } from 'react'
 import { Copy, MessageSquareText, Star, Target, TrendingUp, UserRound } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AppShell } from '../shared/components/AppShell'
-import { PageHeader, Panel, PillarTag } from '../shared/components/ui'
+import { PageHeader, PillarTag } from '../shared/components/ui'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { StatCards } from '../shared/components/StatStrip'
-import { ChartTooltip, axisProps, gridProps, valueAxisProps, categoryAxisProps, valueLabelProps } from '../shared/components/charts'
 import { FeedbackRow, Portal, Role, feedbackRows, pillarsFor, portalMeta } from '../shared/data/mela'
 import { inRange, previous, useTimeRange } from '../shared/lib/time'
 import { toast } from '../shared/lib/notify'
@@ -28,16 +26,13 @@ export default function Feedbacks(props: Props) {
   const portal = (role !== 'admin' && p === 'admin' ? 'hent' : p) as Portal
   const scope = pillarsFor(portal)
   const { range, label } = useTimeRange()
-  const [score, setScore] = useState<number | null>(null)
-
   const inScope = useMemo(() => feedbackRows.filter((f) => scope.includes(f.pillar)), [portal])
   const inPeriod = useMemo(() => inScope.filter((f) => inRange(range, f.date)), [inScope, range])
   const prev = useMemo(() => inScope.filter((f) => inRange(previous(range), f.date)), [inScope, range])
-  const rows = score == null ? inPeriod : inPeriod.filter((f) => f.nps === score)
+  const rows = inPeriod
 
   const nps = (list: FeedbackRow[]) => (list.length ? Math.round(((list.filter((f) => f.nps >= 9).length - list.filter((f) => f.nps <= 6).length) / list.length) * 100) : 0)
   const avg = (k: 'satisfaction' | 'relevance') => (inPeriod.reduce((n, f) => n + f[k], 0) / (inPeriod.length || 1)).toFixed(1)
-  const dist = Array.from({ length: 11 }, (_, i) => ({ score: String(i), count: inPeriod.filter((f) => f.nps === i).length }))
 
   const columns: Column<FeedbackRow>[] = [
     { key: 'chiiId', label: 'CHII ID', render: (f) => <span className="whitespace-nowrap font-mono text-[13px] font-medium text-brand-600">{f.chiiId}</span> },
@@ -60,8 +55,7 @@ export default function Feedbacks(props: Props) {
           description={<>Every feedback response in <span className="font-medium text-ink">{label.toLowerCase()}</span>. One response per person per session.</>}
         />
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-          <StatCards
+        <StatCards
             items={[
               { label: 'Responses', value: inPeriod.length, prev: prev.length, icon: MessageSquareText, hint: 'vs previous period', tip: 'Feedback forms submitted in the selected period, one per person per session' },
               { label: 'NPS', value: nps(inPeriod), display: `${nps(inPeriod) > 0 ? '+' : ''}${nps(inPeriod)}`, icon: TrendingUp, hint: `previous period ${nps(prev) > 0 ? '+' : ''}${nps(prev)}`, tip: 'Net Promoter Score: % who scored 9–10 minus % who scored 0–6. Ranges from −100 to +100' },
@@ -69,40 +63,10 @@ export default function Feedbacks(props: Props) {
               { label: 'Relevance', value: 0, display: `${avg('relevance')}/5`, icon: Target, hint: 'average score', tip: 'Average answer to “How relevant was this to your goals?” on a 1–5 scale' },
             ]}
           />
-          <Panel
-            title="Score distribution"
-            headerRight={
-              score != null ? (
-                <button type="button" onClick={() => setScore(null)} className="text-[10px] font-bold uppercase tracking-wide text-white/90 hover:underline">
-                  Showing score {score} · clear
-                </button>
-              ) : (
-                <span className="text-[10px] text-white/70">Click a bar to filter</span>
-              )
-            }
-            className="pb-2"
-          >
-            <div className="mt-3 h-[92px] px-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dist} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
-                  <CartesianGrid vertical={false} {...gridProps} />
-                  <XAxis dataKey="score" {...categoryAxisProps} interval={0} />
-                  <YAxis {...valueAxisProps} width={36} allowDecimals={false} />
-                  <Tooltip cursor={{ fill: 'var(--chart-cursor)' }} content={<ChartTooltip />} />
-                  <Bar dataKey="count" name="Responses" radius={[4, 4, 0, 0]} onClick={(d: { score?: string }) => setScore((s) => (s === Number(d.score) ? null : Number(d.score)))} className="cursor-pointer">
-                    {dist.map((d) => {
-                      const n = Number(d.score)
-                      const base = n >= 9 ? 'var(--color-good)' : n >= 7 ? 'var(--color-line-strong)' : 'var(--color-bad)'
-                      return <Cell key={d.score} fill={base} fillOpacity={score == null || score === n ? 1 : 0.25} />
-                    })}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Panel>
-        </div>
 
         <DataTable
+          heading="All feedback"
+          description={`${rows.length.toLocaleString()} responses · one per person per session`}
           title={`CHII Feedbacks · ${portalMeta[portal].label}`}
           rows={rows}
           columns={columns}

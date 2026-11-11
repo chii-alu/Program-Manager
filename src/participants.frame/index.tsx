@@ -97,6 +97,8 @@ export default function Participants(props: Props) {
         />
 
         <DataTable
+          heading="All participants"
+          description={`${rows.length.toLocaleString()} people · one row per person, counted once by CHII ID`}
           title={`CHII Participants · ${portalMeta[portal].label}`}
           rows={rows}
           columns={columns}

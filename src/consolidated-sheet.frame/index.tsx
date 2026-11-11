@@ -30,7 +30,7 @@ export default function ConsolidatedSheet(props: Props) {
   const role = r as Role
   const portal = (role !== 'admin' && p === 'admin' ? 'hent' : p) as Portal
   const pillars = pillarsFor(portal)
-  const pillarLabel = portal === 'admin' ? 'All pillars' : portalMeta[portal].label
+  const pillarLabel = portal === 'admin' ? 'All Pillars' : portalMeta[portal].label
   const showId = canSeeIdentity(role)
   const [tab, setTab] = useState('All interventions')
   const [q, setQ] = useState('')
@@ -43,9 +43,9 @@ export default function ConsolidatedSheet(props: Props) {
   const cols = built.cols
   const rows = useMemo(() => built.rows.filter((r) => inRange(range, String(r.date))), [built, range])
   const visibleCols = cols.filter((c) => showId || !c.restricted)
-  const sheetTabs = ['All interventions', ...Array.from(new Set(rows.map((r) => String(r.intervention)))), 'README']
+  const sheetTabs = ['All interventions', ...Array.from(new Set(rows.map((r) => String(r.intervention))))]
 
-  let view = rows.filter((r) => tab === 'All interventions' || tab === 'README' || r.intervention === tab)
+  let view = rows.filter((r) => tab === 'All interventions' || r.intervention === tab)
   view = view.filter((r) => !q || visibleCols.some((c) => String(r[c.key]).toLowerCase().includes(q.toLowerCase())))
   view = view.filter((r) => (Object.entries(colFilters) as [string, string[]][]).every(([k, vals]) => !vals.length || vals.includes(String(r[k]))))
   if (sort) view = [...view].sort((a, b) => (a[sort.key] > b[sort.key] ? sort.dir : -sort.dir))
@@ -123,9 +123,6 @@ export default function ConsolidatedSheet(props: Props) {
             </ul>
           </div>
 
-          {tab === 'README' ? (
-            <Readme sheet={sheet} showId={showId} />
-          ) : (
             <>
               <div className="flex flex-col gap-2 border-b border-line p-3 sm:flex-row sm:items-center sm:p-4">
                 <label className="relative min-w-0 flex-1 sm:max-w-sm">
@@ -200,7 +197,6 @@ export default function ConsolidatedSheet(props: Props) {
                   ))}
               </div>
             </>
-          )}
         </Panel>
       </div>
     </AppShell>
@@ -281,24 +277,6 @@ function ColumnMenu({
   )
 }
 
-function Readme({ sheet, showId }: { sheet: string; showId: boolean }) {
-  return (
-    <div className="max-w-2xl space-y-4 px-5 py-6 text-sm leading-6 text-body">
-      <h2 className="text-base font-semibold text-ink">About this sheet</h2>
-      <p>
-        {sheet === 'feedback'
-          ? 'Each row is one feedback response. A person can respond once per session, and only after an attendance record exists.'
-          : 'Each row is one person in one intervention. The CHII ID is the same across every pillar, so the same person can appear in several sheets.'}
-      </p>
-      <ul className="list-disc space-y-1 pl-5">
-        <li>Columns marked Q are answers to questions the fixed columns don't cover.</li>
-        <li>Completed means attending at least 75% of the session's dates.</li>
-        <li>{showId ? 'You can see identity columns. Exports including them are logged as restricted.' : 'Identity columns are removed for your role, and files are named “de-identified”.'}</li>
-        <li>Seven spec feedback columns stay empty until the templates ask those questions.</li>
-      </ul>
-    </div>
-  )
-}
 
 function build(sheet: string, pillars: Pillar[]): { cols: Col[]; rows: Row[] } {
   if (sheet === 'feedback') {
