@@ -4,7 +4,7 @@ import { AreaChart as AreaIcon, BarChart3, Download, Layers, LineChart as LineIc
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AppShell } from '../shared/components/AppShell'
 import { Button, PageHeader, Panel, PillarTag, PanelHeader } from '../shared/components/ui'
-import { ChartTooltip, Funnel, axisProps, categoryAxisProps, chartColors, gridProps, lineProps, valueAxisProps, valueLabelProps } from '../shared/components/charts'
+import { ChartTooltip, axisProps, categoryAxisProps, chartColors, gridProps, lineProps, valueAxisProps, valueLabelProps } from '../shared/components/charts'
 import { DonutRing } from '../shared/components/DonutRing'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { CountUp, Delta } from '../shared/components/StatStrip'
@@ -64,6 +64,14 @@ export default function Analytics(props: Props) {
     { stage: 'Completed', value: Math.round(now.completed * s) },
     { stage: 'Gave feedback', value: Math.round(now.feedback * s) },
   ]
+  // HEMP funnel colours, light → dark, then the dashboard pink for the last stage.
+  const funnelColors = ['#A8C5E6', 'var(--color-sky)', 'var(--color-navy)', 'var(--color-accent)']
+  const funnelBars = funnel.map((f, i) => ({
+    ...f,
+    color: funnelColors[i],
+    // Share of the previous stage that made it to this one
+    step: i > 0 && funnel[i - 1].value ? Math.round((f.value / funnel[i - 1].value) * 100) : null,
+  }))
 
   /* People and feedback in range, cross-filtered by the charts */
   const basePeople = useMemo(() => participants.filter((x) => x.pillars.some((pl) => pillars.includes(pl)) && inRange(range, x.lastActive)), [range, pillars.join()])
@@ -364,8 +372,31 @@ export default function Analytics(props: Props) {
             {/* Funnel */}
             <Panel className="p-4 sm:p-5">
               <ChartHead title="Registration to feedback" sub="Where people drop out" />
-              <div className="mt-4">
-                <Funnel steps={funnel.map((f) => ({ label: f.stage, value: f.value }))} />
+              {/* HEMP funnel style (SIE Recruitment / Course Enrolment): one column per stage,
+                  light → dark blue, then pink; figure and step conversion on top; legend beneath */}
+              <div className="mt-4" style={{ height: 270 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={funnelBars} margin={{ top: 30, right: 12, bottom: 0, left: -12 }} barCategoryGap="40%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,33,71,0.06)" vertical={false} />
+                    <XAxis dataKey="stage" tick={{ fontSize: 11, fill: 'var(--color-body)', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--color-faint)' }} allowDecimals={false} axisLine={false} tickLine={false} />
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
+                    <Bar dataKey="value" name="People" barSize={46} radius={[4, 4, 0, 0]} {...anim}>
+                      {funnelBars.map((f) => (
+                        <Cell key={f.stage} fill={f.color} />
+                      ))}
+                      <LabelList dataKey="value" content={(p: object) => <FunnelLabel {...p} steps={funnelBars.map((f) => f.step)} />} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-3 flex flex-wrap justify-center gap-4 pt-2 text-[10px] text-muted">
+                {funnelBars.map((f) => (
+                  <span key={f.stage} className="flex items-center gap-1.5">
+                    <span className="inline-block h-2 w-3 rounded-sm" style={{ background: f.color }} />
+                    {f.stage}
+                  </span>
+                ))}
               </div>
             </Panel>
 
@@ -377,6 +408,7 @@ export default function Analytics(props: Props) {
                   data={genderData}
                   colors={{ F: chartColors.female, M: chartColors.male }}
                   totalLabel="people"
+                  height={300}
                   selected={cross.gender ?? null}
                   onSelect={(d) => setCross((c) => ({ ...c, gender: c.gender === d.key ? undefined : (d.key as 'F' | 'M') }))}
                   animate={!reduce}
@@ -533,6 +565,28 @@ const pillarOf: Record<string, Pillar> = {
   Masterclass: 'HENT', Hackathon: 'HENT', Mentorship: 'HENT', 'Venture Funding': 'HENT',
   SIE: 'HEMP', 'Career Exposure': 'HEMP', Internships: 'HEMP', 'Career Workshops': 'HEMP',
   'Public Sector Fellowship': 'HECO', 'Health Expert in Residence': 'HECO', 'Executive Courses': 'HECO',
+}
+
+/**
+ * Label above each funnel column: the count in bold navy, and under it the share of the
+ * previous stage that made it (red when under half, as the old funnel flagged).
+ */
+function FunnelLabel({ steps, ...props }: { steps: (number | null)[] } & Record<string, unknown>) {
+  const { x, y, width, value, index } = props as { x: number; y: number; width: number; value: number; index: number }
+  const step = steps[index]
+  const cx = x + width / 2
+  return (
+    <g>
+      <text x={cx} y={y - (step != null ? 16 : 6)} textAnchor="middle" fontSize={10.5} fontWeight={700} fill="var(--color-brand-deep)">
+        {Number(value).toLocaleString()}
+      </text>
+      {step != null && (
+        <text x={cx} y={y - 5} textAnchor="middle" fontSize={9.5} fontWeight={600} fill={step < 50 ? 'var(--color-bad)' : 'var(--color-faint)'}>
+          {step}%
+        </text>
+      )}
+    </g>
+  )
 }
 
 /** The dashboard's quality target for 1–5 scores (charts/satisfaction-bars.tsx). */

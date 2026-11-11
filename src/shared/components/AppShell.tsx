@@ -402,6 +402,9 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
 
 function ProfileCard({ role, portal, wide, onPortalChange }: { role: Role; portal: Portal; wide: boolean; onPortalChange?: (p: string) => void }) {
   const dept = department(role, portal)
+  // Only admins need this row: it's their portal switcher. For everyone else the sidebar
+  // logo already names the pillar, so a label repeating it is noise.
+  if (role !== 'admin') return null
   return (
     <div className="border-b border-line px-2.5 py-3 lg:px-3">
       <div className={`flex flex-col items-center gap-1.5 ${wide ? 'lg:hidden' : ''}`} title={`${portalMeta[portal].label} · ${dept.unit}`}>
@@ -420,8 +423,7 @@ function ProfileCard({ role, portal, wide, onPortalChange }: { role: Role; porta
       </div>
       {wide && (
         <div className="hidden lg:block">
-          {role === 'admin' ? (
-            <Popover
+          <Popover
               align="left"
               width="w-[calc(100%)] min-w-[220px]"
               trigger={({ toggle }) => (
@@ -434,9 +436,6 @@ function ProfileCard({ role, portal, wide, onPortalChange }: { role: Role; porta
             >
               {(close) => <PortalList portal={portal} onPick={(p) => (onPortalChange?.(p), close())} />}
             </Popover>
-          ) : (
-            <div className="truncate rounded-lg bg-canvas px-2.5 py-1.5 text-[11px] text-muted">{dept.scope}</div>
-          )}
         </div>
       )}
     </div>

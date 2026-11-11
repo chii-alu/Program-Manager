@@ -149,15 +149,15 @@ export function DonutRing({
 
         {/* Centre total */}
         <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-center">
-          <p className="text-[22px] font-extrabold leading-none text-brand dark:text-brand-600">
+          <p className={`${height >= 280 ? 'text-[30px]' : 'text-[22px]'} font-extrabold leading-none text-brand dark:text-brand-600`}>
             <CountUp value={sum} />
           </p>
-          <p className="mt-0.5 text-[9px] uppercase tracking-[0.05em] text-faint">{totalLabel}</p>
+          <p className={`mt-0.5 ${height >= 280 ? 'text-[10px]' : 'text-[9px]'} uppercase tracking-[0.05em] text-faint`}>{totalLabel}</p>
         </div>
       </div>
 
       {legend && (
-        <div className="mt-2.5 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+        <div className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-1.5">
           {data.map((d, i) => (
             <button
               key={d.key}
@@ -168,9 +168,11 @@ export function DonutRing({
               className={`inline-flex items-center gap-1.5 transition-opacity duration-150 ease-out ${onSelect ? 'cursor-pointer' : 'cursor-default'}`}
               style={{ opacity: opacityFor(i) === 1 ? 1 : 0.45 }}
             >
-              <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: colorFor(d, i) }} />
-              <span className="text-[11px] font-semibold text-body">{d.name}</span>
-              <span className="text-[11px] tabular-nums text-muted">{d.value.toLocaleString()}</span>
+              <span className="h-3 w-3 shrink-0 rounded-[3px]" style={{ background: colorFor(d, i) }} />
+              <span className="text-xs font-semibold text-body">{d.name}</span>
+              <span className="text-xs tabular-nums text-muted">
+                {d.value.toLocaleString()} · {sum ? Math.round((d.value / sum) * 100) : 0}%
+              </span>
             </button>
           ))}
         </div>
