@@ -86,14 +86,11 @@ export default function DataExports(props: Props) {
               </ul>
             </Panel>
 
-            <section className="min-w-0 space-y-3">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-base font-semibold">Export log</h2>
-                <span className="inline-flex items-center gap-1 text-xs text-muted">
-                  <Lock className="h-3 w-3" /> Read-only · every download on the platform is recorded here
-                </span>
-              </div>
+            <section className="min-w-0">
               <DataTable
+                heading="Export log"
+                description="Read-only · every download on the platform is recorded here"
+                headerRight={<Lock className="h-3.5 w-3.5 text-white/70" />}
                 title="Export log"
                 rows={log}
                 columns={logCols}

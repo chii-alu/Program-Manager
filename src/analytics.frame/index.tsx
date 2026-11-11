@@ -343,12 +343,10 @@ export default function Analytics(props: Props) {
         </div>
 
         {/* Analytical tables */}
-        <section className="space-y-3">
-          <div>
-            <h2 className="text-base font-semibold">Intervention performance</h2>
-            <p className="text-sm text-muted">Hover a row to find it in the NPS chart. Click a row to filter the page by it.</p>
-          </div>
+        <section>
           <DataTable
+            heading="Intervention performance"
+            description="Hover a row to find it in the NPS chart. Click a row to filter the page by it."
             title={`Intervention performance · ${label}`}
             rows={ints}
             columns={intCols}
@@ -378,12 +376,10 @@ export default function Analytics(props: Props) {
           />
         </section>
 
-        <section className="space-y-3">
-          <div>
-            <h2 className="text-base font-semibold">Reach by country</h2>
-            <p className="text-sm text-muted">{countries.length} countries among the people shown.</p>
-          </div>
+        <section>
           <DataTable
+            heading="Reach by country"
+            description={`${countries.length} countries among the people shown.`}
             title={`Reach by country · ${label}`}
             rows={countries}
             columns={countryCols}

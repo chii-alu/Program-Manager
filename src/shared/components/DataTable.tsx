@@ -22,6 +22,7 @@ import { Modal } from './Modal'
 import { EmptyState } from './EmptyState'
 import { ExportModal } from './ExportModal'
 import { ExportFormat } from '../lib/exporter'
+import { PanelHeader } from './ui'
 
 type Icon = React.ComponentType<{ className?: string }>
 
@@ -65,6 +66,9 @@ export function DataTable<T>({
   onRowHover,
   highlight,
   compact,
+  heading,
+  description,
+  headerRight,
 }: {
   title: string
   rows: T[]
@@ -87,6 +91,10 @@ export function DataTable<T>({
   /** Key of a row to tint, e.g. one hovered in a linked chart. */
   highlight?: string | null
   compact?: boolean
+  /** Executive navy card header above the toolbar. */
+  heading?: string
+  description?: React.ReactNode
+  headerRight?: React.ReactNode
 }) {
   const reduce = useReducedMotion()
   const [q, setQ] = useState('')
@@ -168,6 +176,7 @@ export function DataTable<T>({
           defaultFormat={exportFmt ?? 'xlsx'}
         />
       )}
+      {heading && <PanelHeader title={heading} sub={description} right={headerRight} />}
       {above}
 
       {/* Toolbar */}
@@ -289,8 +298,8 @@ export function DataTable<T>({
                   {cols.map((c, i) => (
                     <th
                       key={c.key}
-                      className={`whitespace-nowrap border-b-2 border-line bg-canvas px-3 text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-muted first:pl-4 sm:first:pl-5 ${c.numeric ? 'text-right' : ''} ${hide(c)} ${
-                        stickyFirst && i === 0 ? 'sticky left-0 z-10 bg-surface' : ''
+                      className={`whitespace-nowrap border-b-2 border-brand-200 bg-brand-50 px-3 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-brand dark:text-brand-600 first:pl-4 sm:first:pl-5 ${c.numeric ? 'text-right' : ''} ${hide(c)} ${
+                        stickyFirst && i === 0 ? 'sticky left-0 z-10 bg-brand-50' : ''
                       }`}
                     >
                       <HeaderMenu
@@ -305,7 +314,7 @@ export function DataTable<T>({
                       />
                     </th>
                   ))}
-                  {rowActions && <th className="w-px border-b-2 border-line bg-canvas pr-4" aria-label="Actions" />}
+                  {rowActions && <th className="w-px border-b-2 border-brand-200 bg-brand-50 pr-4" aria-label="Actions" />}
                 </tr>
               </thead>
               <tbody key={current}>
@@ -324,7 +333,7 @@ export function DataTable<T>({
                     {cols.map((c, i) => (
                       <td
                         key={c.key}
-                        className={`border-b border-line px-3 ${compact ? 'py-2' : 'py-2.5'} align-middle leading-5 text-body transition-colors duration-150 ease-out first:pl-4 first:font-medium first:text-ink group-last:border-0 group-hover:bg-canvas group-data-[hl]:bg-brand-50 sm:first:pl-5 ${
+                        className={`border-b border-line px-3 ${compact ? 'py-2' : 'py-2.5'} align-middle leading-5 text-body transition-colors duration-150 ease-out first:pl-4 first:font-medium first:text-ink group-last:border-0 group-even:bg-canvas/70 group-hover:bg-brand-50/60 group-data-[hl]:bg-brand-50 sm:first:pl-5 ${
                           c.numeric ? 'text-right tabular-nums' : ''
                         } ${hide(c)} ${stickyFirst && i === 0 ? 'sticky left-0 z-10 bg-surface' : ''} ${c.className ?? ''}`}
                       >
@@ -332,7 +341,7 @@ export function DataTable<T>({
                       </td>
                     ))}
                     {rowActions && (
-                      <td className="border-b border-line py-1.5 pl-2 pr-3 text-right group-last:border-0 group-hover:bg-canvas group-data-[hl]:bg-brand-50 sm:pr-4">
+                      <td className="border-b border-line py-1.5 pl-2 pr-3 text-right group-last:border-0 group-even:bg-canvas/70 group-hover:bg-brand-50/60 group-data-[hl]:bg-brand-50 sm:pr-4">
                         <RowActions row={r} actions={rowActions} />
                       </td>
                     )}
