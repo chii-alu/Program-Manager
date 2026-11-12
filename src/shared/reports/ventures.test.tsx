@@ -3,7 +3,7 @@
  * Report numbers must equal Venture Analytics for the same period, with the same access rules.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
-import { buildVentures } from '../../consolidated-sheet.frame'
+import { buildVentures } from '../ventures/sheet'
 import { analyse } from '../ventures/metrics'
 import { resetPeople } from '../ventures/people'
 import { getRegistry, resetRegistry } from '../ventures/store'
@@ -120,10 +120,10 @@ describe('the Venture portfolio report template', () => {
     expect(t.needsVentures).toBe(true)
   })
 
-  it('its default blocks use venture metrics only, and the dashboard’s six cards', () => {
+  it('its default blocks use venture metrics only, including the dashboard’s headline cards', () => {
     const used = metricsUsed(report().blocks!)
     expect(used.every((c) => c.startsWith('venture.'))).toBe(true)
-    for (const c of ['venture.supported', 'venture.women_led', 'venture.pwd_led', 'venture.jobs', 'venture.funding_deployed', 'venture.revenue'].filter((c) => c !== 'venture.pwd_led')) expect(used).toContain(c)
+    for (const c of ['venture.supported', 'venture.active', 'venture.women_led', 'venture.jobs', 'venture.funding_deployed', 'venture.revenue']) expect(used).toContain(c)
   })
 
   it('the summary fills its venture numbers', () => {
