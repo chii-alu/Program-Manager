@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { AreaChart as AreaIcon, BarChart3, Download, Layers, LineChart as LineIcon, X } from 'lucide-react'
+import { AreaChart as AreaIcon, BarChart3, BookOpen, Download, Layers, LineChart as LineIcon, X } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AppShell } from '../shared/components/AppShell'
 import { Button, PageHeader, Panel, PillarTag, PanelHeader } from '../shared/components/ui'
@@ -10,6 +10,9 @@ import { Column, DataTable } from '../shared/components/DataTable'
 import { CountUp, Delta } from '../shared/components/StatStrip'
 import { ExportModal } from '../shared/components/ExportModal'
 import { EmptyState } from '../shared/components/EmptyState'
+import { DefinitionsModal } from '../shared/components/DefinitionsModal'
+import { platformDefinitions } from '../shared/lib/definitions'
+import { canUseVentures } from '../shared/ventures/store'
 import { Pillar, Portal, Role, feedbackRows, participants, pillarsFor, portalMeta } from '../shared/data/mela'
 import { inRange, previous, seriesFor, totals, useTimeRange } from '../shared/lib/time'
 
@@ -42,6 +45,9 @@ export default function Analytics(props: Props) {
   const [cross, setCross] = useState<Cross>({})
   const [hover, setHover] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [defs, setDefs] = useState(false)
+  // Venture metrics are listed only where the Venture Registry is used (HENT and MELA).
+  const definitions = useMemo(() => platformDefinitions({ ventures: canUseVentures({ role, pillars: pillarsFor(portal) }) }), [role, portal])
   const pillars = scope.filter((pl) => !off.includes(pl))
   const togglePillar = (pl: Pillar) => setOff((o) => (o.includes(pl) ? o.filter((x) => x !== pl) : pillars.length > 1 ? [...o, pl] : o))
 
@@ -129,10 +135,22 @@ export default function Analytics(props: Props) {
           title="Platform Analytics"
           description={<>{portal === 'admin' ? 'Reach, completion and satisfaction across CHII' : `How ${portalMeta[portal].label} is reaching young people`} · <span className="font-medium text-ink">{label}</span></>}
           actions={
-            <Button className="w-full sm:w-auto" onClick={() => setExporting(true)}>
-              <Download className="h-4 w-4" /> Export report
-            </Button>
+            <>
+              <Button className="flex-1 sm:flex-none" onClick={() => setDefs(true)}>
+                <BookOpen className="h-4 w-4" /> Definitions
+              </Button>
+              <Button className="flex-1 sm:flex-none" onClick={() => setExporting(true)}>
+                <Download className="h-4 w-4" /> Export report
+              </Button>
+            </>
           }
+        />
+
+        <DefinitionsModal
+          open={defs}
+          onClose={() => setDefs(false)}
+          description="What each chart and column on this page counts, and every metric in the CHII dictionary that reports use."
+          items={definitions}
         />
 
         {/* Hero: reach over time, with its own chart controls */}

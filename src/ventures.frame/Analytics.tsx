@@ -13,6 +13,7 @@ import { Popover } from '../shared/components/Popover'
 import { StatCards } from '../shared/components/StatStrip'
 import { Button, PageHeader, Panel } from '../shared/components/ui'
 import { countryName } from '../shared/ventures/lists'
+import { DefinitionsModal, type Definition } from '../shared/components/DefinitionsModal'
 import { FILTER_FIELDS, PERIODS, PERIOD_YEARS, VENTURE_INDICATORS, periodStarted, yearPeriod, VENTURE_TARGETS, analyse, previousPeriod, suppressCount, type Slice, type VFilters } from '../shared/ventures/metrics'
 import type { RegistryData } from '../shared/ventures/types'
 import { Chip, StagePill, VentureStatusPill, money } from './parts'
@@ -463,40 +464,21 @@ function DrillDown({ title, ids, data, rows, onClose, onOpen }: { title: string;
   )
 }
 
+/** Sections for the definitions list, so it can be browsed as well as searched. */
+const V_GROUP = (code: string) =>
+  /jobs/.test(code) ? 'Jobs' : /funding|funded|raised|revenue/.test(code) ? 'Funding & revenue' : /founders|led$/.test(code) ? 'Founders & inclusion' : /survival|stage_moves/.test(code) ? 'Portfolio health' : 'Portfolio'
+
 function Definitions({ values, onClose }: { values: Record<string, number | null>; onClose: () => void }) {
   const fmt = (code: string) => {
     const i = VENTURE_INDICATORS.find((x) => x.code === code)!
     const n = values[code]
     return n == null ? '—' : i.unit === 'usd' ? money(n) : i.unit === 'percent' ? `${n}%` : n.toLocaleString()
   }
-  return (
-    <Modal open onClose={onClose} size="lg" title="Metric definitions" description="Each metric is defined once and computed from the registry. The CHII dashboard reads the same values.">
-      <div className="max-h-[60vh] overflow-y-auto">
-        <table className="w-full text-[13px]">
-          <thead className="sticky top-0 bg-surface">
-            <tr className="text-left text-[11px] font-bold uppercase tracking-[0.06em] text-brand-600">
-              <th className="py-2 pr-3">Metric</th>
-              <th className="py-2 pr-3">Definition</th>
-              <th className="py-2 text-right">Now</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            {VENTURE_INDICATORS.map((i) => (
-              <tr key={i.code} className="align-top">
-                <td className="py-2 pr-3">
-                  <span className="block font-semibold text-ink">{i.name}</span>
-                  <span className="block font-mono text-[10.5px] text-faint">{i.code}</span>
-                  {i.dashboard && <span className="mt-0.5 block text-[11px] text-brand-600">Dashboard: {i.dashboard}</span>}
-                </td>
-                <td className="py-2 pr-3 text-body">{i.definition}</td>
-                <td className="py-2 text-right font-semibold tabular-nums text-ink">{fmt(i.code)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Modal>
+  const order = ['Portfolio', 'Portfolio health', 'Founders & inclusion', 'Jobs', 'Funding & revenue']
+  const items: Definition[] = VENTURE_INDICATORS.map((i) => ({ name: i.name, code: i.code, definition: i.definition, where: i.dashboard ? `Dashboard: ${i.dashboard}` : undefined, value: fmt(i.code), group: V_GROUP(i.code) })).sort(
+    (a, b) => order.indexOf(a.group) - order.indexOf(b.group),
   )
+  return <DefinitionsModal open onClose={onClose} description="Each metric is defined once and computed from the registry. The CHII dashboard and reports read the same values." items={items} />
 }
 
 /** CSV of the headline metrics and breakdowns. Counts under 5 are hidden (spec §4). */
