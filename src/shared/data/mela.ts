@@ -14,7 +14,7 @@ export const portalMeta: Record<Portal, { label: string; full: string }> = {
   admin: { label: 'MELA', full: 'MELA · All pillars' },
   hent: { label: 'HENT', full: 'Health entrepreneurship' },
   hemp: { label: 'HEMP', full: 'Health employment' },
-  heco: { label: 'HECO', full: 'Health economics' },
+  heco: { label: 'HECO', full: 'Health ecosystems' },
 }
 
 export const canSeeIdentity = (role: Role) => role === 'admin' || role === 'pillar_lead' || role === 'pillar_staff'
