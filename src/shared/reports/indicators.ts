@@ -8,15 +8,24 @@
  *   attendance rate = attended at least once ÷ eligible
  *   response rate = feedback responses ÷ attended
  */
+import { VENTURE_INDICATORS } from '../ventures/metrics'
 import { FEEDBACK_ITEMS, type Fact } from './facts'
-import type { DateRule, Dimension, Period, Unit } from './types'
+import type { DateRule, Dimension, Period, Unit, VentureDimension } from './types'
+
+export const VENTURE_DIMS: VentureDimension[] = ['venture_stage', 'venture_status', 'venture_intake_year', 'venture_country', 'venture_region', 'venture_sector', 'venture_track']
 
 export type Computed = { value: number | null; n: number }
 
 export type Indicator = {
   code: string
   name: string
-  group: 'Reach' | 'Intake' | 'Participation' | 'Feedback' | 'Outcomes'
+  group: 'Reach' | 'Intake' | 'Participation' | 'Feedback' | 'Outcomes' | 'Ventures'
+  /**
+   * Where the number comes from. 'registry' indicators are computed by the Venture Registry's
+   * analyse() (ventures/metrics.ts), so reports, Venture Analytics and the dashboard share one
+   * definition. Their `compute` is never called.
+   */
+  source?: 'facts' | 'registry'
   definition: string
   unit: Unit
   version: number
@@ -266,6 +275,27 @@ export const INDICATORS: Indicator[] = [
       return { value: awards.reduce((a, f) => a + f.fundingAmount!, 0), n: awards.length }
     },
   },
+
+  // Ventures (HENT Venture Registry). Same codes and definitions as Venture Analytics.
+  ...VENTURE_INDICATORS.map((v): Indicator => {
+    const unit = ({ count: 'count', usd: 'amount', percent: 'rate', number: 'average' } as const)[v.unit]
+    const isTotal = (v.unit === 'count' || v.unit === 'usd') && !/median|avg/.test(v.code)
+    return {
+      code: v.code,
+      name: v.name,
+      group: 'Ventures',
+      definition: v.definition,
+      unit,
+      version: 1,
+      additive: isTotal,
+      higherIsBetter: true,
+      dateRules: ['session', 'registration', 'response'],
+      defaultDateRule: 'session',
+      breakdowns: VENTURE_DIMS,
+      source: 'registry',
+      compute: () => ({ value: null, n: 0 }),
+    }
+  }),
 ]
 
 export const indicatorByCode = new Map(INDICATORS.map((i) => [i.code, i]))

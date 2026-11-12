@@ -3,7 +3,7 @@
  * HENT staff and the MELA admin only; everyone else gets "no access", even with a direct link.
  */
 import React, { useEffect, useState } from 'react'
-import { BarChart3, FileUp, Link2, Plus, ShieldOff } from 'lucide-react'
+import { FileUp, Link2, Plus, ShieldOff } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
 import { EmptyState } from '../shared/components/EmptyState'
 import { Button, PageHeader, Panel } from '../shared/components/ui'
@@ -16,6 +16,7 @@ import { ImportVentures } from './ImportVentures'
 import { ShareLink, formUrl } from './ShareLink'
 import { SubmissionsPanel } from './Submissions'
 import { UpdatesPage } from './Updates'
+import { VentureAnalytics } from './Analytics'
 
 export const args = { role: 'admin', portal: 'hent', view: 'registry' }
 
@@ -85,7 +86,7 @@ export default function Ventures(props: Props) {
       </div>,
     )
 
-  if (view === 'analytics') return shell(<Upcoming icon={BarChart3} title="Venture Analytics" step="build step 5" body="Every Ventures Portfolio metric from the CHII dashboard, computed live from the registry with the same definitions: portfolio size, stage and status, women-, youth- and PWD-led, founders, jobs, funding deployed and raised, revenue, survival and stage progression, by intake year and over time." />)
+  if (view === 'analytics') return shell(<VentureAnalytics data={data} onOpen={(id) => (onNavigate?.('ventures'), setPage({ kind: 'venture', id }))} />)
   if (view === 'import') return shell(<ImportVentures data={data} me={me} onOpen={(id) => (onNavigate?.('ventures'), setPage({ kind: 'venture', id }))} />)
   if (view === 'updates') return shell(<UpdatesPage data={data} me={me} showIdentity={showIdentity} onOpen={(id) => (onNavigate?.('ventures'), setPage({ kind: 'venture', id }))} />)
 
@@ -138,16 +139,5 @@ export default function Ventures(props: Props) {
       />
       <Registry data={data} showIdentity={showIdentity} onOpen={(id) => setPage({ kind: 'venture', id })} onEdit={(id) => setPage({ kind: 'edit', id })} />
     </>,
-  )
-}
-
-function Upcoming({ icon, title, step, body }: { icon: React.ComponentType<{ className?: string }>; title: string; step: string; body: string }) {
-  return (
-    <>
-      <PageHeader crumbs={['HENT', 'Ventures', title]} title={title} />
-      <Panel>
-        <EmptyState icon={icon} title={`Coming in ${step}`} body={body} />
-      </Panel>
-    </>
   )
 }

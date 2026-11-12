@@ -25,9 +25,13 @@ export type Dimension =
   | 'beneficiary_type'
   | 'month'
   | 'quarter'
+  | VentureDimension
+
+/** Venture registry breakdowns (VENTURE-REGISTRY-SPEC §7): ventures, never founders. */
+export type VentureDimension = 'venture_stage' | 'venture_status' | 'venture_country' | 'venture_region' | 'venture_sector' | 'venture_track' | 'venture_intake_year'
 
 /** Optional scope filters (spec §3 step 2). Cohort status filters on the cohort, the rest on the person. */
-export type FilterKey = Exclude<Dimension, 'pillar' | 'intervention' | 'cohort' | 'month' | 'quarter'> | 'cohort_status'
+export type FilterKey = Exclude<Dimension, 'pillar' | 'intervention' | 'cohort' | 'month' | 'quarter' | VentureDimension> | 'cohort_status'
 
 export type Scope = {
   pillars: Pillar[]
@@ -105,7 +109,7 @@ export type Unit = 'people' | 'count' | 'rate' | 'average' | 'score' | 'nps' | '
 
 export type ReportStatus = 'draft' | 'in_review' | 'approved' | 'final' | 'archived'
 
-export type ScopeType = 'intervention' | 'cohort' | 'pillar' | 'all_pillars' | 'survey' | 'data_quality' | 'any'
+export type ScopeType = 'intervention' | 'cohort' | 'pillar' | 'all_pillars' | 'survey' | 'data_quality' | 'ventures' | 'any'
 
 /** A block kind, used for template outlines now and the block library in build step 3. */
 export type BlockKind = 'kpi' | 'chart' | 'table' | 'text'
@@ -121,7 +125,18 @@ export type ReportTemplate = {
   /** Needs MELA approval before it can be finalised (spec §6). */
   needsApproval: boolean
   /** Section outline: drives the thumbnail now and the default blocks in build step 3. */
-  sections: { title: string; blocks: BlockKind[]; required?: boolean; locked?: boolean }[]
+  sections: {
+    title: string
+    blocks: BlockKind[]
+    required?: boolean
+    locked?: boolean
+    /** Settings for each block, in order, when the generic defaults don't fit (e.g. venture metrics). */
+    settings?: BlockSettings[]
+  }[]
+  /** Only offered to people who can use this data (e.g. the Venture Registry: HENT and MELA). */
+  needsVentures?: boolean
+  /** Pillars a new report from this template starts with. */
+  pillars?: Pillar[]
   version: number
   system: boolean
   active: boolean
