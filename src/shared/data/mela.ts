@@ -118,6 +118,15 @@ const byPillar: Record<Pillar, string[]> = {
   HECO: ['Public Sector Fellowship', 'Health Expert in Residence', 'Executive Courses'],
 }
 
+/** The pillar an intervention belongs to (e.g. SIE → HEMP). */
+export const pillarOfIntervention = (name: string): Pillar | undefined => (Object.keys(byPillar) as Pillar[]).find((p) => byPillar[p].includes(name))
+
+/** A person's interventions inside the given pillars only: a pillar portal never lists another pillar's. */
+export const interventionsIn = (interventions: string[], pillars: Pillar[]) => interventions.filter((iv) => {
+  const p = pillarOfIntervention(iv)
+  return p != null && pillars.includes(p)
+})
+
 function generatePeople(n: number): Participant[] {
   const r = rng(42)
   const pick = <T,>(a: T[]) => a[Math.floor(r() * a.length)]

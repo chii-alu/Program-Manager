@@ -5,7 +5,7 @@ import { Button, PageHeader, Panel } from '../shared/components/ui'
 import { Popover, MenuItem } from '../shared/components/Popover'
 import { ExportModal } from '../shared/components/ExportModal'
 import { EmptyState } from '../shared/components/EmptyState'
-import { Pillar, Portal, Role, canSeeIdentity, feedbackRows, participants, pillarsFor, portalMeta } from '../shared/data/mela'
+import { Pillar, Portal, Role, canSeeIdentity, feedbackRows, interventionsIn, participants, pillarsFor, portalMeta } from '../shared/data/mela'
 import { ExportFormat } from '../shared/lib/exporter'
 import { inRange, useTimeRange } from '../shared/lib/time'
 import { buildVentures } from '../shared/ventures/sheet'
@@ -321,7 +321,8 @@ function build(sheet: string, pillars: Pillar[]): { cols: Col[]; rows: Row[] } {
   const rows: Row[] = []
   participants.forEach((x, pi) =>
     x.interventions.forEach((iv, k) => {
-      if (!x.pillars.some((pl) => pillars.includes(pl))) return
+      // One row per person per intervention, and only interventions in this sheet's pillar(s).
+      if (!interventionsIn([iv], pillars).length) return
       rows.push({
         id: x.id,
         name: x.name,

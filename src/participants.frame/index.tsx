@@ -4,7 +4,7 @@ import { AppShell } from '../shared/components/AppShell'
 import { PageHeader, PillarTag } from '../shared/components/ui'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { StatCards } from '../shared/components/StatStrip'
-import { Participant, Portal, Role, canSeeIdentity, participants, pillarsFor, portalMeta } from '../shared/data/mela'
+import { Participant, Portal, Role, canSeeIdentity, interventionsIn, participants, pillarsFor, portalMeta } from '../shared/data/mela'
 import { inRange, previous, useTimeRange } from '../shared/lib/time'
 import { toast } from '../shared/lib/notify'
 
@@ -28,7 +28,11 @@ export default function Participants(props: Props) {
   const scope = pillarsFor(portal)
   const { range, label } = useTimeRange()
 
-  const inScope = useMemo(() => participants.filter((x) => x.pillars.some((pl) => scope.includes(pl))), [portal])
+  // A pillar portal lists only its own interventions for each person (MELA sees all of them).
+  const inScope = useMemo(
+    () => participants.filter((x) => x.pillars.some((pl) => scope.includes(pl))).map((x) => ({ ...x, interventions: interventionsIn(x.interventions, scope) })).filter((x) => x.interventions.length > 0),
+    [portal],
+  )
   const rows = useMemo(() => inScope.filter((x) => inRange(range, x.lastActive)), [inScope, range])
   const prevRows = useMemo(() => inScope.filter((x) => inRange(previous(range), x.lastActive)), [inScope, range])
   const fresh = rows.filter((x) => inRange(range, x.joined)).length
