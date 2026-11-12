@@ -55,6 +55,7 @@ export default function ConsolidatedSheet(props: Props) {
   const sheetTabs = [allTab, ...Array.from(new Set(rows.map((r) => String(r[tabKey]))))]
   // A tab picked on another sheet falls back to "All".
   const tab = sheetTabs.includes(tabPicked) ? tabPicked : allTab
+  const sheetPillar = kind === 'ventures' ? 'HENT' : pillarLabel
   const sheetName = kind === 'ventures' ? 'Ventures' : kind === 'feedback' ? 'Feedback' : 'Participants'
 
   let view = rows.filter((r) => tab === allTab || r[tabKey] === tab)
@@ -68,7 +69,7 @@ export default function ConsolidatedSheet(props: Props) {
       <ExportModal
         open={!!exporting}
         onClose={() => setExporting(null)}
-        title={`${pillarLabel} · ${sheetName} · ${tab}`}
+        title={`${sheetPillar} · ${sheetName} · ${tab}`}
         columns={cols}
         rows={rows}
         filtered={view}
@@ -78,8 +79,8 @@ export default function ConsolidatedSheet(props: Props) {
       />
       <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-5 sm:px-5">
         <PageHeader
-          crumbs={['Database', pillarLabel, sheetName]}
-          title={`${pillarLabel} ${sheetName.toLowerCase()}`}
+          crumbs={['Database', sheetPillar, sheetName]}
+          title={`${sheetPillar} ${sheetName.toLowerCase()}`}
           description={
             kind === 'ventures'
               ? `One row per venture, from the Venture Registry: each venture’s latest accepted update. ${showId ? 'Founder names and emails are restricted columns: they only download when you include them.' : 'Founder details are hidden for your role.'}`

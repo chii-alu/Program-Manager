@@ -80,6 +80,9 @@ export function Wizard({
 
   const template = templateById(d.templateId)
   const periodOk = d.period.start <= d.period.end
+  // Venture reports count ventures as of the period end: interventions, cohorts, date rules and
+  // people filters don't apply, so they aren't offered.
+  const ventureReport = template?.scopeType === 'ventures'
   const problems = {
     2: [!d.scope.pillars.length && 'Choose at least one pillar.', !periodOk && 'The start date must be on or before the end date.'].filter(Boolean) as string[],
     3: [!d.title.trim() && 'Give the report a title.'].filter(Boolean) as string[],
@@ -265,7 +268,7 @@ function StepTemplate({ d, set, viewer }: { d: Draft; set: (p: Partial<Draft>) =
         {templates.map((t) => (
           <TemplateCard key={t.id} on={d.templateId === t.id} onClick={() => pick(t.id)} name={t.name} body={t.description} thumb={<TemplateThumb template={t} />}>
             <span className="rounded bg-canvas px-1.5 py-0.5 text-[10px] font-semibold text-muted">{SCOPE_TYPE_LABEL[t.scopeType]}</span>
-            <span className="rounded bg-canvas px-1.5 py-0.5 text-[10px] font-semibold text-muted">{DATE_RULE[t.defaultDateRule].label}</span>
+            <span className="rounded bg-canvas px-1.5 py-0.5 text-[10px] font-semibold text-muted">{t.scopeType === 'ventures' ? 'As of period end' : DATE_RULE[t.defaultDateRule].label}</span>
             {t.needsApproval && <span className="rounded bg-warn-bg px-1.5 py-0.5 text-[10px] font-semibold text-warn">Needs MELA approval</span>}
           </TemplateCard>
         ))}
@@ -305,6 +308,9 @@ function StepScope({ d, set, setScope, viewer, errors }: { d: Draft; set: (p: Pa
   const [showFilters, setShowFilters] = useState(Object.values(d.scope.filters).some((v) => v?.length))
   const template = templateById(d.templateId)
   const periodOk = d.period.start <= d.period.end
+  // Venture reports count ventures as of the period end: interventions, cohorts, date rules and
+  // people filters don't apply, so they aren't offered.
+  const ventureReport = template?.scopeType === 'ventures'
 
   const togglePillar = (p: Pillar) => {
     const pillars = d.scope.pillars.includes(p) ? d.scope.pillars.filter((x) => x !== p) : [...d.scope.pillars, p]
@@ -335,7 +341,7 @@ function StepScope({ d, set, setScope, viewer, errors }: { d: Draft; set: (p: Pa
       <div className="min-w-0 space-y-5">
         {errors.length > 0 && <ErrorBox errors={errors} />}
 
-        <Panel title="What it covers" sub="Only the pillars, interventions and cohorts you have access to are listed.">
+        <Panel title="What it covers" sub={ventureReport ? 'Ventures in the HENT Venture Registry.' : 'Only the pillars, interventions and cohorts you have access to are listed.'}>
           <div className="space-y-5 p-4 sm:p-5">
             <Field label="Pillars" required hint={viewer.pillars.length === 1 ? `Your role reports on ${viewer.pillars[0]} only.` : undefined}>
               <div className="flex flex-wrap gap-2">
@@ -347,6 +353,12 @@ function StepScope({ d, set, setScope, viewer, errors }: { d: Draft; set: (p: Pa
               </div>
             </Field>
 
+            {ventureReport ? (
+              <p className="rounded-lg bg-canvas px-3 py-2.5 text-xs leading-5 text-muted">
+                Every number comes from the Venture Registry, with the same definitions as Venture Analytics. Portfolio numbers are as of the period’s end date; new ventures and stage moves count what happened inside the period. Founders are never named.
+              </p>
+            ) : (
+            <>
             <Field label="Interventions" hint="Leave all unticked to include every intervention in the chosen pillars.">
               <div className="space-y-3">
                 {d.scope.pillars.map((p) => {
@@ -391,6 +403,8 @@ function StepScope({ d, set, setScope, viewer, errors }: { d: Draft; set: (p: Pa
                 {!cohortChoices.length && <p className="px-3 py-3 text-xs text-muted">No cohorts for this selection.</p>}
               </div>
             </Field>
+            </>
+            )}
           </div>
         </Panel>
 
@@ -421,13 +435,13 @@ function StepScope({ d, set, setScope, viewer, errors }: { d: Draft; set: (p: Pa
               )}
             </div>
 
-            <Field label="Date rule" hint="Shown in the report’s methodology, so readers know how the period was applied.">
+            {!ventureReport && <Field label="Date rule" hint="Shown in the report’s methodology, so readers know how the period was applied.">
               <div className="grid gap-2 md:grid-cols-3">
                 {(Object.keys(DATE_RULE) as DateRule[]).map((r) => (
                   <ChoiceCard key={r} on={d.dateRule === r} onClick={() => set({ dateRule: r })} title={DATE_RULE[r].label} body={DATE_RULE[r].body} badge={template?.defaultDateRule === r ? 'Template default' : undefined} />
                 ))}
               </div>
-            </Field>
+            </Field>}
 
             <Field label="Comparison">
               <div className="grid gap-2 md:grid-cols-3">
@@ -445,7 +459,7 @@ function StepScope({ d, set, setScope, viewer, errors }: { d: Draft; set: (p: Pa
           </div>
         </Panel>
 
-        <Panel>
+        {!ventureReport && <Panel>
           <button type="button" onClick={() => setShowFilters((s) => !s)} className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left sm:px-5">
             <span>
               <span className="block text-sm font-semibold text-ink">Optional filters</span>
@@ -475,26 +489,27 @@ function StepScope({ d, set, setScope, viewer, errors }: { d: Draft; set: (p: Pa
               })}
             </div>
           )}
-        </Panel>
+        </Panel>}
       </div>
 
-      <ScopeCheck d={d} viewer={viewer} />
+      <ScopeCheck d={d} viewer={viewer} ventures={ventureReport} />
     </div>
   )
 }
 
 /** Live numbers for the chosen scope, straight from getMetric (with permissions and suppression). */
-function ScopeCheck({ d, viewer }: { d: Draft; viewer: Viewer }) {
+function ScopeCheck({ d, viewer, ventures }: { d: Draft; viewer: Viewer; ventures?: boolean }) {
   const res = useMemo(() => {
     if (!d.scope.pillars.length || d.period.start > d.period.end) return null
     try {
       const ask = (code: string) => getMetric(viewer, { code, scope: d.scope, period: d.period, dateRule: d.dateRule, comparison: d.comparison, audience: d.audience })
-      return { reach: ask('reach.unique_people'), cohorts: ask('participation.cohorts'), attendance: ask('attendance.rate'), nps: ask('feedback.nps') }
+      if (ventures) return { list: [ask('venture.supported'), ask('venture.active'), ask('venture.jobs'), ask('venture.funding_deployed')] }
+      return { list: [ask('reach.unique_people'), ask('participation.cohorts'), ask('attendance.rate'), ask('feedback.nps')] }
     } catch (e) {
       if (e instanceof MetricAccessError || e instanceof MetricPolicyError) return { error: e.message }
       throw e
     }
-  }, [d.scope, d.period, d.dateRule, d.comparison, d.audience, viewer])
+  }, [d.scope, d.period, d.dateRule, d.comparison, d.audience, viewer, ventures])
 
   return (
     <aside className="xl:sticky xl:top-5 xl:self-start">
@@ -509,7 +524,7 @@ function ScopeCheck({ d, viewer }: { d: Draft; viewer: Viewer }) {
           </div>
         ) : (
           <div className="divide-y divide-line">
-            {[res.reach, res.cohorts, res.attendance, res.nps].map((m) => (
+            {res.list.map((m) => (
               <div key={m.code} className="flex items-baseline justify-between gap-3 px-4 py-3">
                 <span className="text-[13px] text-body">{m.label}</span>
                 <span className="text-right">
@@ -520,7 +535,7 @@ function ScopeCheck({ d, viewer }: { d: Draft; viewer: Viewer }) {
             ))}
             <p className="flex gap-2 px-4 py-3 text-[11px] leading-5 text-muted">
               <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-600" />
-              Counts under {res.reach.threshold} show as “&lt;{res.reach.threshold}” in a {AUDIENCE[d.audience].label} report. Change the audience in Details.
+              Counts under {res.list[0].threshold} show as “&lt;{res.list[0].threshold}” in a {AUDIENCE[d.audience].label} report. Change the audience in Details.
             </p>
           </div>
         )}

@@ -90,13 +90,15 @@ function Refused({ message }: { message: string }) {
   )
 }
 
-function SuppressionNote({ cells, threshold }: { cells: MetricCell[]; threshold: number }) {
+function SuppressionNote({ cells, threshold, code }: { cells: MetricCell[]; threshold: number; code?: string }) {
+  // Venture numbers count ventures, not people.
+  const unit = code?.startsWith('venture.') ? 'ventures' : 'people'
   const hidden = cells.filter((c) => c.suppressed).length
   if (!hidden) return null
   return (
     <p className="mt-1.5 flex items-center gap-1 text-[10.5px] text-faint">
       <Info className="h-3 w-3" />
-      {hidden} {hidden === 1 ? 'value is' : 'values are'} hidden to protect small groups (under {threshold} people).
+      {hidden} {hidden === 1 ? 'value is' : 'values are'} hidden to protect small groups (under {threshold} {unit}).
     </p>
   )
 }
@@ -117,7 +119,7 @@ function KpiBlock({ block, ctx }: { block: ReportBlock; ctx: Ctx }) {
   const progress = target && m.value != null ? Math.min(100, Math.round((m.value / target) * 100)) : null
   return (
     <div className="flex h-full flex-col justify-center rounded-[var(--radius-card)] bg-surface px-4 py-3.5 text-center" style={{ border: '1px solid var(--stat-border)', borderLeft: '5px solid var(--color-brand)' }}>
-      <p className="mb-2 truncate text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[color:var(--stat-label)]">{m.label}</p>
+      <p className="mb-2 line-clamp-2 text-[10.5px] font-extrabold uppercase leading-[1.35] tracking-[0.06em] text-[color:var(--stat-label)]" title={m.label}>{m.label}</p>
       <p className={`font-display text-[26px] font-semibold leading-none tabular-nums ${m.suppressed ? 'text-bad' : 'text-brand-deep'}`}>{m.display}</p>
       {cmp && (
         <p className="mt-1.5 flex items-center justify-center gap-1 text-[10.5px] text-[color:var(--stat-hint)]">
@@ -194,7 +196,7 @@ function BarRanked({ block, ctx }: { block: ReportBlock; ctx: Ctx }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <SuppressionNote cells={cells} threshold={r.data.threshold} />
+      <SuppressionNote cells={cells} threshold={r.data.threshold} code={r.data.code} />
     </>
   )
 }
@@ -220,7 +222,7 @@ function TrendChart({ block, ctx }: { block: ReportBlock; ctx: Ctx }) {
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <SuppressionNote cells={cells} threshold={r.data.threshold} />
+      <SuppressionNote cells={cells} threshold={r.data.threshold} code={r.data.code} />
     </>
   )
 }
@@ -243,7 +245,7 @@ function DonutChart({ block, ctx }: { block: ReportBlock; ctx: Ctx }) {
   return (
     <>
       <DonutRing data={slices} colors={[...palette.slice(0, shown.length), 'var(--color-line-strong)']} totalLabel={r.data.label} total={r.data.value ?? undefined} height={260} animate={false} />
-      <SuppressionNote cells={cells} threshold={r.data.threshold} />
+      <SuppressionNote cells={cells} threshold={r.data.threshold} code={r.data.code} />
     </>
   )
 }
@@ -410,7 +412,7 @@ function BreakdownTable({ block, ctx }: { block: ReportBlock; ctx: Ctx }) {
           {additive && <Td num total>100%</Td>}
         </tr>
       </Table>
-      <SuppressionNote cells={cells} threshold={r.data.threshold} />
+      <SuppressionNote cells={cells} threshold={r.data.threshold} code={r.data.code} />
     </>
   )
 }

@@ -202,7 +202,7 @@ export function runDataCheck(viewer: Viewer, report: Report, answers?: Record<st
         id: 'suppressed',
         severity: 'info',
         title: `${suppressed} ${suppressed === 1 ? 'value is' : 'values are'} hidden to protect small groups`,
-        detail: `Counts under ${report.audience === 'internal' ? 5 : 10} people are shown as “<${report.audience === 'internal' ? 5 : 10}”. This is expected and is explained in the methodology.`,
+        detail: `Counts under ${report.audience === 'internal' ? 5 : 10} ${ventureOnly ? 'ventures' : 'people'} are shown as “<${report.audience === 'internal' ? 5 : 10}”. This is expected and is explained in the methodology.`,
       })
     }
   }

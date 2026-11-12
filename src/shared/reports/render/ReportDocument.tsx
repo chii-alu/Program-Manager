@@ -5,8 +5,9 @@
 import React from 'react'
 import { metricsUsed } from '../blocks'
 import { indicatorByCode } from '../indicators'
+import { REPORTING_DATE } from '../../ventures/derive'
 import { FILTERS } from '../metrics'
-import { comparisonPeriod, fmtRange } from '../periods'
+import { comparisonPeriod, fmtDay, fmtRange } from '../periods'
 import { templateById } from '../templates'
 import type { FilterKey, Report, Viewer } from '../types'
 import type { DataCheck } from '../quality'
@@ -107,22 +108,41 @@ export function ReportDocument({ report, viewer, notes, print = false }: { repor
       <Page>
         <SectionHeading n="A" title="Methodology and definitions" />
         <div className="space-y-3 text-[13px] leading-6 text-body">
-          <p>
-            Every number in this report comes from the CHII metrics layer, so it is defined and counted the same way as on the platform dashboard. People are counted once by CHII ID.
-          </p>
-          <p>
-            <b className="text-ink">Period rule.</b> Records are counted in {report.period.label} ({fmtRange(report.period.start, report.period.end)}) by their {DATE_RULE_LABEL[report.dateRule]}. A metric that can’t use this rule uses
-            its own default, noted below.
-          </p>
-          {filters.length > 0 && (
-            <p>
-              <b className="text-ink">Filters.</b> {filters.map(([k, v]) => `${FILTERS[k].label}: ${v.join(', ')}`).join(' · ')}.
-            </p>
-          )}
-          <p>
-            <b className="text-ink">Small numbers.</b> To protect individuals, counts under {report.audience === 'internal' ? 5 : 10} people are shown as “&lt;{report.audience === 'internal' ? 5 : 10}”, and where one hidden value could be worked out from a total, a
-            second value is hidden and shown as “—”. Rates and averages based on fewer than {report.audience === 'internal' ? 5 : 10} people are not shown.
-          </p>
+          {(() => {
+            const vUsed = used.filter((c) => indicatorByCode.get(c)?.source === 'registry')
+            const ventureOnly = vUsed.length > 0 && vUsed.length === used.length
+            const t = report.audience === 'internal' ? 5 : 10
+            const asOf = report.period.end > REPORTING_DATE ? REPORTING_DATE : report.period.end
+            return (
+              <>
+                <p>
+                  Every number in this report comes from the CHII metrics layer, so it is defined and counted the same way as on the platform dashboard.{' '}
+                  {ventureOnly ? 'Venture numbers come from the HENT Venture Registry, with the same definitions as Venture Analytics. Founders are counted once by CHII ID and never named.' : 'People are counted once by CHII ID.'}
+                </p>
+                {!ventureOnly && (
+                  <p>
+                    <b className="text-ink">Period rule.</b> Records are counted in {report.period.label} ({fmtRange(report.period.start, report.period.end)}) by their {DATE_RULE_LABEL[report.dateRule]}. A metric that can’t use this rule uses
+                    its own default, noted below.
+                  </p>
+                )}
+                {vUsed.length > 0 && (
+                  <p>
+                    <b className="text-ink">Ventures.</b> Portfolio numbers are as of {fmtDay(asOf)}: each venture’s latest update accepted by then. New ventures and stage moves count what happened in {report.period.label}. Money is in US dollars at fixed
+                    rates.
+                  </p>
+                )}
+                {!ventureOnly && filters.length > 0 && (
+                  <p>
+                    <b className="text-ink">Filters.</b> {filters.map(([k, v]) => `${FILTERS[k].label}: ${v.join(', ')}`).join(' · ')}.
+                  </p>
+                )}
+                <p>
+                  <b className="text-ink">Small numbers.</b> To protect individuals, counts under {t} {ventureOnly ? 'ventures' : 'people'} are shown as “&lt;{t}”, and where one hidden value could be worked out from a total, a second value is hidden and shown
+                  as “—”. Rates and averages based on fewer than {t} {ventureOnly ? 'ventures' : 'people'} are not shown.
+                </p>
+              </>
+            )
+          })()}
         </div>
         <dl className="mt-5 divide-y divide-line border-y border-line">
           {used.map((code) => {
