@@ -220,7 +220,7 @@ export function seedRegistry(): RegistryData {
   ]
 
   // Registrations staff already reviewed, so the registrations log has history.
-  const accepted = ventures.filter((v) => v.intakeYear === 2025).slice(-1)[0]
+  const accepted = ventures.filter((v) => v.intakeYear === 2025 && v.name !== 'Mama Care Health Ltd').slice(-1)[0]
   if (accepted) {
     const leadId = members.find((m) => m.ventureId === accepted.id && m.isPrimary)?.chiiId
     const lead = participants.find((p) => p.id === leadId)
