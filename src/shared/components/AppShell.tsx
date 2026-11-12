@@ -1018,8 +1018,9 @@ function navFor(role: Role, portal: Portal): NavGroup[] {
       title: 'Workspace',
       items: [
         { key: 'overview', label: 'Overview', icon: LayoutGrid },
-        // HENT staff and the MELA admin only (VENTURE-REGISTRY-SPEC §1).
-        ...(canUseVentures({ role, pillars: pillarsFor(portal) }) && (portal === 'hent' || portal === 'admin')
+        // In the HENT portal only. The MELA view keeps the Ventures sheet (below) but not this menu;
+        // MELA admins still reach the registry by switching to the HENT portal.
+        ...(canUseVentures({ role, pillars: pillarsFor(portal) }) && portal === 'hent'
           ? [
               {
                 key: 'ventures-group',
