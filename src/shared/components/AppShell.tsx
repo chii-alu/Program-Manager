@@ -53,7 +53,8 @@ import { startRealtime, timeAgo, toast, useNotifications } from '../lib/notify'
 import { bounds, totals, useTimeRange } from '../lib/time'
 import { useInstall } from '../lib/pwa'
 import { canUseVentures } from '../ventures/store'
-import { Portal, Role, applications, participants, pillarStats, pillarsFor, portalMeta, roleMeta, sessions } from '../data/mela'
+import { Portal, Role, applications, participants, pillarStats, pillarsFor, portalMeta, sessions } from '../data/mela'
+import { userFor } from '../lib/auth'
 
 export type ShellProps = {
   role: Role
