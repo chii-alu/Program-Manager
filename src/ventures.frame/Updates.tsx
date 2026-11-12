@@ -1,7 +1,7 @@
 /**
  * Venture updates (VENTURE-REGISTRY-SPEC §3 Updates, build step 6):
  * the current round's personal update links (send, remind, copy, QR), the response rate,
- * the schedule, and the founder updates waiting for staff review.
+ * the schedule, the founder updates waiting for staff review, and the activity log (who did what).
  */
 import React, { useMemo, useState } from 'react'
 import { BellRing, CalendarClock, Check, Clock, Copy, ExternalLink, Eye, Link2, QrCode, RefreshCw, Send } from 'lucide-react'
@@ -15,6 +15,7 @@ import { acceptUpdate, createRoundLinks, currentRound, markLinks, setUpdateSched
 import type { RegistryData, UpdateLink } from '../shared/ventures/types'
 import { Chip, fmtDate } from './parts'
 import { ShareLink, formUrl } from './ShareLink'
+import { ActivityLog } from './ActivityLog'
 
 type Row = UpdateLink & { venture: string; code: string; founder: string; state: 'Not sent' | 'Sent' | 'Reminded' | 'Responded' | 'Accepted' }
 
@@ -137,7 +138,7 @@ export function UpdatesPage({ data, me, showIdentity, onOpen }: { data: Registry
           <div className="flex flex-wrap items-center gap-2">
             <Button
               onClick={() => {
-                const n = createRoundLinks()
+                const n = createRoundLinks(me)
                 toast({ title: n ? `${n} new link${n === 1 ? '' : 's'} created` : 'Every active venture already has a link', tone: n ? 'good' : 'info' })
               }}
             >
@@ -147,7 +148,7 @@ export function UpdatesPage({ data, me, showIdentity, onOpen }: { data: Registry
               variant="primary"
               onClick={() => {
                 if (!notSent.length) return toast({ title: 'All links have been sent', tone: 'info' })
-                markLinks(notSent.map((r) => r.token), 'sent')
+                markLinks(notSent.map((r) => r.token), 'sent', me)
                 toast({ title: `Sent to ${notSent.length} founder${notSent.length === 1 ? '' : 's'}`, body: 'In the live system each lead founder gets an email with their link.', tone: 'good' })
               }}
             >
@@ -156,7 +157,7 @@ export function UpdatesPage({ data, me, showIdentity, onOpen }: { data: Registry
             <Button
               onClick={() => {
                 if (!waiting.length) return toast({ title: 'No one to remind', tone: 'info' })
-                markLinks(waiting.map((r) => r.token), 'reminded')
+                markLinks(waiting.map((r) => r.token), 'reminded', me)
                 toast({ title: `Reminded ${waiting.length} founder${waiting.length === 1 ? '' : 's'}`, tone: 'good' })
               }}
             >
@@ -165,7 +166,7 @@ export function UpdatesPage({ data, me, showIdentity, onOpen }: { data: Registry
             <span className="ml-auto flex flex-wrap items-center gap-1.5 text-xs text-muted">
               Ask every
               {([3, 6, 12] as const).map((m) => (
-                <Chip key={m} on={settings.updateEveryMonths === m} onClick={() => setUpdateSchedule(m)}>
+                <Chip key={m} on={settings.updateEveryMonths === m} onClick={() => setUpdateSchedule(m, me)}>
                   {m} months
                 </Chip>
               ))}
@@ -174,6 +175,21 @@ export function UpdatesPage({ data, me, showIdentity, onOpen }: { data: Registry
           </div>
         }
       />
+
+      <Panel title="Activity log" sub="Who created, sent and reminded links, which founders answered, who accepted their updates, and schedule changes.">
+        <ActivityLog
+          data={data}
+          area="updates"
+          onOpen={onOpen}
+          filters={[
+            { key: 'links', label: 'Links created / sent', actions: ['links_created', 'links_sent'] },
+            { key: 'reminders', label: 'Reminders', actions: ['links_reminded'] },
+            { key: 'answers', label: 'Founder answers', actions: ['founder_update_received'] },
+            { key: 'accepted', label: 'Accepted', actions: ['update_accepted'] },
+            { key: 'schedule', label: 'Schedule', actions: ['schedule_changed'] },
+          ]}
+        />
+      </Panel>
 
       {share && (
         <ShareLink

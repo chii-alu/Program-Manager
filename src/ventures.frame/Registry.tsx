@@ -4,11 +4,12 @@
  * women-led, year founded…), quick views, column chooser and CSV/XLSX export.
  */
 import React, { useMemo, useState } from 'react'
-import { AlertTriangle, Briefcase, Clock, DollarSign, Eye, Pencil, Rocket, TrendingUp, Users } from 'lucide-react'
+import { AlertTriangle, Briefcase, Clock, DollarSign, Eye, Pencil, Rocket, TrendingUp, UserRound, Users } from 'lucide-react'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { StatCards } from '../shared/components/StatStrip'
 import { ventureLatest, deriveFlags, type VentureRow } from '../shared/ventures/derive'
 import { countryName } from '../shared/ventures/lists'
+import { PERIODS, analyse } from '../shared/ventures/metrics'
 import { personById } from '../shared/ventures/people'
 import { runVentureChecks } from '../shared/ventures/quality'
 import type { RegistryData } from '../shared/ventures/types'
@@ -72,6 +73,8 @@ export function Registry({ data, showIdentity, onOpen, onEdit }: { data: Registr
   const women = rows.filter((r) => r.womenLed).length
   const jobs = rows.reduce((s, r) => s + r.jobsTotal, 0)
   const deployed = rows.reduce((s, r) => s + r.chiiFundingUsd, 0)
+  // Founders counted once by CHII ID, exactly as Venture Analytics counts them.
+  const founders = useMemo(() => analyse(data, PERIODS[0]), [data]).founders
 
   const yesNo = (b: boolean | null) => (b == null ? 'Unknown' : b ? 'Yes' : 'No')
   const columns: Column<Row>[] = [
@@ -155,9 +158,17 @@ export function Registry({ data, showIdentity, onOpen, onEdit }: { data: Registr
   return (
     <>
       <StatCards
+        columns={5}
         items={[
           { label: 'Ventures', value: rows.length, icon: Briefcase, hint: `${active} active`, tip: 'Ventures in the registry, any status (dashboard: Ventures Supported).' },
           { label: 'Women-led', value: women, icon: Users, hint: `${rows.length ? Math.round((women / rows.length) * 100) : 0}% of ventures`, tip: 'Ventures with at least one female founder (lead or co-founder).' },
+          {
+            label: 'Founders',
+            value: founders.total,
+            icon: UserRound,
+            hint: `${founders.total ? Math.round((founders.female / founders.total) * 100) : 0}% female`,
+            tip: 'Founders and co-founders linked to the ventures, counted once by CHII ID (a founder of two ventures counts once).',
+          },
           { label: 'Jobs created', value: jobs, icon: TrendingUp, hint: 'latest values', tip: 'Total jobs from each venture’s latest accepted update.' },
           { label: 'CHII funding', value: deployed, display: money(deployed), icon: DollarSign, hint: 'awards to date', tip: 'CHII Venture Funding awards (dashboard: Funding Deployed). External funding is counted separately.' },
         ]}

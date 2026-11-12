@@ -65,7 +65,7 @@ describe('venture registration form', () => {
   })
 
   it('can’t be sent when the form is closed', () => {
-    setRegistrationOpen(false)
+    setRegistrationOpen(false, 'Tendai Moyo')
     expect(() => submitRegistration(reg())).toThrow(FormClosedError)
   })
 
@@ -97,7 +97,7 @@ describe('founder update form', () => {
     const links = d.links!.filter((l) => l.roundId === round.id)
     expect(new Set(links.map((l) => l.ventureId)).size).toBe(links.length)
     for (const l of links) expect(['Closed', 'Acquired']).not.toContain(d.ventures.find((v) => v.id === l.ventureId)!.currentStatus)
-    expect(createRoundLinks()).toBe(0) // already created
+    expect(createRoundLinks('Tendai Moyo')).toBe(0) // already created
   })
 
   it('a founder update waits for staff; once accepted it changes the latest values but not the baseline', () => {
@@ -123,7 +123,7 @@ describe('founder update form', () => {
 
   it('sending and reminding are recorded per link', () => {
     const l = getRegistry().links![0]
-    markLinks([l.token], 'reminded')
+    markLinks([l.token], 'reminded', 'Tendai Moyo')
     expect(linkByToken(l.token)!.remindedAt).not.toBeNull()
   })
 })

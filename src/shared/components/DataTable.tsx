@@ -180,7 +180,8 @@ export function DataTable<T>({
         />
       )}
       {heading && <PanelHeader title={heading} sub={description} right={headerRight} />}
-      {above}
+      {/* Quick views or actions: their own padded row, clear of the header above. */}
+      {above && <div className="border-b border-line px-3 py-3 sm:px-4">{above}</div>}
 
       {/* Toolbar */}
       <div className="flex flex-col gap-2 border-b border-line px-3 py-2.5 sm:px-4 lg:flex-row lg:items-center">

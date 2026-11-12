@@ -11,8 +11,9 @@ import { REPORTING_DATE, acceptedUpdates } from './derive'
 import { toUsd } from './lists'
 import { resolveBeneficiary, type ResolveInput, type ResolveResult } from './people'
 import { validateUpdate, validateVenture } from './quality'
+import { rebuildActivity } from './activity'
 import { defaultSettings, seedRegistry } from './seed'
-import type { FundingAward, MemberRole, RegistryData, RegistrySettings, UpdateLink, UpdateSource, Venture, VentureFunding, VentureHistory, VentureSubmission, VentureUpdate } from './types'
+import type { ActivityEntry, FundingAward, MemberRole, RegistryData, RegistrySettings, UpdateLink, UpdateSource, Venture, VentureFunding, VentureHistory, VentureSubmission, VentureUpdate } from './types'
 
 const KEY = 'mela-ventures-v1'
 
@@ -33,9 +34,9 @@ function load(): RegistryData {
   if (cache) return cache
   try {
     const raw = localStorage.getItem(KEY)
-    cache = raw ? withFormData(JSON.parse(raw) as RegistryData) : seedRegistry()
+    cache = withFormData(raw ? (JSON.parse(raw) as RegistryData) : seedRegistry())
   } catch {
-    cache = seedRegistry()
+    cache = withFormData(seedRegistry())
   }
   return cache
 }
@@ -64,7 +65,7 @@ export function useRegistry(): RegistryData {
 }
 
 export function resetRegistry() {
-  persist(seedRegistry())
+  persist(withFormData(seedRegistry()))
 }
 
 /* ---------- Writes ---------- */
@@ -82,6 +83,9 @@ const log = (d: RegistryData, ventureId: string, by: string, action: VentureHist
   ...d.history,
   { id: uid('h'), ventureId, at: now(), by, action, detail },
 ]
+
+/** Append to the registry's activity log (registrations and update rounds). */
+const act = (d: RegistryData, e: Omit<ActivityEntry, 'id' | 'at'> & { at?: string }): ActivityEntry[] => [...(d.activity ?? []), { id: uid('act'), at: e.at ?? now(), ...e }]
 
 export type VentureInput = Omit<Venture, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'stage' | 'currentStatus'> & { countries: string[] }
 export type UpdateInput = Omit<VentureUpdate, 'id' | 'ventureId' | 'updateType' | 'source' | 'fundingUsd' | 'revenueUsd' | 'submittedBy' | 'acceptedBy' | 'acceptedAt'>
@@ -184,7 +188,13 @@ export function acceptUpdate(updateId: string, by: string) {
   const d = load()
   const u = d.updates.find((x) => x.id === updateId)
   if (!u || u.acceptedAt) return
-  const next = { ...d, updates: d.updates.map((x) => (x.id === updateId ? { ...x, acceptedBy: by, acceptedAt: now() } : x)), history: log(d, u.ventureId, by, 'update_accepted', `Accepted the founder update as of ${u.asOf}`) }
+  const code = d.ventures.find((v) => v.id === u.ventureId)?.code ?? ''
+  const next = {
+    ...d,
+    updates: d.updates.map((x) => (x.id === updateId ? { ...x, acceptedBy: by, acceptedAt: now() } : x)),
+    history: log(d, u.ventureId, by, 'update_accepted', `Accepted the founder update as of ${u.asOf}`),
+    activity: act(d, { by, area: 'updates', action: 'update_accepted', detail: `Accepted ${code}’s update as of ${u.asOf}`, ventureId: u.ventureId }),
+  }
   persist(syncCurrent(next, u.ventureId))
 }
 
@@ -212,20 +222,33 @@ export function addAward(row: Omit<FundingAward, 'id'>, by: string) {
 
 /** Registries saved before the public forms existed get empty form data. */
 function withFormData(d: RegistryData): RegistryData {
-  return { ...d, submissions: d.submissions ?? [], links: d.links ?? [], settings: d.settings ?? defaultSettings() }
+  const out = { ...d, submissions: d.submissions ?? [], links: d.links ?? [], settings: d.settings ?? defaultSettings() }
+  return { ...out, activity: d.activity ?? rebuildActivity(out) }
 }
+
 
 export const settingsOf = (d: RegistryData): RegistrySettings => d.settings ?? defaultSettings()
 export const currentRound = (d: RegistryData) => settingsOf(d).rounds.slice(-1)[0]
 
-export function setRegistrationOpen(open: boolean) {
+export function setRegistrationOpen(open: boolean, by: string) {
   const d = load()
-  persist({ ...d, settings: { ...settingsOf(d), registrationOpen: open } })
+  if (settingsOf(d).registrationOpen === open) return
+  persist({
+    ...d,
+    settings: { ...settingsOf(d), registrationOpen: open },
+    activity: act(d, { by, area: 'registrations', action: open ? 'form_opened' : 'form_closed', detail: open ? 'Opened the registration form' : 'Closed the registration form' }),
+  })
 }
 
-export function setUpdateSchedule(months: RegistrySettings['updateEveryMonths']) {
+export function setUpdateSchedule(months: RegistrySettings['updateEveryMonths'], by: string) {
   const d = load()
-  persist({ ...d, settings: { ...settingsOf(d), updateEveryMonths: months } })
+  const was = settingsOf(d).updateEveryMonths
+  if (was === months) return
+  persist({
+    ...d,
+    settings: { ...settingsOf(d), updateEveryMonths: months },
+    activity: act(d, { by, area: 'updates', action: 'schedule_changed', detail: `Changed update rounds from every ${was} to every ${months} months` }),
+  })
 }
 
 export class FormClosedError extends Error {}
@@ -250,7 +273,7 @@ export function submitRegistration(r: RegistrationInput) {
   const problems = checkRegistration(r)
   if (problems.length) throw new VentureValidationError(problems)
   const sub: VentureSubmission = { ...r, founders: r.founders.filter((f) => f.name.trim() && f.email.trim()), id: uid('s'), receivedAt: now(), status: 'pending' }
-  persist({ ...d, submissions: [...(d.submissions ?? []), sub] })
+  persist({ ...d, submissions: [...(d.submissions ?? []), sub], activity: act(d, { at: sub.receivedAt, by: 'Registration form', area: 'registrations', action: 'registration_received', detail: `${sub.name} registered`, submissionId: sub.id }) })
   return sub
 }
 
@@ -298,13 +321,23 @@ export function acceptSubmission(id: string, extra: { intakeYear: number; track:
     'founder_form',
   )
   const after = load()
-  persist({ ...after, submissions: (after.submissions ?? []).map((x) => (x.id === id ? { ...x, status: 'accepted' as const, ventureId: venture.id, reviewedBy: by, reviewedAt: now() } : x)) })
+  persist({
+    ...after,
+    submissions: (after.submissions ?? []).map((x) => (x.id === id ? { ...x, status: 'accepted' as const, ventureId: venture.id, reviewedBy: by, reviewedAt: now() } : x)),
+    activity: act(after, { by, area: 'registrations', action: 'registration_accepted', detail: `${s.name} added to the registry as ${venture.code}`, submissionId: id, ventureId: venture.id }),
+  })
   return venture
 }
 
 export function rejectSubmission(id: string, reason: string, by: string) {
   const d = load()
-  persist({ ...d, submissions: (d.submissions ?? []).map((x) => (x.id === id ? { ...x, status: 'rejected' as const, rejectReason: reason, reviewedBy: by, reviewedAt: now() } : x)) })
+  const s = d.submissions?.find((x) => x.id === id)
+  if (!s || s.status !== 'pending') throw new Error('This registration has already been reviewed.')
+  persist({
+    ...d,
+    submissions: (d.submissions ?? []).map((x) => (x.id === id ? { ...x, status: 'rejected' as const, rejectReason: reason, reviewedBy: by, reviewedAt: now() } : x)),
+    activity: act(d, { by, area: 'registrations', action: 'registration_declined', detail: `${s.name} declined: ${reason}`, submissionId: id }),
+  })
 }
 
 /* Founder update links */
@@ -312,7 +345,7 @@ export function rejectSubmission(id: string, reason: string, by: string) {
 const token = () => Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6)
 
 /** One personal link per active venture with a lead founder, for the current round. Existing links are kept. */
-export function createRoundLinks() {
+export function createRoundLinks(by: string) {
   const d = load()
   const round = currentRound(d)
   const links = d.links ?? []
@@ -324,14 +357,34 @@ export function createRoundLinks() {
     if (links.some((l) => l.ventureId === v.id && l.roundId === round.id)) continue
     fresh.push({ token: token(), ventureId: v.id, roundId: round.id, chiiId: lead.chiiId, createdAt: now(), sentAt: null, remindedAt: null, respondedAt: null, updateId: null })
   }
-  persist({ ...d, links: [...links, ...fresh] })
+  persist({
+    ...d,
+    links: [...links, ...fresh],
+    activity: fresh.length ? act(d, { by, area: 'updates', action: 'links_created', detail: `Created ${fresh.length} link${fresh.length === 1 ? '' : 's'} · ${round.label}`, count: fresh.length }) : d.activity,
+  })
   return fresh.length
 }
 
-export function markLinks(tokens: string[], what: 'sent' | 'reminded') {
+export function markLinks(tokens: string[], what: 'sent' | 'reminded', by: string) {
   const d = load()
+  if (!tokens.length) return
   const at = now()
-  persist({ ...d, links: (d.links ?? []).map((l) => (tokens.includes(l.token) ? (what === 'sent' ? { ...l, sentAt: l.sentAt ?? at } : { ...l, remindedAt: at }) : l)) })
+  const round = currentRound(d)
+  const n = tokens.length
+  persist({
+    ...d,
+    links: (d.links ?? []).map((l) => (tokens.includes(l.token) ? (what === 'sent' ? { ...l, sentAt: l.sentAt ?? at } : { ...l, remindedAt: at }) : l)),
+    activity: act(d, {
+      at,
+      by,
+      area: 'updates',
+      action: what === 'sent' ? 'links_sent' : 'links_reminded',
+      detail: `${what === 'sent' ? 'Sent' : 'Reminded'} ${n} link${n === 1 ? '' : 's'} · ${round.label}`,
+      count: n,
+      // A single link names its venture; bulk sends don't list them all.
+      ventureId: n === 1 ? d.links?.find((l) => l.token === tokens[0])?.ventureId : undefined,
+    }),
+  })
 }
 
 export const linkByToken = (t: string) => load().links?.find((l) => l.token === t) ?? null
@@ -343,6 +396,11 @@ export function submitFounderUpdate(t: string, input: UpdateInput) {
   if (!link) throw new FormClosedError('This link isn’t valid any more.')
   const u = addUpdate(link.ventureId, input, 'Founder (update form)', 'founder_form')
   const after = load()
-  persist({ ...after, links: (after.links ?? []).map((l) => (l.token === t ? { ...l, respondedAt: now(), updateId: u.id } : l)) })
+  const code = after.ventures.find((v) => v.id === link.ventureId)?.code ?? ''
+  persist({
+    ...after,
+    links: (after.links ?? []).map((l) => (l.token === t ? { ...l, respondedAt: now(), updateId: u.id } : l)),
+    activity: act(after, { by: 'Founder update form', area: 'updates', action: 'founder_update_received', detail: `${code} sent an update as of ${input.asOf}`, ventureId: link.ventureId }),
+  })
   return u
 }

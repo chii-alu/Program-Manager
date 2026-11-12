@@ -6,6 +6,7 @@
  */
 import { participants } from '../data/mela'
 import { toUsd } from './lists'
+import { rebuildActivity } from './activity'
 import type { RegistrySettings, UpdateLink, VentureSubmission, FundingAward, FundingType, RegistryData, Stage, Venture, VentureCountry, VentureFunding, VentureHistory, VentureMember, VentureStatus, VentureUpdate } from './types'
 
 const NAMES = [
@@ -218,7 +219,27 @@ export function seedRegistry(): RegistryData {
     }),
   ]
 
-  return { seq: ventures.length, ventures, countries, members, updates, funding, awards, history, submissions, links, settings }
+  // Registrations staff already reviewed, so the registrations log has history.
+  const accepted = ventures.filter((v) => v.intakeYear === 2025).slice(-1)[0]
+  if (accepted) {
+    const leadId = members.find((m) => m.ventureId === accepted.id && m.isPrimary)?.chiiId
+    const lead = participants.find((p) => p.id === leadId)
+    submissions.push({
+      id: 'sub-000a', receivedAt: '2025-03-04T11:20:00.000Z', status: 'accepted', name: accepted.name, description: accepted.description, countries: [countryOf(countries, accepted.id)], healthSector: accepted.healthSector, source: accepted.source, yearFounded: accepted.yearFounded, institution: accepted.institution, legalStatus: accepted.legalStatus, stage: 'Expose',
+      founders: lead ? [{ name: lead.name, email: lead.email, gender: lead.gender }] : [],
+      jobsTotal: 2, jobsWomen: 1, jobsPwd: 0, jobsDisplaced: 0, fundingAmount: 0, fundingCurrency: 'USD', revenueAmount: null, revenueCurrency: null,
+      ventureId: accepted.id, reviewedBy: 'Tendai Moyo', reviewedAt: '2025-03-06T09:15:00.000Z',
+    })
+  }
+  submissions.push({
+    id: 'sub-000b', receivedAt: '2025-09-15T14:02:00.000Z', status: 'rejected', name: 'QuickFit Gyms', description: 'Chain of budget gyms in Lagos.', countries: ['NG'], healthSector: 'Primary care', source: 'Open call', yearFounded: 2022, institution: 'Other', legalStatus: 'Registered', stage: 'Scale',
+    founders: [{ name: 'Tunde Bakare', email: 't.bakare@quickfit.ng', gender: 'M' }],
+    jobsTotal: 14, jobsWomen: 5, jobsPwd: 0, jobsDisplaced: 0, fundingAmount: 0, fundingCurrency: 'USD', revenueAmount: null, revenueCurrency: null,
+    reviewedBy: 'Amara Okafor', reviewedAt: '2025-09-17T10:40:00.000Z', rejectReason: 'Fitness business, not a health venture in HENT’s scope.',
+  })
+
+  const data: RegistryData = { seq: ventures.length, ventures, countries, members, updates, funding, awards, history, submissions, links, settings }
+  return { ...data, activity: rebuildActivity(data, 'Tendai Moyo') }
 }
 
 export function defaultSettings(): RegistrySettings {

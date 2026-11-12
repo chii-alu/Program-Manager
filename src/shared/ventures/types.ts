@@ -202,6 +202,38 @@ export type RegistrySettings = {
   rounds: UpdateRound[]
 }
 
+/**
+ * The registry's audit log for the shared workflows: registrations (received, accepted, declined,
+ * form opened or closed) and update rounds (links created, sent, reminded; founder answers;
+ * updates accepted; schedule changes). Each entry says who did it and when. Venture-level edits
+ * stay in VentureHistory, on the venture's own History tab.
+ */
+export type ActivityEntry = {
+  id: string
+  at: string
+  /** Staff member's name, or the form a founder used. */
+  by: string
+  area: 'registrations' | 'updates'
+  action:
+    | 'registration_received'
+    | 'registration_accepted'
+    | 'registration_declined'
+    | 'form_opened'
+    | 'form_closed'
+    | 'links_created'
+    | 'links_sent'
+    | 'links_reminded'
+    | 'founder_update_received'
+    | 'update_accepted'
+    | 'schedule_changed'
+  /** What happened, in plain words (no founder names or emails). */
+  detail: string
+  ventureId?: string
+  submissionId?: string
+  /** How many links, for bulk actions. */
+  count?: number
+}
+
 export type RegistryData = {
   /** Last Venture ID number handed out. Never goes down, so codes are never reused. */
   seq: number
@@ -216,4 +248,6 @@ export type RegistryData = {
   submissions?: VentureSubmission[]
   links?: UpdateLink[]
   settings?: RegistrySettings
+  /** Added with the activity log; rebuilt from the records above for registries saved before it. */
+  activity?: ActivityEntry[]
 }

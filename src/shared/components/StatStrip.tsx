@@ -16,14 +16,14 @@ export type StatCardItem = {
   tip?: string
 }
 
-const cols = { 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' } as const
+const cols = { 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4', 5: 'sm:grid-cols-3 lg:grid-cols-5' } as const
 
 /**
  * HEMP header stat cards (CHII-Dashboard components/hemp/header-stats-panel.tsx), without the
  * progress bars and targets: white card, 5px brand left border, centred uppercase label,
  * icon beside a deep-blue figure, small caption.
  */
-export function StatCards({ items, columns }: { items: StatCardItem[]; columns?: 2 | 3 | 4 }) {
+export function StatCards({ items, columns }: { items: StatCardItem[]; columns?: 2 | 3 | 4 | 5 }) {
   const n = columns ?? (Math.min(Math.max(items.length, 2), 4) as 2 | 3 | 4)
   return (
     <dl className={`grid grid-cols-2 gap-3 ${cols[n]}`}>

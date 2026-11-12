@@ -134,7 +134,7 @@ export default function Ventures(props: Props) {
         description="Founders register their venture here. Registrations wait for your review before they join the registry."
         url={formUrl('venture-register')}
         accepting={settingsOf(data).registrationOpen}
-        onToggle={setRegistrationOpen}
+        onToggle={(open) => setRegistrationOpen(open, me)}
         fileName="hent-venture-registration"
       />
       <Registry data={data} showIdentity={showIdentity} onOpen={(id) => setPage({ kind: 'venture', id })} onEdit={(id) => setPage({ kind: 'edit', id })} />

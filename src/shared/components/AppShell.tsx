@@ -123,6 +123,8 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
 
   // Hovering the collapsed rail peeks it open over the page; it shrinks back on leave.
   const [peek, setPeek] = useState<'off' | 'open' | 'closing'>('off')
+  // Sidebar dropdowns the person opened or closed by hand (otherwise: open on their own pages).
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
   const peekTimer = useRef<number | undefined>(undefined)
   const peeking = collapsed && peek === 'open'
   const overlay = collapsed && peek !== 'off'
@@ -152,7 +154,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
     if (!firstRun.current) setLoading(true)
     firstRun.current = false
     return () => clearTimeout(t)
-  }, [range.preset, range.from, range.to, portal])
+  }, [range.preset, range.from, range.to, range.year, portal])
 
   useEffect(() => {
     startRealtime()
@@ -242,11 +244,24 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
               <ul className="space-y-0.5">
                 {g.items.map((it) => {
                   const childOn = !!it.children?.some((c) => c.key === active)
+                  // Parents are dropdowns: open while one of their pages is showing, toggled by a click.
+                  const open = it.children ? (openGroups[it.key] ?? childOn) : false
                   return (
                     <li key={it.key}>
-                      {/* A parent opens its first sub-page; its sub-pages show indented below it. */}
-                      <SideLink item={it} wide={wide} active={active === it.key || childOn} onClick={() => go(it.children ? it.children[0].key : it.key)} />
-                      {it.children && (
+                      <SideLink
+                        item={it}
+                        wide={wide}
+                        active={active === it.key || childOn}
+                        expanded={it.children ? open : undefined}
+                        onClick={() => {
+                          if (!it.children) return go(it.key)
+                          // On the icon rail the sub-pages are hidden, so the parent opens its first page.
+                          const labels = wide && window.matchMedia('(min-width: 1024px)').matches
+                          if (!labels) return go(it.children[0].key)
+                          setOpenGroups((o) => ({ ...o, [it.key]: !open }))
+                        }}
+                      />
+                      {it.children && open && (
                         <ul className={`ml-[26px] mt-0.5 space-y-0.5 border-l border-white/15 pl-2 ${L}`}>
                           {it.children.map((c) => (
                             <li key={c.key}>
@@ -495,7 +510,7 @@ function FooterButton({ wide, icon: Icon, label, onClick, danger }: { wide: bool
   )
 }
 
-function SideLink({ item, active, wide, onClick, sub }: { item: NavItem; active: boolean; wide: boolean; onClick: () => void; sub?: boolean }) {
+function SideLink({ item, active, wide, onClick, sub, expanded }: { item: NavItem; active: boolean; wide: boolean; onClick: () => void; sub?: boolean; expanded?: boolean }) {
   const Icon = item.icon
   if (sub)
     return (
@@ -514,7 +529,8 @@ function SideLink({ item, active, wide, onClick, sub }: { item: NavItem; active:
       type="button"
       onClick={onClick}
       title={item.label}
-      aria-current={active ? 'page' : undefined}
+      aria-current={active && expanded == null ? 'page' : undefined}
+      aria-expanded={expanded}
       className={`group relative flex min-h-10 w-full items-center justify-center gap-3 rounded-md px-2 py-1.5 text-[13px] transition-colors duration-150 ease-out ${wide ? 'lg:justify-start' : ''} ${
         active ? 'bg-white/12 font-bold text-white' : 'font-medium text-white/75 hover:bg-white/8 hover:text-white'
       }`}
@@ -525,6 +541,7 @@ function SideLink({ item, active, wide, onClick, sub }: { item: NavItem; active:
       </span>
       <span className={`min-w-0 flex-1 truncate text-left leading-snug ${wide ? 'hidden lg:block' : 'hidden'}`}>{item.label}</span>
       {item.count != null && <span className={`rounded-full bg-canvas px-1.5 text-[11px] font-semibold tabular-nums text-muted ${wide ? 'hidden lg:block' : 'hidden'}`}>{item.count}</span>}
+      {expanded != null && <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-white/60 transition-transform duration-150 ${expanded ? 'rotate-180' : ''} ${wide ? 'hidden lg:block' : 'hidden'}`} />}
     </button>
   )
 }
@@ -887,7 +904,7 @@ function MoreSheet(props: {
                   )}
                 </div>
                 <div className="overflow-hidden rounded-xl border border-line">
-                  <RangePanel from={from} to={to} setFrom={setFrom} setTo={setTo} preset={range.preset} setRange={setRange} onDone={onClose} />
+                  <RangePanel from={from} to={to} setFrom={setFrom} setTo={setTo} preset={range.preset} year={range.year} setRange={setRange} onDone={onClose} />
                 </div>
               </div>
             )}
@@ -1012,7 +1029,15 @@ function navFor(role: Role, portal: Portal): NavGroup[] {
             ]
           : []),
         { key: 'analytics', label: 'Analytics', icon: BarChart3 },
-        { key: 'interventions', label: 'Interventions', short: 'Sessions', icon: Layers },
+        {
+          key: 'interventions-group',
+          label: 'Interventions',
+          icon: Layers,
+          children: [
+            { key: 'interventions', label: 'All interventions', short: 'Sessions', icon: Layers },
+            { key: 'import', label: 'Import a sheet', icon: Upload },
+          ],
+        },
         { key: 'participants', label: 'CHII Participants', short: 'People', icon: Users },
         { key: 'feedback', label: 'CHII Feedbacks', short: 'Feedback', icon: MessageSquareText },
         ...(role === 'admin' ? [{ key: 'chii-db', label: 'CHII database', icon: Database }] : []),
@@ -1030,7 +1055,6 @@ function navFor(role: Role, portal: Portal): NavGroup[] {
     {
       title: 'Tools',
       items: [
-        { key: 'import', label: 'Import a sheet', icon: Upload },
         { key: 'reports', label: 'Reports', icon: FileBarChart2 },
         ...(role === 'admin'
           ? [
@@ -1044,7 +1068,7 @@ function navFor(role: Role, portal: Portal): NavGroup[] {
 }
 
 function bottomFor(role: Role): NavItem[] {
-  const all = navFor(role, 'admin').flatMap((g) => g.items)
+  const all = navFor(role, 'admin').flatMap((g) => g.items.flatMap((i) => i.children ?? [i]))
   const keys = role === 'reviewer' ? ['overview', 'applications'] : ['overview', 'interventions', 'participants', 'analytics']
   return keys.map((k) => all.find((i) => i.key === k)!).filter(Boolean)
 }

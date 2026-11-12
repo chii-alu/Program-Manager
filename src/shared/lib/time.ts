@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { addDays, differenceInCalendarDays, format, startOfMonth, startOfWeek, subDays, subMonths } from 'date-fns'
 
-export type Preset = '7d' | '30d' | '90d' | '12m' | 'all' | 'custom'
-export type TimeRange = { preset: Preset; from?: string; to?: string }
+export type Preset = '7d' | '30d' | '90d' | '12m' | 'all' | 'year' | 'custom'
+/** `year` is set with the 'year' preset: 1 Jan – 31 Dec, or to today for the current year. */
+export type TimeRange = { preset: Preset; from?: string; to?: string; year?: number }
 
 /** The platform's "today" for sample data. */
 export const TODAY = new Date(2025, 10, 10)
 
-export const presets: { id: Exclude<Preset, 'custom'>; label: string; short: string }[] = [
+/** Calendar years with data, newest first (the platform's records start in 2024). */
+export const YEARS: number[] = Array.from({ length: TODAY.getFullYear() - 2024 + 1 }, (_, i) => TODAY.getFullYear() - i)
+
+export const presets: { id: Exclude<Preset, 'custom' | 'year'>; label: string; short: string }[] = [
   { id: '7d', label: 'Last 7 days', short: '7D' },
   { id: '30d', label: 'Last 30 days', short: '30D' },
   { id: '90d', label: 'Last 90 days', short: '90D' },
@@ -28,12 +32,21 @@ export function bounds(tr: TimeRange): { start: Date; end: Date } {
       return { start: subMonths(end, 12), end }
     case 'all':
       return { start: new Date(2024, 4, 1), end }
+    case 'year': {
+      const y = tr.year ?? TODAY.getFullYear()
+      const last = new Date(y, 11, 31)
+      return { start: new Date(y, 0, 1), end: last > TODAY ? TODAY : last }
+    }
     case 'custom':
       return { start: tr.from ? new Date(tr.from) : subDays(end, 29), end }
   }
 }
 
 export function rangeLabel(tr: TimeRange) {
+  if (tr.preset === 'year') {
+    const y = tr.year ?? TODAY.getFullYear()
+    return y === TODAY.getFullYear() ? `${y} (year to date)` : `Year ${y}`
+  }
   if (tr.preset !== 'custom') return presets.find((p) => p.id === tr.preset)!.label
   const { start, end } = bounds(tr)
   return `${format(start, 'd MMM')} – ${format(end, 'd MMM yyyy')}`
@@ -114,6 +127,11 @@ export function totals(tr: TimeRange) {
 
 /** Same-length window just before the range, for deltas. */
 export function previous(tr: TimeRange): TimeRange {
+  // A year compares with the same dates a year earlier (so a year to date isn't set against a full year).
+  if (tr.preset === 'year') {
+    const { start, end } = bounds(tr)
+    return { preset: 'custom', from: format(subMonths(start, 12), 'yyyy-MM-dd'), to: format(subMonths(end, 12), 'yyyy-MM-dd') }
+  }
   const { start, end } = bounds(tr)
   const span = differenceInCalendarDays(end, start) + 1
   return { preset: 'custom', from: format(subDays(start, span), 'yyyy-MM-dd'), to: format(subDays(start, 1), 'yyyy-MM-dd') }

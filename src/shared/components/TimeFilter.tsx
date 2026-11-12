@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { format } from 'date-fns'
 import { CalendarDays, Check, ChevronDown } from 'lucide-react'
 import { Popover } from './Popover'
-import { TODAY, bounds, presets, useTimeRange } from '../lib/time'
+import { TODAY, YEARS, bounds, presets, useTimeRange } from '../lib/time'
 
 /** Platform-wide period picker. Every screen reads the same range. */
 export function TimeFilter({ compact }: { compact?: boolean }) {
@@ -33,7 +33,7 @@ export function TimeFilter({ compact }: { compact?: boolean }) {
         </button>
       )}
     >
-      {(close) => <RangePanel onDone={close} from={from} to={to} setFrom={setFrom} setTo={setTo} preset={range.preset} setRange={setRange} />}
+      {(close) => <RangePanel onDone={close} from={from} to={to} setFrom={setFrom} setTo={setTo} preset={range.preset} year={range.year} setRange={setRange} />}
     </Popover>
   )
 }
@@ -45,6 +45,7 @@ export function RangePanel({
   setFrom,
   setTo,
   preset,
+  year,
   setRange,
 }: {
   onDone?: () => void
@@ -53,6 +54,7 @@ export function RangePanel({
   setFrom: (v: string) => void
   setTo: (v: string) => void
   preset: string
+  year?: number
   setRange: ReturnType<typeof useTimeRange>['setRange']
 }) {
   return (
@@ -76,6 +78,29 @@ export function RangePanel({
           </li>
         ))}
       </ul>
+      <div className="border-t border-line px-3 py-2.5">
+        <div className="mb-2 text-xs font-medium text-muted">Calendar year</div>
+        <div className="flex flex-wrap gap-1.5">
+          {YEARS.map((y) => {
+            const on = preset === 'year' && (year ?? TODAY.getFullYear()) === y
+            return (
+              <button
+                key={y}
+                type="button"
+                aria-pressed={on}
+                onClick={() => {
+                  setRange({ preset: 'year', year: y })
+                  onDone?.()
+                }}
+                className={`inline-flex h-8 items-center gap-1 rounded-full border px-3 text-xs font-semibold tabular-nums transition-colors ${on ? 'border-brand bg-brand text-white' : 'border-line-strong bg-surface text-body hover:bg-canvas'}`}
+              >
+                {y}
+                {y === TODAY.getFullYear() && <span className={on ? 'text-white/75' : 'font-normal text-faint'}>to date</span>}
+              </button>
+            )
+          })}
+        </div>
+      </div>
       <div className="border-t border-line p-3">
         <div className="mb-2 flex items-center justify-between text-xs font-medium text-muted">
           Custom range {preset === 'custom' && <Check className="h-3.5 w-3.5 text-brand-600" />}
