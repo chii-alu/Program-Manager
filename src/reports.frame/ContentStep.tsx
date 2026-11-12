@@ -188,6 +188,7 @@ export function ContentStep({ report, viewer, readOnly, onChange }: { report: Re
                           {list.map((b) => (
                             <SortableBlock
                               key={b.id}
+                              sectionTitle={s.title}
                               block={b}
                               report={fullReport}
                               viewer={viewer}
@@ -251,6 +252,7 @@ export function ContentStep({ report, viewer, readOnly, onChange }: { report: Re
 /* ---------- A block on the canvas ---------- */
 
 function SortableBlock({
+  sectionTitle,
   block,
   report,
   viewer,
@@ -261,6 +263,7 @@ function SortableBlock({
   onRemove,
   onHtml,
 }: {
+  sectionTitle: string
   block: ReportBlock
   report: Report
   viewer: Viewer
@@ -302,10 +305,12 @@ function SortableBlock({
       </div>
       <div className="px-3 pb-3 pt-1">
         {block.type === 'text' && selected && !locked ? (
-          <TextEditor html={block.settings.html ?? ''} onChange={onHtml} heading={TEXT_ROLES[block.settings.textRole ?? 'free'].label} />
+          <TextEditor html={block.settings.html ?? ''} onChange={onHtml} heading={TEXT_ROLES[block.settings.textRole ?? 'free'].label} showHeading={TEXT_ROLES[block.settings.textRole ?? 'free'].label !== sectionTitle} />
         ) : (
           <>
-            {block.type === 'text' && <h3 className="mb-1.5 font-display text-[15px] font-semibold text-ink">{TEXT_ROLES[block.settings.textRole ?? 'free'].label}</h3>}
+            {block.type === 'text' && TEXT_ROLES[block.settings.textRole ?? 'free'].label !== sectionTitle && (
+              <h3 className="mb-1.5 font-display text-[15px] font-semibold text-ink">{TEXT_ROLES[block.settings.textRole ?? 'free'].label}</h3>
+            )}
             <BlockView block={block} report={report} viewer={viewer} />
           </>
         )}
@@ -316,7 +321,7 @@ function SortableBlock({
 
 /* ---------- Rich text with live placeholders (TipTap) ---------- */
 
-function TextEditor({ html, onChange, heading }: { html: string; onChange: (html: string) => void; heading: string }) {
+function TextEditor({ html, onChange, heading, showHeading }: { html: string; onChange: (html: string) => void; heading: string; showHeading: boolean }) {
   const editor = useEditor({
     extensions: [StarterKit.configure({ heading: { levels: [3] } })],
     content: html,
@@ -339,7 +344,7 @@ function TextEditor({ html, onChange, heading }: { html: string; onChange: (html
   )
   return (
     <div onClick={(e) => e.stopPropagation()}>
-      <h3 className="mb-1.5 font-display text-[15px] font-semibold text-ink">{heading}</h3>
+      {showHeading && <h3 className="mb-1.5 font-display text-[15px] font-semibold text-ink">{heading}</h3>}
       <div className="flex flex-wrap items-center gap-0.5 rounded-t-md border border-b-0 border-line bg-canvas px-1.5 py-1">
         {tool('Bold', Bold, () => editor.chain().focus().toggleBold().run(), editor.isActive('bold'))}
         {tool('Italic', Italic, () => editor.chain().focus().toggleItalic().run(), editor.isActive('italic'))}

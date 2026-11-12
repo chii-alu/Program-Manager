@@ -9,17 +9,21 @@ import { newId, saveReport } from '../shared/reports/store'
 import { SCOPE_TYPE_LABEL, SYSTEM_TEMPLATES, templateById } from '../shared/reports/templates'
 import type { Audience, Comparison, DateRule, FilterKey, Report, Scope, Viewer } from '../shared/reports/types'
 import { AUDIENCE, ChoiceCard, Chip, DATE_RULE, Field, TemplateThumb, inputCls } from './parts'
+import { ContentStep, ensureContent } from './ContentStep'
+import { defaultContent } from '../shared/reports/blocks'
 
 const STEPS = [
   { n: 1, label: 'Template' },
   { n: 2, label: 'Scope and period' },
   { n: 3, label: 'Details' },
-  { n: 4, label: 'Content', later: 'build step 3' },
+  { n: 4, label: 'Content' },
   { n: 5, label: 'Preview and check', later: 'build step 4' },
   { n: 6, label: 'Finalise and export', later: 'build steps 4–5' },
 ] as const
 
 type Draft = Omit<Report, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; createdAt?: string }
+type Step = 1 | 2 | 3 | 4
+const LAST_STEP: Step = 4
 
 export function blankDraft(viewer: Viewer, me: { email: string; name: string }, portalPillars: Pillar[]): Draft {
   return {
@@ -54,8 +58,9 @@ export function Wizard({
   readOnly?: boolean
   onClose: (saved?: Report) => void
 }) {
-  const [d, setD] = useState<Draft>(initial)
-  const [step, setStep] = useState<1 | 2 | 3>(initial.id ? 2 : 1)
+  // Reports made before the Content step existed get their template's default blocks on first open.
+  const [d, setD] = useState<Draft>(() => ({ ...initial, ...ensureContent(initial) }))
+  const [step, setStep] = useState<Step>(initial.id ? 2 : 1)
   const [tried, setTried] = useState(false)
   const set = (patch: Partial<Draft>) => setD((x) => ({ ...x, ...patch }))
   const setScope = (patch: Partial<Scope>) => setD((x) => ({ ...x, scope: { ...x.scope, ...patch } }))
@@ -83,13 +88,14 @@ export function Wizard({
 
   const next = () => {
     if (step === 2 && problems[2].length) return setTried(true)
-    if (step < 3) setStep((s) => (s + 1) as 1 | 2 | 3)
+    if (step === 3 && problems[3].length) return setTried(true)
+    if (step < LAST_STEP) setStep((s) => (s + 1) as Step)
     else save(true)
   }
 
   return (
     <div className="space-y-5">
-      <Stepper step={step} onStep={(n) => (n === 3 && problems[2].length ? setTried(true) : setStep(n))} />
+      <Stepper step={step} onStep={(n) => (n >= 3 && problems[2].length ? setTried(true) : n === 4 && problems[3].length ? (setTried(true), setStep(3)) : setStep(n))} />
 
       {readOnly && (
         <div className="flex items-start gap-2.5 rounded-lg border border-line bg-canvas px-4 py-3 text-sm text-body">
@@ -106,11 +112,20 @@ export function Wizard({
         {step === 2 && <StepScope d={d} set={set} setScope={setScope} viewer={viewer} errors={tried ? problems[2] : []} />}
         {step === 3 && <StepDetails d={d} set={set} me={me} errors={tried ? problems[3] : []} templateNeedsApproval={!!template?.needsApproval} />}
       </fieldset>
+      {/* The content step manages its own read-only state (preview only), so it sits outside the fieldset. */}
+      {step === 4 && (
+        <ContentStep
+          report={{ ...d, id: d.id ?? 'draft', createdAt: d.createdAt ?? '', updatedAt: '' } as Report}
+          viewer={viewer}
+          readOnly={readOnly}
+          onChange={(c) => set({ ...c, contentEdited: true })}
+        />
+      )}
 
       {/* Footer actions */}
       {/* Right padding leaves room for the floating help button */}
       <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-between gap-2 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur sm:-mx-5 sm:pl-5 sm:pr-24">
-        <button type="button" onClick={() => (step === 1 ? onClose() : setStep((s) => (s - 1) as 1 | 2 | 3))} className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-semibold text-body hover:bg-canvas">
+        <button type="button" onClick={() => (step === 1 ? onClose() : setStep((s) => (s - 1) as Step))} className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-semibold text-body hover:bg-canvas">
           <ArrowLeft className="h-4 w-4" /> {step === 1 ? 'Back to reports' : 'Back'}
         </button>
         <div className="flex items-center gap-2">
@@ -120,14 +135,14 @@ export function Wizard({
             </Button>
           )}
           {readOnly ? (
-            step < 3 && (
-              <Button variant="primary" onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}>
+            step < LAST_STEP && (
+              <Button variant="primary" onClick={() => setStep((s) => (s + 1) as Step)}>
                 Next <ArrowRight className="h-4 w-4" />
               </Button>
             )
           ) : (
             <Button variant="primary" onClick={next}>
-              {step === 3 ? (
+              {step === LAST_STEP ? (
                 <>
                   <Check className="h-4 w-4" /> Save and finish
                 </>
@@ -146,7 +161,7 @@ export function Wizard({
 
 /* ---------- Stepper ---------- */
 
-function Stepper({ step, onStep }: { step: number; onStep: (n: 1 | 2 | 3) => void }) {
+function Stepper({ step, onStep }: { step: number; onStep: (n: Step) => void }) {
   return (
     <ol className="no-scrollbar flex gap-1 overflow-x-auto rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-surface p-1.5 shadow-[var(--shadow-soft)]">
       {STEPS.map((s) => {
@@ -158,7 +173,7 @@ function Stepper({ step, onStep }: { step: number; onStep: (n: 1 | 2 | 3) => voi
             <button
               type="button"
               disabled={later}
-              onClick={() => onStep(s.n as 1 | 2 | 3)}
+              onClick={() => onStep(s.n as Step)}
               title={later ? `Coming in ${s.later}` : undefined}
               className={`flex w-full items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 text-left text-[13px] transition-colors duration-150 ease-out ${
                 active ? 'bg-brand text-white' : later ? 'cursor-not-allowed text-faint' : 'text-body hover:bg-canvas'
@@ -188,7 +203,14 @@ function Stepper({ step, onStep }: { step: number; onStep: (n: 1 | 2 | 3) => voi
 function StepTemplate({ d, set }: { d: Draft; set: (p: Partial<Draft>) => void }) {
   const pick = (id: string | null) => {
     const t = templateById(id)
-    set({ templateId: id, templateVersion: t?.version ?? null, dateRule: t?.defaultDateRule ?? d.dateRule, audience: t?.audienceDefault ?? d.audience })
+    set({
+      templateId: id,
+      templateVersion: t?.version ?? null,
+      dateRule: t?.defaultDateRule ?? d.dateRule,
+      audience: t?.audienceDefault ?? d.audience,
+      // Untouched content follows the template; content the author has edited is never replaced.
+      ...(d.contentEdited ? {} : defaultContent(id)),
+    })
   }
   return (
     <Panel title="Choose a template" sub="It sets the default sections, date rule and audience. You can change everything later.">

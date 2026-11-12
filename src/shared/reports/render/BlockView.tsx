@@ -121,7 +121,12 @@ function KpiBlock({ block, ctx }: { block: ReportBlock; ctx: Ctx }) {
           {cmp.delta != null && (
             <span className={`inline-flex items-center font-semibold ${good ? 'text-good' : 'text-bad'}`}>
               {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {m.unit === 'rate' ? `${Math.abs(cmp.delta)} pts` : cmp.deltaPct != null ? `${Math.abs(cmp.deltaPct)}%` : Math.abs(cmp.delta)}
+              {/* Rates, NPS and scores change in points; counts change in % */}
+              {m.unit === 'rate' || m.unit === 'nps' || m.unit === 'score' || m.unit === 'average'
+                ? `${Math.abs(cmp.delta)} pts`
+                : cmp.deltaPct != null
+                  ? `${Math.abs(cmp.deltaPct)}%`
+                  : Math.abs(cmp.delta)}
             </span>
           )}
           vs {cmp.display}
