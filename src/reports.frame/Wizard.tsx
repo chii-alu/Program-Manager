@@ -210,7 +210,7 @@ function Stepper({ step, onStep }: { step: number; onStep: (n: Step) => void }) 
         const active = s.n === step
         const done = !later && s.n < step
         return (
-          <li key={s.n} className="min-w-0 flex-1">
+          <li key={s.n} className={active ? 'min-w-0 flex-1' : 'shrink-0 md:min-w-0 md:flex-1'}>
             <button
               type="button"
               disabled={later}
@@ -227,7 +227,8 @@ function Stepper({ step, onStep }: { step: number; onStep: (n: Step) => void }) 
               >
                 {done ? <Check className="h-3.5 w-3.5" /> : s.n}
               </span>
-              <span className="min-w-0">
+              {/* Phones show only the current step's name; the others are numbered circles. */}
+              <span className={active ? 'min-w-0' : 'hidden min-w-0 md:block'}>
                 <span className="block font-semibold">{s.label}</span>
                 {later && <span className="block text-[10px]">Next build step</span>}
               </span>

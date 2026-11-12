@@ -8,7 +8,7 @@
 import React, { useMemo, useState } from 'react'
 import { AlertOctagon, AlertTriangle, ArrowRight, Loader2, CheckCircle2, Clock, Download, FileText, History, Info, Lock, RefreshCcw, Send, ShieldCheck } from 'lucide-react'
 import { Button, PanelHeader } from '../shared/components/ui'
-import { downloadReportPdf } from '../shared/reports/export/pdf'
+import { downloadReportPdf, isPhone } from '../shared/reports/export/pdf'
 import { toast } from '../shared/lib/notify'
 import { runDataCheck, type DataCheck, type FixTarget, type Issue, type Severity } from '../shared/reports/quality'
 import { ReportDocument } from '../shared/reports/render/ReportDocument'
@@ -380,7 +380,7 @@ export function PdfButton({ report, viewer, version, variant = 'secondary', clas
   const [busy, setBusy] = useState(false)
   const run = async () => {
     setBusy(true)
-    toast({ title: 'Opening the print window', body: 'Choose “Save as PDF” as the destination to download it.', tone: 'info' })
+    if (!isPhone()) toast({ title: 'Opening the print window', body: 'Choose “Save as PDF” as the destination to download it.', tone: 'info' })
     try {
       await downloadReportPdf({ report, viewer, version })
     } catch (e) {

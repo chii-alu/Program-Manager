@@ -34,8 +34,23 @@ export function pdfFileName({ report, version }: Pick<PdfJob, 'report' | 'versio
   return `${title || 'report'}-${version ? `v${version.versionNo}` : `DRAFT-${today}`}.pdf`
 }
 
-/** Opens the print window for the report. Resolves with the suggested file name. */
+/** Phones and tablets print a normal page far more reliably than a hidden frame. */
+export function isPhone() {
+  const ua = navigator.userAgent
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua))
+}
+const isApple = () => /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))
+
+/**
+ * Desktop: opens the print window with "Save as PDF". Phone: opens the report in a new tab,
+ * laid out for A4, with a "Save as PDF" bar. Resolves with the suggested file name.
+ */
 export async function downloadReportPdf(job: PdfJob): Promise<string> {
+  // Phones block pop-ups opened after a delay, so the tab is opened now, while the tap counts.
+  const tab = isPhone() ? window.open('', '_blank') : null
+  if (isPhone() && !tab) throw new Error('Your browser blocked the new tab. Allow pop-ups for this site and try again.')
+  if (tab) tab.document.write('<!doctype html><title>Preparing report…</title><body style="font:16px system-ui,sans-serif;padding:32px;color:#102c5e">Preparing your report…</body>')
+
   const { viewer, version } = job
   const draft = !version
   const report = version ? version.snapshot.report : job.report
@@ -100,12 +115,32 @@ export async function downloadReportPdf(job: PdfJob): Promise<string> {
     throw e
   }
 
+  if (tab) {
+    // Hand the finished report to the new tab as a plain page: no app code, just the layout.
+    const html = doc.documentElement.outerHTML
+      .replace('<head>', '<head><meta name="viewport" content="width=760">')
+      .replace(/<body([^>]*)>/, `<body$1>${phoneBar(name)}`)
+    cleanup()
+    tab.document.open()
+    tab.document.write(`<!doctype html>${html}`)
+    tab.document.close()
+    return name
+  }
+
   const win = frame.contentWindow!
   win.focus()
   win.print() // blocks until the print window closes in Chrome
   // Keep the frame briefly in case the browser prints asynchronously (Safari, Firefox).
   if (!(window as unknown as { __keepPrintFrame?: boolean }).__keepPrintFrame) setTimeout(cleanup, 2000)
   return name
+}
+
+/** The bar at the top of the phone page. Hidden when printing. */
+function phoneBar(name: string) {
+  const tip = isApple()
+    ? 'Tap <b>Save as PDF</b>, then tap the Share button (the square with an arrow) at the top of the print screen, and choose <b>Save to Files</b>.'
+    : 'Tap <b>Save as PDF</b>, choose <b>Save as PDF</b> as the printer, then tap the download button.'
+  return `<div class="pdf-bar"><div><p class="pdf-bar-title">${escHtml(name)}</p><p class="pdf-bar-tip">${tip}</p></div><button type="button" onclick="window.print()">Save as PDF</button></div>`
 }
 
 /* ---------- Print rules ---------- */
@@ -131,6 +166,14 @@ html, body { margin: 0; background: #fff !important; }
 /* Labels shortened with "…" on screen print in full. */
 .report-print-section .truncate { white-space: normal; overflow: visible; text-overflow: clip; }
 [data-keep] { break-inside: avoid; }
+/* Phone page: a bar at the top, the report at print width below it. Neither shows in the PDF. */
+.pdf-bar { position: sticky; top: 0; z-index: 60; display: flex; gap: 16px; align-items: center; justify-content: space-between; padding: 14px 20px; background: #102c5e; color: #fff; font: 15px Inter, system-ui, sans-serif; }
+.pdf-bar p { margin: 0; }
+.pdf-bar-title { font-weight: 700; word-break: break-all; }
+.pdf-bar-tip { margin-top: 4px !important; font-size: 13px; line-height: 1.45; color: rgba(255,255,255,0.85); }
+.pdf-bar button { flex-shrink: 0; padding: 12px 18px; border: 0; border-radius: 8px; background: #fff; color: #102c5e; font: 700 15px Inter, system-ui, sans-serif; }
+@media screen { #report { width: ${CONTENT_W}px; margin: 24px auto; } }
+@media print { .pdf-bar { display: none !important; } }
 .pdf-watermark { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 50; }
 .pdf-watermark span { transform: rotate(-45deg); font: 800 120pt Inter, Arial, sans-serif; letter-spacing: 0.04em; color: rgba(16, 44, 94, 0.07); }
 `

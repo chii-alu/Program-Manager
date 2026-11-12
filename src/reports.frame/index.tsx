@@ -11,7 +11,7 @@ import { fmtRange } from '../shared/reports/periods'
 import { archiveReport, canCreateReports, latestVersion, canEditReport, canViewReport, duplicateForNewPeriod, getReport, resetReports, useReports } from '../shared/reports/store'
 import { SYSTEM_TEMPLATES, templateById } from '../shared/reports/templates'
 import type { Report, ReportStatus, Viewer } from '../shared/reports/types'
-import { downloadReportPdf } from '../shared/reports/export/pdf'
+import { downloadReportPdf, isPhone } from '../shared/reports/export/pdf'
 import { AUDIENCE, STATUS, StatusPill, TemplateThumb, ago, inputCls } from './parts'
 import { Wizard, blankDraft } from './Wizard'
 
@@ -341,7 +341,7 @@ function ReportCard({ r, author, canEdit, canDuplicate, onOpen, me, viewer }: { 
                     close()
                     // Final reports export their latest frozen version; anything else is a watermarked draft.
                     const version = r.status === 'final' ? latestVersion(r.id) : null
-                    toast({ title: 'Opening the print window', body: 'Choose “Save as PDF” as the destination to download it.', tone: 'info' })
+                    if (!isPhone()) toast({ title: 'Opening the print window', body: 'Choose “Save as PDF” as the destination to download it.', tone: 'info' })
                     downloadReportPdf({ report: r, viewer, version }).catch((e) => toast({ title: 'The PDF could not be made', body: e instanceof Error ? e.message : 'Try again.', tone: 'bad' }))
                   }}
                 >
