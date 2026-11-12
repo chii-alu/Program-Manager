@@ -5,7 +5,9 @@ import { roleLabel, staff, type Pillar } from '../shared/data/mela'
 import { cohorts as allCohorts } from '../shared/reports/facts'
 import { FILTERS, MetricAccessError, MetricPolicyError, filterOptions, getMetric, scopeOptions } from '../shared/reports/metrics'
 import { PRESETS, REPORT_SETTINGS, comparisonPeriod, customPeriod, fmtRange, presetPeriod, type PresetId } from '../shared/reports/periods'
-import { newId, saveReport } from '../shared/reports/store'
+import { canEditReport, newId, saveReport } from '../shared/reports/store'
+import type { FixTarget } from '../shared/reports/quality'
+import { CheckStep, FinaliseStep } from './FinishSteps'
 import { SCOPE_TYPE_LABEL, SYSTEM_TEMPLATES, templateById } from '../shared/reports/templates'
 import type { Audience, Comparison, DateRule, FilterKey, Report, Scope, Viewer } from '../shared/reports/types'
 import { AUDIENCE, ChoiceCard, Chip, DATE_RULE, Field, TemplateThumb, inputCls } from './parts'
@@ -17,13 +19,13 @@ const STEPS = [
   { n: 2, label: 'Scope and period' },
   { n: 3, label: 'Details' },
   { n: 4, label: 'Content' },
-  { n: 5, label: 'Preview and check', later: 'build step 4' },
-  { n: 6, label: 'Finalise and export', later: 'build steps 4–5' },
-] as const
+  { n: 5, label: 'Preview and check' },
+  { n: 6, label: 'Finalise and export' },
+] as { n: number; label: string; later?: string }[]
 
 type Draft = Omit<Report, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; createdAt?: string }
-type Step = 1 | 2 | 3 | 4
-const LAST_STEP: Step = 4
+type Step = 1 | 2 | 3 | 4 | 5 | 6
+const LAST_STEP: Step = 6
 
 export function blankDraft(viewer: Viewer, me: { email: string; name: string }, portalPillars: Pillar[]): Draft {
   return {
@@ -49,21 +51,31 @@ export function Wizard({
   viewer,
   me,
   initial,
-  readOnly,
   onClose,
+  onNavigate,
 }: {
   viewer: Viewer
   me: { email: string; name: string }
   initial: Draft
+  /** Unused: edit rights are worked out here from the report's live status. Kept for callers. */
   readOnly?: boolean
   onClose: (saved?: Report) => void
+  /** Leave the reports tool for another page (data check "Fix" links). */
+  onNavigate?: (to: string) => void
 }) {
   // Reports made before the Content step existed get their template's default blocks on first open.
-  const [d, setD] = useState<Draft>(() => ({ ...initial, ...ensureContent(initial) }))
-  const [step, setStep] = useState<Step>(initial.id ? 2 : 1)
+  // A new report gets its id up front, so it can be checked and finalised before its first save.
+  const [d, setD] = useState<Draft>(() => ({ ...initial, ...ensureContent(initial), id: initial.id ?? newId() }))
+  const [step, setStep] = useState<Step>(initial.status === 'final' || initial.status === 'in_review' ? 6 : initial.id ? 2 : 1)
+  const isNew = !initial.id
   const [tried, setTried] = useState(false)
   const set = (patch: Partial<Draft>) => setD((x) => ({ ...x, ...patch }))
   const setScope = (patch: Partial<Scope>) => setD((x) => ({ ...x, scope: { ...x.scope, ...patch } }))
+
+  const asReport = useMemo(() => ({ ...d, id: d.id!, createdAt: d.createdAt ?? '', updatedAt: '' }) as Report, [d])
+  // Only drafts can be edited, and only by people with access (reviewers comment instead).
+  const readOnly = !canEditReport(viewer, me.email, asReport)
+  const mayRework = canEditReport(viewer, me.email, { ...asReport, status: 'draft' })
 
   const template = templateById(d.templateId)
   const periodOk = d.period.start <= d.period.end
@@ -81,28 +93,42 @@ export function Wizard({
       return
     }
     const now = new Date().toISOString()
-    const saved = saveReport({ ...d, id: d.id ?? newId(), createdAt: d.createdAt ?? now, updatedAt: now, title: d.title.trim(), subtitle: d.subtitle.trim() } as Report)
+    const saved = saveReport({ ...d, id: d.id!, createdAt: d.createdAt ?? now, updatedAt: now, title: d.title.trim(), subtitle: d.subtitle.trim() } as Report)
     if (close) onClose(saved)
     else setD((x) => ({ ...x, id: saved.id, createdAt: saved.createdAt }))
+  }
+
+  const fix = (t: FixTarget) => {
+    if (t.step) return setStep(t.step)
+    if (!t.page || !onNavigate) return
+    if (!readOnly && !problems[2].length && !problems[3].length) save(false)
+    onNavigate(t.page)
+  }
+
+  const goTo = (n: Step) => {
+    if (n >= 3 && problems[2].length) return setTried(true), setStep(2)
+    if (n >= 4 && problems[3].length) return setTried(true), setStep(3)
+    setStep(n)
   }
 
   const next = () => {
     if (step === 2 && problems[2].length) return setTried(true)
     if (step === 3 && problems[3].length) return setTried(true)
     if (step < LAST_STEP) setStep((s) => (s + 1) as Step)
+    else if (readOnly) onClose()
     else save(true)
   }
 
   return (
     <div className="space-y-5">
-      <Stepper step={step} onStep={(n) => (n >= 3 && problems[2].length ? setTried(true) : n === 4 && problems[3].length ? (setTried(true), setStep(3)) : setStep(n))} />
+      <Stepper step={step} onStep={goTo} />
 
-      {readOnly && (
+      {readOnly && step < 5 && (
         <div className="flex items-start gap-2.5 rounded-lg border border-line bg-canvas px-4 py-3 text-sm text-body">
           <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
           <span>
             You’re viewing this report. It’s <b>{d.status.replace('_', ' ')}</b>
-            {viewer.role === 'reviewer' ? ', and reviewers comment rather than edit.' : ', so only drafts can be edited.'}
+            {viewer.role === 'reviewer' ? ', and reviewers comment rather than edit.' : d.status === 'final' ? '. Start a new version in Finalise to change it.' : ', so only drafts can be edited.'}
           </span>
         </div>
       )}
@@ -115,10 +141,21 @@ export function Wizard({
       {/* The content step manages its own read-only state (preview only), so it sits outside the fieldset. */}
       {step === 4 && (
         <ContentStep
-          report={{ ...d, id: d.id ?? 'draft', createdAt: d.createdAt ?? '', updatedAt: '' } as Report}
+          report={asReport}
           viewer={viewer}
           readOnly={readOnly}
           onChange={(c) => set({ ...c, contentEdited: true })}
+        />
+      )}
+      {step === 5 && <CheckStep report={asReport} viewer={viewer} onFix={fix} />}
+      {step === 6 && (
+        <FinaliseStep
+          report={asReport}
+          viewer={viewer}
+          me={me}
+          canEditContent={mayRework}
+          onFix={fix}
+          onChange={(r) => setD((x) => ({ ...x, ...r, createdAt: r.createdAt }))}
         />
       )}
 
@@ -126,7 +163,7 @@ export function Wizard({
       {/* Right padding leaves room for the floating help button */}
       <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-between gap-2 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur sm:-mx-5 sm:pl-5 sm:pr-24">
         <button type="button" onClick={() => (step === 1 ? onClose() : setStep((s) => (s - 1) as Step))} className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-semibold text-body hover:bg-canvas">
-          <ArrowLeft className="h-4 w-4" /> {step === 1 ? 'Back to reports' : 'Back'}
+          <ArrowLeft className="h-4 w-4" /> {step === 1 ? (isNew ? 'Cancel' : 'Back to reports') : 'Back'}
         </button>
         <div className="flex items-center gap-2">
           {!readOnly && step > 1 && (
@@ -135,16 +172,20 @@ export function Wizard({
             </Button>
           )}
           {readOnly ? (
-            step < LAST_STEP && (
+            step < LAST_STEP ? (
               <Button variant="primary" onClick={() => setStep((s) => (s + 1) as Step)}>
                 Next <ArrowRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button variant="primary" onClick={() => onClose()}>
+                <Check className="h-4 w-4" /> Done
               </Button>
             )
           ) : (
             <Button variant="primary" onClick={next}>
               {step === LAST_STEP ? (
                 <>
-                  <Check className="h-4 w-4" /> Save and finish
+                  <Check className="h-4 w-4" /> Save and close
                 </>
               ) : (
                 <>
@@ -165,7 +206,7 @@ function Stepper({ step, onStep }: { step: number; onStep: (n: Step) => void }) 
   return (
     <ol className="no-scrollbar flex gap-1 overflow-x-auto rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-surface p-1.5 shadow-[var(--shadow-soft)]">
       {STEPS.map((s) => {
-        const later = 'later' in s
+        const later = !!s.later
         const active = s.n === step
         const done = !later && s.n < step
         return (

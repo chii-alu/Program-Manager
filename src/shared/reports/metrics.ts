@@ -151,6 +151,16 @@ function select(scope: Scope, period: Period, rule: DateRule): Fact[] {
   })
 }
 
+/**
+ * The fact rows behind a report's scope and period, for the data check (quality.ts).
+ * Same permission checks as getMetric: a viewer can't inspect data they couldn't report on.
+ * Rows carry no identity fields, so the check can only ever produce aggregate findings.
+ */
+export function factsInScope(viewer: Viewer, scope: Scope, period: Period, rule: DateRule): Fact[] {
+  checkScope(viewer, scope)
+  return select(scope, period, rule)
+}
+
 /* ---------- Formatting ---------- */
 
 export function formatValue(v: number | null, ind: Pick<Indicator, 'unit'>): string {

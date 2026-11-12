@@ -11,7 +11,8 @@ import { DonutRing } from '../../components/DonutRing'
 import { blockContext, blockTitle, fillPlaceholders } from '../blocks'
 import { FEEDBACK_ITEMS } from '../facts'
 import { indicatorByCode } from '../indicators'
-import { DIMENSIONS, MetricAccessError, MetricPolicyError, formatValue, getMetric } from '../metrics'
+import { DIMENSIONS, MetricAccessError, MetricPolicyError, formatValue } from '../metrics'
+import { NotInSnapshotError, useAsk as useSource } from '../source'
 import type { BlockSettings, Dimension, MetricCell, MetricResult, Report, ReportBlock, Viewer } from '../types'
 
 type Ctx = { report: Report; viewer: Viewer }
@@ -22,8 +23,10 @@ type Ask = (code: string, breakdown?: Dimension, comparison?: boolean) => Metric
 
 function useAsk(block: ReportBlock, { report, viewer }: Ctx) {
   const ctx = blockContext(report, block.settings)
+  // Live for drafts, recording while finalising, replaying for final versions (source.tsx).
+  const source = useSource(viewer)
   const ask: Ask = (code, breakdown, comparison) =>
-    getMetric(viewer, { code, scope: ctx.scope, period: ctx.period, dateRule: report.dateRule, breakdown, comparison: comparison ? report.comparison : 'none', audience: report.audience })
+    source({ code, scope: ctx.scope, period: ctx.period, dateRule: report.dateRule, breakdown, comparison: comparison ? report.comparison : 'none', audience: report.audience })
   return { ask, ctx }
 }
 
@@ -32,7 +35,7 @@ function safely<T>(fn: () => T): { data: T } | { error: string } {
   try {
     return { data: fn() }
   } catch (e) {
-    if (e instanceof MetricAccessError || e instanceof MetricPolicyError) return { error: e.message }
+    if (e instanceof MetricAccessError || e instanceof MetricPolicyError || e instanceof NotInSnapshotError) return { error: e.message }
     throw e
   }
 }
@@ -150,7 +153,8 @@ function KpiBlock({ block, ctx }: { block: ReportBlock; ctx: Ctx }) {
 /* ---------- Text ---------- */
 
 function TextBlock({ block, ctx }: { block: ReportBlock; ctx: Ctx }) {
-  const html = useMemo(() => fillPlaceholders(block.settings.html ?? '', ctx.report, ctx.viewer), [block.settings.html, ctx.report, ctx.viewer])
+  const source = useSource(ctx.viewer)
+  const html = useMemo(() => fillPlaceholders(block.settings.html ?? '', ctx.report, ctx.viewer, source), [block.settings.html, ctx.report, ctx.viewer, source])
   return <div className="report-prose" dangerouslySetInnerHTML={{ __html: html }} />
 }
 
@@ -230,9 +234,15 @@ function DonutChart({ block, ctx }: { block: ReportBlock; ctx: Ctx }) {
   const shown = cells.filter((c) => !c.suppressed && (c.value ?? 0) > 0)
   if (!shown.length) return <Empty />
   const palette = ['var(--color-navy)', 'var(--color-sky)', 'var(--color-orange)', 'var(--color-accent)', '#A8C5E6', 'var(--color-brand-600)']
+  // Hidden groups still take their share of the ring, as one grey slice, so the visible slices
+  // aren't drawn larger than they are. Their combined size is already total − visible, so this
+  // reveals nothing new.
+  const slices = shown.map((c) => ({ key: c.key, name: c.label, value: c.value ?? 0 }))
+  const hidden = (r.data.value ?? 0) - slices.reduce((t, c) => t + c.value, 0)
+  if (cells.some((c) => c.suppressed) && hidden > 0 && r.data.unit === 'people') slices.push({ key: '__hidden', name: 'Hidden (small groups)', value: hidden })
   return (
     <>
-      <DonutRing data={shown.map((c) => ({ key: c.key, name: c.label, value: c.value ?? 0 }))} colors={palette} totalLabel={r.data.label} total={r.data.value ?? undefined} height={260} animate={false} />
+      <DonutRing data={slices} colors={[...palette.slice(0, shown.length), 'var(--color-line-strong)']} totalLabel={r.data.label} total={r.data.value ?? undefined} height={260} animate={false} />
       <SuppressionNote cells={cells} threshold={r.data.threshold} />
     </>
   )

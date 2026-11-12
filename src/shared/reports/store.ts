@@ -10,6 +10,7 @@ import { roleMeta, type Pillar } from '../data/mela'
 import { customPeriod, nextPeriod, presetPeriod } from './periods'
 import { SYSTEM_TEMPLATES } from './templates'
 import type { Report, Viewer } from './types'
+import type { FinalVersion } from './snapshot'
 
 const KEY = 'mela-reports-v1'
 
@@ -164,6 +165,8 @@ export function duplicateForNewPeriod(id: string, owner: { email: string; name: 
     id: newId(),
     title: src.title.includes(src.period.label) ? src.title.replace(src.period.label, period.label) : `${src.title} · ${period.label}`,
     status: 'draft',
+    // A duplicate is a new report: it starts with no finalised versions of its own.
+    currentVersion: undefined,
     period,
     periodPreset: 'custom',
     ownerId: owner.email,
@@ -183,7 +186,58 @@ export const newId = () => `rep-${Date.now().toString(36)}-${Math.random().toStr
 
 /** Clears saved reports and restores the examples (used by tests and the demo reset). */
 export function resetReports() {
+  persistVersions([])
   persist(seed())
+}
+
+/* ---------- Versions (spec §6): finalised snapshots, never edited ---------- */
+
+const VERSIONS_KEY = 'mela-report-versions-v1'
+let versionCache: FinalVersion[] | null = null
+
+function loadVersions(): FinalVersion[] {
+  if (versionCache) return versionCache
+  try {
+    versionCache = JSON.parse(localStorage.getItem(VERSIONS_KEY) || '[]') as FinalVersion[]
+  } catch {
+    versionCache = []
+  }
+  return versionCache
+}
+
+function persistVersions(next: FinalVersion[]) {
+  versionCache = next
+  try {
+    localStorage.setItem(VERSIONS_KEY, JSON.stringify(next))
+  } catch {
+    /* storage full or blocked: keep the in-memory copy for this session */
+  }
+  listeners.forEach((l) => l())
+}
+
+/** All finalised versions of a report, oldest first. */
+export const versionsOf = (reportId: string) => loadVersions().filter((v) => v.reportId === reportId).sort((a, b) => a.versionNo - b.versionNo)
+export const latestVersion = (reportId: string) => versionsOf(reportId).slice(-1)[0] ?? null
+
+export function useVersions(reportId: string | undefined): FinalVersion[] {
+  useReports() // re-render on any store change
+  return reportId ? versionsOf(reportId) : []
+}
+
+/** Store a finalised version and mark the report final. Versions are append-only. */
+export function commitVersion(report: Report, version: FinalVersion): Report {
+  if (loadVersions().some((v) => v.reportId === report.id && v.versionNo === version.versionNo)) throw new Error(`v${version.versionNo} already exists`)
+  persistVersions([...loadVersions(), version])
+  return saveReport({ ...report, status: 'final', currentVersion: version.versionNo })
+}
+
+export function submitForReview(report: Report): Report {
+  return saveReport({ ...report, status: 'in_review' })
+}
+
+/** Reopen a final report as a draft for the next version. The frozen versions are untouched. */
+export function startNewVersion(report: Report): Report {
+  return saveReport({ ...report, status: 'draft' })
 }
 
 /* ---------- Access (spec §2) ---------- */

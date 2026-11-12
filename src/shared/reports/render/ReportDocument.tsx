@@ -9,12 +9,18 @@ import { FILTERS } from '../metrics'
 import { comparisonPeriod, fmtRange } from '../periods'
 import { templateById } from '../templates'
 import type { FilterKey, Report, Viewer } from '../types'
+import type { DataCheck } from '../quality'
 import { BlockView } from './BlockView'
 
 const AUDIENCE_LABEL = { internal: 'Internal · Confidential', partner: 'Partner / Donor', public: 'Public' } as const
 const DATE_RULE_LABEL = { session: 'session date (when the cohort or session started)', registration: 'registration date (when the person registered or applied)', response: 'response date (when feedback was submitted)' } as const
 
-export function ReportDocument({ report, viewer }: { report: Report; viewer: Viewer }) {
+export type DataNotes = { check: DataCheck; asOf: string; version?: number; override?: { by: string; reason: string } }
+
+/** Print mode (PDF export): plain white A4 pages, no card borders or shadows. */
+const PrintCtx = React.createContext(false)
+
+export function ReportDocument({ report, viewer, notes, print = false }: { report: Report; viewer: Viewer; notes?: DataNotes; print?: boolean }) {
   const sections = report.sections ?? []
   const blocks = report.blocks ?? []
   const used = metricsUsed(blocks)
@@ -22,7 +28,8 @@ export function ReportDocument({ report, viewer }: { report: Report; viewer: Vie
   const single = report.scope.pillars.length === 1 ? report.scope.pillars[0] : null
 
   return (
-    <article className="mx-auto w-full max-w-[860px] space-y-6">
+    <PrintCtx.Provider value={print}>
+    <article className={print ? 'w-full bg-white' : 'mx-auto w-full max-w-[860px] space-y-6'}>
       {/* Cover */}
       <Page>
         <div
@@ -59,6 +66,12 @@ export function ReportDocument({ report, viewer }: { report: Report; viewer: Vie
               <span className="w-5 text-right font-display text-muted">A</span>
               <span className="text-ink">Methodology and definitions</span>
             </li>
+            {notes && (
+              <li className="flex items-baseline gap-3">
+                <span className="w-5 text-right font-display text-muted">B</span>
+                <span className="text-ink">Data notes</span>
+              </li>
+            )}
           </ol>
         </nav>
       </Page>
@@ -72,7 +85,7 @@ export function ReportDocument({ report, viewer }: { report: Report; viewer: Vie
           <Page key={s.id}>
             <SectionHeading n={String(i + 1)} title={s.title} />
             {kpis.length > 0 && (
-              <div className={`grid gap-3 ${kpis.length >= 4 ? 'grid-cols-2 sm:grid-cols-4' : kpis.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              <div data-keep className={`grid gap-3 ${kpis.length >= 4 ? 'grid-cols-2 sm:grid-cols-4' : kpis.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
                 {kpis.map((b) => (
                   <BlockView key={b.id} block={b} report={report} viewer={viewer} />
                 ))}
@@ -80,7 +93,7 @@ export function ReportDocument({ report, viewer }: { report: Report; viewer: Vie
             )}
             <div className="mt-5 space-y-7">
               {rest.map((b) => (
-                <div key={b.id} className="break-inside-avoid">
+                <div key={b.id} data-keep className="break-inside-avoid">
                   <BlockView block={b} report={report} viewer={viewer} />
                 </div>
               ))}
@@ -115,7 +128,7 @@ export function ReportDocument({ report, viewer }: { report: Report; viewer: Vie
           {used.map((code) => {
             const ind = indicatorByCode.get(code)!
             return (
-              <div key={code} className="grid gap-1 py-2.5 sm:grid-cols-[220px_minmax(0,1fr)] sm:gap-4">
+              <div key={code} data-keep className="grid gap-1 py-2.5 sm:grid-cols-[220px_minmax(0,1fr)] sm:gap-4">
                 <dt className="text-[13px] font-semibold text-ink">{ind.name}</dt>
                 <dd className="text-[12.5px] leading-5 text-body">
                   {ind.definition}
@@ -126,12 +139,71 @@ export function ReportDocument({ report, viewer }: { report: Report; viewer: Vie
           })}
         </dl>
       </Page>
+
+      {/* Appendix B: data notes (spec §4): completeness, issues, hidden values, "as of" */}
+      {notes && (
+        <Page>
+          <SectionHeading n="B" title="Data notes" />
+          <p className="text-[13px] leading-6 text-body">
+            {notes.version ? (
+              <>
+                This is <b className="text-ink">version {notes.version}</b>, finalised on {stamp(notes.asOf)}. Its numbers are frozen as of that time and won’t change if the data is corrected later.
+              </>
+            ) : (
+              <>This draft shows live data, checked {stamp(notes.asOf)}. Numbers will change until it is finalised.</>
+            )}
+          </p>
+          {notes.override && (
+            <p className="mt-3 rounded-md border border-bad/30 bg-bad-bg px-3 py-2 text-[12.5px] leading-5 text-bad">
+              <b>Critical data issues were overridden</b> by {notes.override.by}: “{notes.override.reason}”
+            </p>
+          )}
+          <h3 data-keep className="mt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">Completeness</h3>
+          <dl className="mt-2 grid gap-x-8 gap-y-1.5 text-[12.5px] sm:grid-cols-2">
+            {notes.check.completeness.map((c) => (
+              <div key={c.key} data-keep className="flex justify-between gap-3 border-b border-line py-1">
+                <dt className="text-body">{c.label}</dt>
+                <dd className="tabular-nums text-ink">
+                  {c.pct == null ? '—' : `${c.pct}%`} <span className="text-muted">· {c.detail}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <h3 data-keep className="mt-5 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{notes.version ? 'Issues at finalising' : 'Open issues'}</h3>
+          {notes.check.issues.filter((i) => i.severity !== 'info' || i.id === 'suppressed').length ? (
+            <ul className="mt-2 space-y-1.5 text-[12.5px] leading-5">
+              {notes.check.issues
+                .filter((i) => i.severity !== 'info' || i.id === 'suppressed')
+                .map((i) => (
+                  <li key={i.id} data-keep className="flex gap-2">
+                    <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${i.severity === 'critical' ? 'bg-bad' : i.severity === 'warning' ? 'bg-warn' : 'bg-faint'}`} />
+                    <span>
+                      <b className="font-semibold text-ink">{i.title}.</b> <span className="text-body">{i.detail}</span>
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-[12.5px] text-body">No data quality issues affect this report.</p>
+          )}
+        </Page>
+      )}
     </article>
+    </PrintCtx.Provider>
   )
 }
 
+const stamp = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+
 function Page({ children }: { children: React.ReactNode }) {
-  return <section className="overflow-hidden rounded-md border border-line bg-surface p-10 shadow-[0_2px_4px_rgba(16,44,94,0.05),0_12px_32px_-12px_rgba(16,44,94,0.18)]">{children}</section>
+  const print = React.useContext(PrintCtx)
+  if (print)
+    return (
+      <section data-pdf-page className="overflow-hidden bg-white p-10">
+        {children}
+      </section>
+    )
+  return <section data-pdf-page className="overflow-hidden rounded-md border border-line bg-surface p-10 shadow-[0_2px_4px_rgba(16,44,94,0.05),0_12px_32px_-12px_rgba(16,44,94,0.18)]">{children}</section>
 }
 
 function SectionHeading({ n, title }: { n: string; title: string }) {

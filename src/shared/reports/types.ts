@@ -190,6 +190,8 @@ export type Report = {
   blocks?: ReportBlock[]
   /** False until the author changes the template's default content, so picking another template can refresh it. */
   contentEdited?: boolean
+  /** Latest finalised version number (v1, v2…). A draft with this set is being reworked into the next version. */
+  currentVersion?: number
   templateId: string | null
   templateVersion: number | null
   title: string

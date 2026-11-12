@@ -44,6 +44,18 @@ export type Cohort = {
   sessionsPlanned: number
   /** Meetings that have taken place by today. */
   sessionsHeld: number
+  /** Held sessions with no attendance taken: a data quality gap the report's data check flags. */
+  sessionsMissingAttendance: number
+}
+
+/**
+ * Known data gaps in the sample data, so the Data check has real issues to show
+ * (spec §3 step 5): partial attendance is a warning, a cohort with none is critical.
+ */
+const ATTENDANCE_GAPS: Record<string, number | 'all'> = {
+  'i7-c5': 2, // Internships · Cohort 5 (Q3 2025): two sessions not marked
+  'i2-c5': 'all', // Hackathon · Cohort 5 (Jul 2025): no attendance taken at all
+  'i11-c4': 'all', // Executive Courses · Cohort 4 (May 2025): no attendance taken at all
 }
 
 export type Fact = {
@@ -142,7 +154,9 @@ function buildCohorts(): Cohort[] {
       const status: CohortStatus = start > TODAY_ISO ? 'upcoming' : end < TODAY_ISO ? 'completed' : 'ongoing'
       const elapsed = Math.max(0, Math.min(lengthDays, Math.round((todayUtc - Date.parse(start)) / DAY) + 1))
       const sessionsHeld = status === 'upcoming' ? 0 : status === 'completed' ? n : Math.max(1, Math.round((elapsed / lengthDays) * n))
+      const gap = ATTENDANCE_GAPS[`${iv.id}-c${k + 1}`]
       return {
+        sessionsMissingAttendance: gap === 'all' ? sessionsHeld : Math.min(gap ?? 0, sessionsHeld),
         id: `${iv.id}-c${k + 1}`,
         name: `${iv.name} · Cohort ${k + 1}`,
         pillar: iv.pillar,
@@ -167,7 +181,7 @@ export const cohorts: Cohort[] = buildCohorts()
  * than the 179 named samples (SIE Cohort 4 alone has 312 registrations). The extra people
  * have no names or IDs at all: reports only ever see aggregates.
  */
-type PersonSeed = { gender: 'F' | 'M'; age: number; country: string; pillars: Pillar[]; interventions: string[]; attendance: number }
+type PersonSeed = { gender: 'F' | 'M' | 'X'; age: number; country: string; pillars: Pillar[]; interventions: string[]; attendance: number }
 
 const EXTRA_PEOPLE = 720
 const COUNTRIES = ['Rwanda', 'Rwanda', 'Rwanda', 'Nigeria', 'Nigeria', 'Kenya', 'Kenya', 'Ghana', 'Uganda', 'Tanzania', 'South Africa', 'Senegal', 'Ethiopia', 'Zimbabwe', 'Cameroon']
@@ -182,7 +196,8 @@ function extraPeople(): PersonSeed[] {
     const pillars: Pillar[] = r() < 0.15 ? [...new Set<Pillar>([main, pick<Pillar>(['HENT', 'HEMP', 'HECO'])])] : [main]
     const interventions = [...new Set(pillars.flatMap((p) => [pick(byPillar(p)), ...(r() < 0.3 ? [pick(byPillar(p))] : [])]))]
     return {
-      gender: r() < 0.56 ? 'F' : 'M',
+      // About 4% left gender blank on the form ('X'): a completeness gap the data check reports.
+      gender: ((g) => (g < 0.04 ? 'X' : g < 0.58 ? 'F' : 'M'))(r()),
       age: 18 + Math.floor(Math.pow(r(), 1.4) * 17),
       country: pick(COUNTRIES),
       pillars,
@@ -208,7 +223,7 @@ function buildFacts(): Fact[] {
     const hRoll = r()
     const humanitarian = hRoll < 0.04 ? 'Refugee' : hRoll < 0.06 ? 'Internally displaced' : hRoll < 0.12 ? 'Not given' : 'None'
     const beneficiaryType = person.pillars.includes('HENT') && r() < 0.35 ? 'Founder' : TYPES[Math.floor(r() * TYPES.length)]
-    const gender = person.gender === 'F' ? 'Female' : 'Male'
+    const gender = person.gender === 'F' ? 'Female' : person.gender === 'M' ? 'Male' : 'Not given'
 
     const mine: Fact[] = []
     person.interventions.forEach((ivName) => {
@@ -227,8 +242,11 @@ function buildFacts(): Fact[] {
         const waitlisted = selective && !selected && r() < 0.25
         const eligible = selective ? selected : true
         const showRate = person.attendance / 100
-        const attended = eligible && c.sessionsHeld > 0 && r() < Math.max(0.35, Math.min(0.97, showRate + 0.2))
-        const sessionsAttended = attended ? Math.max(1, Math.round(c.sessionsHeld * Math.max(0.25, Math.min(1, showRate + (r() - 0.4) * 0.4)))) : 0
+        const turnedUp = eligible && c.sessionsHeld > 0 && r() < Math.max(0.35, Math.min(0.97, showRate + 0.2))
+        // Sessions without attendance records can't count, so a cohort with none reads as nobody attending.
+        const recordedSessions = c.sessionsHeld - c.sessionsMissingAttendance
+        const attended = turnedUp && recordedSessions > 0
+        const sessionsAttended = attended ? Math.min(recordedSessions, Math.max(1, Math.round(c.sessionsHeld * Math.max(0.25, Math.min(1, showRate + (r() - 0.4) * 0.4))))) : 0
         const completed = attended && c.status === 'completed' && sessionsAttended >= 0.75 * c.sessionsHeld
         const canRespond = attended && (c.status === 'completed' || (c.status === 'ongoing' && c.sessionsHeld >= 2))
         const responded = canRespond && r() < (ivName === 'Career Exposure' ? 0.3 : 0.5)

@@ -9,7 +9,7 @@ import { getMetric, DIMENSIONS } from './metrics'
 import { indicatorByCode } from './indicators'
 import { PRESETS, comparisonPeriod, fmtRange, presetPeriod, type PresetId } from './periods'
 import { templateById } from './templates'
-import type { BlockKind, BlockSettings, Dimension, Period, Report, ReportBlock, ReportSection, Scope, TextRole, Viewer } from './types'
+import type { BlockKind, BlockSettings, Dimension, MetricRequest, MetricResult, Period, Report, ReportBlock, ReportSection, Scope, TextRole, Viewer } from './types'
 
 let seq = 0
 export const blockId = () => `b-${Date.now().toString(36)}-${(seq++).toString(36)}`
@@ -54,7 +54,13 @@ export const PLACEHOLDERS: { token: string; label: string; metric?: string }[] =
  * Replace {{tokens}} with live values. Unknown tokens stay visible (marked) so the author
  * notices a typo instead of a number silently disappearing.
  */
-export function fillPlaceholders(html: string, report: Pick<Report, 'scope' | 'period' | 'dateRule' | 'comparison' | 'audience'>, viewer: Viewer): string {
+export function fillPlaceholders(
+  html: string,
+  report: Pick<Report, 'scope' | 'period' | 'dateRule' | 'comparison' | 'audience'>,
+  viewer: Viewer,
+  /** Where numbers come from: live by default; recorded/replayed when finalising (source.tsx). */
+  ask: (req: MetricRequest) => MetricResult = (req) => getMetric(viewer, req),
+): string {
   return html.replace(/\{\{\s*([a-z_.]+)\s*\}\}/gi, (whole, raw: string) => {
     const token = raw.toLowerCase()
     const p = PLACEHOLDERS.find((x) => x.token === token) ?? PLACEHOLDERS.find((x) => x.metric === token)
@@ -64,7 +70,7 @@ export function fillPlaceholders(html: string, report: Pick<Report, 'scope' | 'p
     if (token === 'comparison.label') return esc(report.comparison === 'none' ? 'no comparison' : comparisonPeriod(report.period, report.comparison).label)
     if (token === 'scope.pillars') return esc(report.scope.pillars.join(', '))
     try {
-      return esc(getMetric(viewer, { code: p.metric!, scope: report.scope, period: report.period, dateRule: report.dateRule, audience: report.audience }).display)
+      return esc(ask({ code: p.metric!, scope: report.scope, period: report.period, dateRule: report.dateRule, comparison: 'none', audience: report.audience }).display)
     } catch {
       return '<mark data-unknown title="Not available for this scope">n/a</mark>'
     }

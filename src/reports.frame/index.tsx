@@ -8,9 +8,10 @@ import { Portal, Role, pillarsFor, portalMeta, roleMeta, staff } from '../shared
 import { toast } from '../shared/lib/notify'
 import { pillarsNarrowed, viewerFor } from '../shared/reports/metrics'
 import { fmtRange } from '../shared/reports/periods'
-import { archiveReport, canCreateReports, canEditReport, canViewReport, duplicateForNewPeriod, getReport, resetReports, useReports } from '../shared/reports/store'
+import { archiveReport, canCreateReports, latestVersion, canEditReport, canViewReport, duplicateForNewPeriod, getReport, resetReports, useReports } from '../shared/reports/store'
 import { SYSTEM_TEMPLATES, templateById } from '../shared/reports/templates'
-import type { Report, ReportStatus } from '../shared/reports/types'
+import type { Report, ReportStatus, Viewer } from '../shared/reports/types'
+import { downloadReportPdf } from '../shared/reports/export/pdf'
 import { AUDIENCE, STATUS, StatusPill, TemplateThumb, ago, inputCls } from './parts'
 import { Wizard, blankDraft } from './Wizard'
 
@@ -98,6 +99,7 @@ export default function Reports(props: Props) {
           me={me}
           readOnly={readOnly}
           initial={rep ?? blankDraft(viewer, me, portalPillars)}
+          onNavigate={onNavigate}
           onClose={(saved) => {
             if (saved) toast({ title: 'Draft saved', body: saved.title, tone: 'good' })
             setView({ kind: 'library' })
@@ -237,7 +239,7 @@ function Library({
       ) : (
         <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {shown.map((r) => (
-            <ReportCard key={r.id} r={r} author={authorName(r.ownerId)} canEdit={canEditReport(viewer, me.email, r)} canDuplicate={create} onOpen={() => onOpen(r)} me={me} />
+            <ReportCard key={r.id} r={r} author={authorName(r.ownerId)} canEdit={canEditReport(viewer, me.email, r)} canDuplicate={create} onOpen={() => onOpen(r)} me={me} viewer={viewer} />
           ))}
         </ul>
       )}
@@ -267,7 +269,7 @@ function Select({ value, onChange, placeholder, options }: { value: string; onCh
   )
 }
 
-function ReportCard({ r, author, canEdit, canDuplicate, onOpen, me }: { r: Report; author: string; canEdit: boolean; canDuplicate: boolean; onOpen: () => void; me: { email: string; name: string } }) {
+function ReportCard({ r, author, canEdit, canDuplicate, onOpen, me, viewer }: { r: Report; author: string; canEdit: boolean; canDuplicate: boolean; onOpen: () => void; me: { email: string; name: string }; viewer: Viewer }) {
   const t = templateById(r.templateId)
   // Same per-pillar rule as the metrics layer: an untouched pillar means all of its interventions.
   const narrowed = pillarsNarrowed(r.scope)
@@ -333,8 +335,19 @@ function ReportCard({ r, author, canEdit, canDuplicate, onOpen, me }: { r: Repor
                     Duplicate for new period
                   </MenuItem>
                 )}
-                <MenuItem icon={Download} onClick={() => (close(), toast({ title: 'Export comes in build step 5', body: 'PDF first, then XLSX, DOCX and PPTX.', tone: 'info' }))}>
-                  Export…
+                <MenuItem
+                  icon={Download}
+                  onClick={() => {
+                    close()
+                    // Final reports export their latest frozen version; anything else is a watermarked draft.
+                    const version = r.status === 'final' ? latestVersion(r.id) : null
+                    toast({ title: 'Making the PDF…', body: version ? `Version ${version.versionNo}` : 'Draft, watermarked', tone: 'info' })
+                    downloadReportPdf({ report: r, viewer, version })
+                      .then((name) => toast({ title: 'PDF downloaded', body: name, tone: 'good' }))
+                      .catch((e) => toast({ title: 'The PDF could not be made', body: e instanceof Error ? e.message : 'Try again.', tone: 'bad' }))
+                  }}
+                >
+                  {r.status === 'final' ? 'Download PDF' : 'Download draft PDF'}
                 </MenuItem>
                 {canEdit && r.status !== 'archived' && (
                   <MenuItem
