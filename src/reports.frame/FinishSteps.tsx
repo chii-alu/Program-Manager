@@ -380,9 +380,9 @@ export function PdfButton({ report, viewer, version, variant = 'secondary', clas
   const [busy, setBusy] = useState(false)
   const run = async () => {
     setBusy(true)
+    toast({ title: 'Opening the print window', body: 'Choose “Save as PDF” as the destination to download it.', tone: 'info' })
     try {
-      const name = await downloadReportPdf({ report, viewer, version })
-      toast({ title: version ? `Downloaded v${version.versionNo} as PDF` : 'Downloaded draft PDF', body: name, tone: 'good' })
+      await downloadReportPdf({ report, viewer, version })
     } catch (e) {
       console.error(e)
       toast({ title: 'The PDF could not be made', body: e instanceof Error ? e.message : 'Try again.', tone: 'bad' })
@@ -393,7 +393,7 @@ export function PdfButton({ report, viewer, version, variant = 'secondary', clas
   return (
     <Button variant={variant} onClick={run} className={`${busy ? 'pointer-events-none opacity-70' : ''} ${className}`}>
       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-      {busy ? 'Making PDF…' : version ? `Download v${version.versionNo} (PDF)` : 'Download draft (PDF)'}
+      {busy ? 'Preparing…' : version ? `Download v${version.versionNo} (PDF)` : 'Download draft (PDF)'}
     </Button>
   )
 }

@@ -341,10 +341,8 @@ function ReportCard({ r, author, canEdit, canDuplicate, onOpen, me, viewer }: { 
                     close()
                     // Final reports export their latest frozen version; anything else is a watermarked draft.
                     const version = r.status === 'final' ? latestVersion(r.id) : null
-                    toast({ title: 'Making the PDF…', body: version ? `Version ${version.versionNo}` : 'Draft, watermarked', tone: 'info' })
-                    downloadReportPdf({ report: r, viewer, version })
-                      .then((name) => toast({ title: 'PDF downloaded', body: name, tone: 'good' }))
-                      .catch((e) => toast({ title: 'The PDF could not be made', body: e instanceof Error ? e.message : 'Try again.', tone: 'bad' }))
+                    toast({ title: 'Opening the print window', body: 'Choose “Save as PDF” as the destination to download it.', tone: 'info' })
+                    downloadReportPdf({ report: r, viewer, version }).catch((e) => toast({ title: 'The PDF could not be made', body: e instanceof Error ? e.message : 'Try again.', tone: 'bad' }))
                   }}
                 >
                   {r.status === 'final' ? 'Download PDF' : 'Download draft PDF'}

@@ -17,7 +17,7 @@ const DATE_RULE_LABEL = { session: 'session date (when the cohort or session sta
 
 export type DataNotes = { check: DataCheck; asOf: string; version?: number; override?: { by: string; reason: string } }
 
-/** Print mode (PDF export): plain white A4 pages, no card borders or shadows. */
+/** Print mode (PDF export): no page cards; the print stylesheet in export/pdf.tsx lays out A4 pages. */
 const PrintCtx = React.createContext(false)
 
 export function ReportDocument({ report, viewer, notes, print = false }: { report: Report; viewer: Viewer; notes?: DataNotes; print?: boolean }) {
@@ -31,7 +31,7 @@ export function ReportDocument({ report, viewer, notes, print = false }: { repor
     <PrintCtx.Provider value={print}>
     <article className={print ? 'w-full bg-white' : 'mx-auto w-full max-w-[860px] space-y-6'}>
       {/* Cover */}
-      <Page>
+      <Page cover>
         <div
           className="-m-10 mb-0 flex min-h-[340px] flex-col justify-end p-10 text-white"
           style={{
@@ -195,15 +195,11 @@ export function ReportDocument({ report, viewer, notes, print = false }: { repor
 
 const stamp = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
-function Page({ children }: { children: React.ReactNode }) {
+function Page({ children, cover }: { children: React.ReactNode; cover?: boolean }) {
   const print = React.useContext(PrintCtx)
-  if (print)
-    return (
-      <section data-pdf-page className="overflow-hidden bg-white p-10">
-        {children}
-      </section>
-    )
-  return <section data-pdf-page className="overflow-hidden rounded-md border border-line bg-surface p-10 shadow-[0_2px_4px_rgba(16,44,94,0.05),0_12px_32px_-12px_rgba(16,44,94,0.18)]">{children}</section>
+  // In print, sections run on from one another; only the cover has a page to itself.
+  if (print) return <section className={cover ? 'report-print-cover bg-white' : 'report-print-section bg-white'}>{children}</section>
+  return <section className="overflow-hidden rounded-md border border-line bg-surface p-10 shadow-[0_2px_4px_rgba(16,44,94,0.05),0_12px_32px_-12px_rgba(16,44,94,0.18)]">{children}</section>
 }
 
 function SectionHeading({ n, title }: { n: string; title: string }) {
