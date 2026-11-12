@@ -91,7 +91,7 @@ export default function StaffAccess(props: Props) {
 
           <PageHeader
             crumbs={['MELA', 'Staff access']}
-            title="Staff access"
+            title="Staff Access"
             description={`${list.length} people have a staff role. Pillar staff only see their own pillar, enforced in the database.`}
             actions={
               <Button variant="primary" className="w-full sm:w-auto" onClick={() => setEditing('new')}>
@@ -101,7 +101,7 @@ export default function StaffAccess(props: Props) {
           />
 
           <DataTable
-            title="Staff access"
+            title="Staff Access"
             rows={list}
             columns={columns}
             rowKey={(s) => s.id}

@@ -90,7 +90,7 @@ export default function Reports(props: Props) {
       <>
         <PageHeader
           crumbs={[portalMeta[portal].label, 'Tools', 'Reports', rep ? (readOnly ? 'View' : 'Edit') : 'New report']}
-          title={rep ? rep.title : 'New report'}
+          title={rep ? rep.title : 'New Report'}
           description={rep ? `${templateById(rep.templateId)?.name ?? 'Blank report'} · ${rep.period.label} · last saved ${ago(rep.updatedAt)}` : 'Build a report from a template in six steps. Your draft is saved as you go.'}
         />
         <Wizard

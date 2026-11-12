@@ -80,7 +80,7 @@ export default function ConsolidatedSheet(props: Props) {
       <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-5 sm:px-5">
         <PageHeader
           crumbs={['Database', sheetPillar, sheetName]}
-          title={`${sheetPillar} ${sheetName.toLowerCase()}`}
+          title={`${sheetPillar} ${sheetName}`}
           description={
             kind === 'ventures'
               ? `One row per venture, from the Venture Registry: each venture’s latest accepted update. ${showId ? 'Founder names and emails are restricted columns: they only download when you include them.' : 'Founder details are hidden for your role.'}`

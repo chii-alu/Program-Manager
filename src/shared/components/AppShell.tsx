@@ -539,7 +539,10 @@ function SideLink({ item, active, wide, onClick, sub, expanded }: { item: NavIte
       <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md transition-colors duration-150 ease-out ${active ? 'bg-white text-brand' : 'bg-white/8 text-white/85 group-hover:bg-white/15 group-hover:text-white'}`}>
         <Icon className="h-4 w-4" />
       </span>
-      <span className={`min-w-0 flex-1 truncate text-left leading-snug ${wide ? 'hidden lg:block' : 'hidden'}`}>{item.label}</span>
+      {/* Long names (e.g. "All Pillars Participants Sheet") wrap to a second line rather than being cut off. */}
+      <span className={`min-w-0 flex-1 text-left leading-snug ${wide ? 'hidden lg:block' : 'hidden'}`}>
+        <span className="line-clamp-2 break-words">{item.label}</span>
+      </span>
       {item.count != null && <span className={`rounded-full bg-canvas px-1.5 text-[11px] font-semibold tabular-nums text-muted ${wide ? 'hidden lg:block' : 'hidden'}`}>{item.count}</span>}
       {expanded != null && <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-white/60 transition-transform duration-150 ${expanded ? 'rotate-180' : ''} ${wide ? 'hidden lg:block' : 'hidden'}`} />}
     </button>
@@ -993,6 +996,9 @@ function IconButton({ label, children, className = '', onClick }: { label: strin
   )
 }
 
+/** Pillar portals name each sheet after the pillar ("HEMP Participants Sheet"); the MELA view keeps the plain names. */
+const sheetName = (portal: Portal, sheet: string) => (portal === 'admin' ? `${sheet} sheet` : `${portalMeta[portal].label} ${sheet} Sheet`)
+
 function navFor(role: Role, portal: Portal): NavGroup[] {
   if (role === 'none') return []
   if (role === 'reviewer') {
@@ -1046,10 +1052,10 @@ function navFor(role: Role, portal: Portal): NavGroup[] {
     {
       title: portal === 'admin' ? 'Consolidated databases' : `${portalMeta[portal].label} database`,
       items: [
-        { key: 'db-participants', label: 'Participants sheet', icon: Table2 },
-        { key: 'db-feedback', label: 'Feedback sheet', icon: Sheet },
+        { key: 'db-participants', label: sheetName(portal, 'Participants'), icon: Table2 },
+        { key: 'db-feedback', label: sheetName(portal, 'Feedback'), icon: Sheet },
         // The Ventures sheet (VENTURE-REGISTRY-SPEC §8 step 7): same audience as the registry.
-        ...(canUseVentures({ role, pillars: pillarsFor(portal) }) && (portal === 'hent' || portal === 'admin') ? [{ key: 'db-ventures', label: 'Ventures sheet', icon: Rocket }] : []),
+        ...(canUseVentures({ role, pillars: pillarsFor(portal) }) && (portal === 'hent' || portal === 'admin') ? [{ key: 'db-ventures', label: portal === 'admin' ? 'Ventures sheet' : 'HENT Ventures Sheet', icon: Rocket }] : []),
       ],
     },
     {

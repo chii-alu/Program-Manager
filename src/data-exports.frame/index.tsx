@@ -57,7 +57,7 @@ export default function DataExports(props: Props) {
         <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-5">
           <ExportModal open={!!table} onClose={() => setTable(null)} title={table ?? ''} columns={data.columns} rows={data.rows} canSeeRestricted defaultFormat="csv" />
 
-          <PageHeader crumbs={['MELA', 'Data & exports']} title="Data & exports" description="Row counts for the dashboard feed, file exports and the tamper-proof export log." />
+          <PageHeader crumbs={['MELA', 'Data & exports']} title="Data & Exports" description="Row counts for the dashboard feed, file exports and the tamper-proof export log." />
 
           <div className="grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]">
             <Panel className="self-start">

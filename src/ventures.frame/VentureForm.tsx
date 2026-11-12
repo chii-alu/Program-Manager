@@ -122,7 +122,7 @@ export function VentureForm({ data, ventureId, me, onDone }: { data: RegistryDat
     <>
       <PageHeader
         crumbs={['HENT', 'Ventures', 'Registry', existing ? existing.code : 'New']}
-        title={existing ? `Edit ${existing.name}` : 'Add a venture'}
+        title={existing ? `Edit ${existing.name}` : 'Add a Venture'}
         description={existing ? 'Stage and status change through updates, so their history is kept.' : 'The details, the founders (each matched to a CHII ID) and the baseline numbers.'}
       />
       <ErrorBox errors={shownErrors} />

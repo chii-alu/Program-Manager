@@ -126,7 +126,7 @@ export default function Analytics(props: Props) {
       <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-5">
         <PageHeader
           crumbs={[portalMeta[portal].label, 'Analytics']}
-          title="Platform analytics"
+          title="Platform Analytics"
           description={<>{portal === 'admin' ? 'Reach, completion and satisfaction across CHII' : `How ${portalMeta[portal].label} is reaching young people`} · <span className="font-medium text-ink">{label}</span></>}
           actions={
             <Button className="w-full sm:w-auto" onClick={() => setExporting(true)}>

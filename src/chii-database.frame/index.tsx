@@ -52,7 +52,7 @@ export default function ChiiDatabase(props: Props) {
         <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-5">
           <PageHeader
             crumbs={[portalMeta[portal].label, 'CHII database']}
-            title="CHII database"
+            title="CHII Database"
             description={<>The consolidated, cross-pillar registries that feed MELA reporting · <span className="font-medium text-ink">{label.toLowerCase()}</span>.</>}
             actions={
               <Button

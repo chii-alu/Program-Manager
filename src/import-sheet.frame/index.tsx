@@ -100,7 +100,7 @@ export default function ImportSheet(props: Props) {
         defaultFormat="csv"
       />
       <div className="mx-auto max-w-[1100px] space-y-5 px-4 py-5 sm:px-5">
-        <PageHeader crumbs={[portalMeta[portal].label, 'Import a sheet']} title="Import a sheet" description="Bring registrations or feedback from a spreadsheet. Nothing is saved until you commit." />
+        <PageHeader crumbs={[portalMeta[portal].label, 'Import a sheet']} title="Import a Sheet" description="Bring registrations or feedback from a spreadsheet. Nothing is saved until you commit." />
 
         {/* Stepper: order matters here */}
         <ol className="grid grid-cols-4 gap-2">

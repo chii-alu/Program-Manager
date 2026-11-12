@@ -44,7 +44,7 @@ export function ImportVentures({ data, me, onOpen }: { data: RegistryData; me: s
     <>
       <PageHeader
         crumbs={['HENT', 'Ventures', 'Import']}
-        title="Import ventures"
+        title="Import Ventures"
         description="Bring in the HENT venture sheet. A dry run checks every row first; nothing is saved until you import. Each row becomes the venture’s baseline."
       />
       <ol className="no-scrollbar flex gap-1 overflow-x-auto rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-surface p-1.5 shadow-[var(--shadow-soft)]">

@@ -77,7 +77,7 @@ export function UpdatesPage({ data, me, showIdentity, onOpen }: { data: Registry
     <>
       <PageHeader
         crumbs={['HENT', 'Ventures', 'Updates']}
-        title="Venture updates"
+        title="Venture Updates"
         description="Founders update their venture’s stage, status, jobs and funding through a personal link. Nothing counts until staff accept it, and earlier numbers are never overwritten."
         actions={
           <Button onClick={() => window.open(formUrl('venture-update', rows[0]?.token), '_blank', 'noopener')}>

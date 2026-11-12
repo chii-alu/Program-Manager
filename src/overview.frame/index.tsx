@@ -460,7 +460,7 @@ function ReviewerHome({ name, onNavigate }: { name: string; onNavigate?: (to: st
     <div className="mx-auto max-w-[1100px] space-y-5 px-4 py-5 sm:px-5">
       <PageHeader
         crumbs={['Review', 'Queue']}
-        title={`${left} applications to score`}
+        title={`${left} Applications to Score`}
         description={`Hi ${name}, here's what's assigned to you.`}
         actions={
           <Button variant="primary" className="w-full sm:w-auto" onClick={() => onNavigate?.('applications')}>
