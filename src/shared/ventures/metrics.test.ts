@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { stageHistory, ventureLatest } from './derive'
-import { PERIODS, VENTURE_INDICATORS, analyse, median, previousPeriod, suppressCount } from './metrics'
+import { PERIODS, PERIOD_YEARS, VENTURE_INDICATORS, analyse, median, periodStarted, previousPeriod, suppressCount, yearPeriod } from './metrics'
 import { resetPeople } from './people'
 import { getRegistry, resetRegistry } from './store'
 
@@ -9,7 +9,7 @@ beforeEach(() => {
   resetRegistry()
 })
 const toDate = PERIODS[0]
-const year = (y: number) => PERIODS.find((p) => p.key === `y${y}`)!
+const year = yearPeriod
 
 describe('the dashboard’s Ventures Portfolio metrics are all defined (spec §4, §7)', () => {
   it('every card and chart on the dashboard page has an indicator', () => {
@@ -76,6 +76,18 @@ describe('values come from the registry with the agreed definitions', () => {
   it('every bar keeps the ventures behind it, for drill-down', () => {
     const a = analyse(getRegistry(), toDate)
     for (const s of a.breakdowns.sector) expect(s.ids.length).toBe(s.value)
+  })
+})
+
+describe('periods', () => {
+  it('Venture Analytics offers To date, then 2025 to 2030 with their halves', () => {
+    expect(PERIOD_YEARS).toEqual([2025, 2026, 2027, 2028, 2029, 2030])
+    expect(PERIODS.map((p) => p.label)).toEqual(['To date', ...PERIOD_YEARS.flatMap((y) => [String(y), `H1 ${y}`, `H2 ${y}`])])
+  })
+  it('years that haven’t started have no data yet; 2025 compares with 2024', () => {
+    expect(periodStarted(yearPeriod(2025))).toBe(true)
+    expect(periodStarted(yearPeriod(2026))).toBe(false)
+    expect(previousPeriod(yearPeriod(2025)).key).toBe('y2024')
   })
 })
 

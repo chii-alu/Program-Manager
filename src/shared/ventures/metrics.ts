@@ -63,7 +63,17 @@ const TODAY = REPORTING_DATE
 const yearP = (y: number): VPeriod => ({ key: `y${y}`, label: String(y), start: `${y}-01-01`, end: `${y}-12-31` })
 const halfP = (y: number, h: 1 | 2): VPeriod => ({ key: `h${h}-${y}`, label: `H${h} ${y}`, start: h === 1 ? `${y}-01-01` : `${y}-07-01`, end: h === 1 ? `${y}-06-30` : `${y}-12-31` })
 
-export const PERIODS: VPeriod[] = [{ key: 'to_date', label: 'To date', start: '2015-01-01', end: TODAY }, yearP(2025), halfP(2025, 2), halfP(2025, 1), yearP(2024), yearP(2023)]
+/** Reporting years offered in Venture Analytics. */
+export const PERIOD_YEARS = [2025, 2026, 2027, 2028, 2029, 2030]
+
+/** "To date", then each reporting year with its two halves. */
+export const PERIODS: VPeriod[] = [{ key: 'to_date', label: 'To date', start: '2015-01-01', end: TODAY }, ...PERIOD_YEARS.flatMap((y) => [yearP(y), halfP(y, 1), halfP(y, 2)])]
+
+/** A period that starts after today has no data yet. */
+export const periodStarted = (p: VPeriod) => p.start <= TODAY
+
+export const yearPeriod = yearP
+export const halfPeriod = halfP
 
 /** The period before: a year earlier for "to date", otherwise the previous year or half-year. */
 export function previousPeriod(p: VPeriod): VPeriod {

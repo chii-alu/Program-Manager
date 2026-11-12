@@ -13,7 +13,7 @@ import { Popover } from '../shared/components/Popover'
 import { StatCards } from '../shared/components/StatStrip'
 import { Button, PageHeader, Panel } from '../shared/components/ui'
 import { countryName } from '../shared/ventures/lists'
-import { FILTER_FIELDS, PERIODS, VENTURE_INDICATORS, VENTURE_TARGETS, analyse, previousPeriod, suppressCount, type Slice, type VFilters } from '../shared/ventures/metrics'
+import { FILTER_FIELDS, PERIODS, PERIOD_YEARS, VENTURE_INDICATORS, periodStarted, yearPeriod, VENTURE_TARGETS, analyse, previousPeriod, suppressCount, type Slice, type VFilters } from '../shared/ventures/metrics'
 import type { RegistryData } from '../shared/ventures/types'
 import { Chip, StagePill, VentureStatusPill, money } from './parts'
 
@@ -33,6 +33,7 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
   const [revenueBy, setRevenueBy] = useState<'intake' | 'date'>('intake')
 
   const period = PERIODS.find((p) => p.key === periodKey)!
+  const selYear = periodKey === 'to_date' ? null : Number(periodKey.slice(-4))
   const a = useMemo(() => analyse(data, period, filters), [data, period, filters])
   const prev = useMemo(() => analyse(data, previousPeriod(period), filters), [data, period, filters])
   const v = a.values
@@ -42,8 +43,12 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
   const all = useMemo(() => analyse(data, PERIODS[0]).rows, [data])
   const options = (key: keyof VFilters) => {
     const f = FILTER_FIELDS.find((x) => x.key === key)!
-    return [...new Set(all.map(f.value).filter((x) => x != null && x !== ''))].sort() as (string | number | boolean)[]
+    const used = [...new Set(all.map(f.value).filter((x) => x != null && x !== ''))].sort() as (string | number | boolean)[]
+    // Intake year offers the reporting years 2025–2030, plus any earlier year that has ventures.
+    if (key === 'intakeYear') return [...new Set([...(used as number[]).filter((y) => y < PERIOD_YEARS[0]), ...PERIOD_YEARS])].sort((a, b) => a - b)
+    return used
   }
+  const hasVentures = (key: keyof VFilters, o: unknown) => key !== 'intakeYear' || all.some((r) => r.intakeYear === o)
   const active = Object.entries(filters).filter(([, x]) => x != null && (!Array.isArray(x) || x.length)) as [keyof VFilters, unknown][]
   const toggle = (key: keyof VFilters, val: string | number | boolean) =>
     setFilters((f) => {
@@ -79,11 +84,42 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-surface px-3 py-2.5 shadow-[var(--shadow-soft)]">
         <span className="px-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">Period</span>
-        {PERIODS.map((p) => (
-          <Chip key={p.key} on={p.key === periodKey} onClick={() => setPeriodKey(p.key)}>
-            {p.label}
-          </Chip>
-        ))}
+        <Chip on={periodKey === 'to_date'} onClick={() => setPeriodKey('to_date')}>
+          To date
+        </Chip>
+        {PERIOD_YEARS.map((y) => {
+          const started = periodStarted(yearPeriod(y))
+          return (
+            <Chip key={y} on={selYear === y} onClick={() => setPeriodKey(`y${y}`)} disabled={!started} title={started ? undefined : `No data yet: ${y} starts on 1 Jan ${y}`}>
+              {y}
+            </Chip>
+          )
+        })}
+        {selYear != null && (
+          // Full year or one half of the chosen year. A half that hasn't started is greyed out.
+          <span className="inline-flex rounded-lg bg-canvas p-0.5" role="group" aria-label={`Part of ${selYear}`}>
+            {([
+              [`y${selYear}`, 'Full year'],
+              [`h1-${selYear}`, 'H1'],
+              [`h2-${selYear}`, 'H2'],
+            ] as const).map(([k, l]) => {
+              const p = PERIODS.find((x) => x.key === k)!
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={periodKey === k}
+                  disabled={!periodStarted(p)}
+                  title={periodStarted(p) ? p.label : `No data yet: starts ${p.start}`}
+                  onClick={() => setPeriodKey(k)}
+                  className={`h-7 rounded-md px-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${periodKey === k ? 'bg-surface text-brand-600 shadow-sm' : 'text-muted hover:text-ink'}`}
+                >
+                  {l}
+                </button>
+              )
+            })}
+          </span>
+        )}
         <span className="mx-1 hidden h-6 w-px bg-line sm:block" />
         <Popover
           width="w-[min(92vw,560px)]"
@@ -103,7 +139,7 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
                       const cur = filters[f.key]
                       const on = Array.isArray(cur) ? (cur as unknown[]).includes(o) : cur === o
                       return (
-                        <Chip key={String(o)} on={on} onClick={() => toggle(f.key, o)}>
+                        <Chip key={String(o)} on={on} onClick={() => toggle(f.key, o)} disabled={!on && !hasVentures(f.key, o)} title={hasVentures(f.key, o) ? undefined : `No ventures with intake in ${String(o)} yet`}>
                           {label(f.key, o)}
                         </Chip>
                       )
@@ -127,7 +163,7 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
           </button>
         )}
         <span className="ml-auto text-xs text-muted">
-          {v['venture.supported']} ventures · compared with {previousPeriod(period).label.toLowerCase()}
+          {v['venture.supported']} ventures · compared with {previousPeriod(period).key === 'to_date_prev' ? '12 months earlier' : previousPeriod(period).label}
         </span>
       </div>
 
