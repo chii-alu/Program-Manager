@@ -21,7 +21,10 @@ import {
   Menu,
   MessageSquareText,
   Moon,
+  PieChart,
   Plus,
+  RefreshCw,
+  Rocket,
   Search,
   Settings,
   Sheet,
@@ -49,6 +52,7 @@ import { useTheme } from '../hooks/useTheme'
 import { startRealtime, timeAgo, toast, useNotifications } from '../lib/notify'
 import { bounds, totals, useTimeRange } from '../lib/time'
 import { useInstall } from '../lib/pwa'
+import { canUseVentures } from '../ventures/store'
 import { Portal, Role, applications, participants, pillarStats, pillarsFor, portalMeta, roleMeta, sessions } from '../data/mela'
 
 export type ShellProps = {
@@ -61,7 +65,10 @@ export type ShellProps = {
   children: React.ReactNode
 }
 
-type NavItem = { key: string; label: string; short?: string; icon: React.ComponentType<{ className?: string }>; count?: number }
+type NavItem = { key: string; label: string; short?: string; icon: React.ComponentType<{ className?: string }>; count?: number; children?: NavItem[] }
+
+/** Sub-pages listed on their own, for the command palette and the phone menu. */
+const flat = (items: NavItem[]) => items.flatMap((i) => (i.children ? i.children.map((c) => ({ ...c, label: `${i.label} · ${c.label}` })) : [i]))
 type NavGroup = { title: string; items: NavItem[] }
 
 const SB_KEY = 'mela-sidebar'
@@ -233,11 +240,24 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
             <div key={g.title} className={gi > 0 ? `mt-4 border-t border-line pt-4 ${wide ? 'lg:mt-5 lg:border-0 lg:pt-0' : ''}` : ''}>
               <div className={`mb-1.5 truncate px-2 text-[9px] font-bold uppercase tracking-[0.12em] text-faint ${L}`}>{g.title}</div>
               <ul className="space-y-0.5">
-                {g.items.map((it) => (
-                  <li key={it.key}>
-                    <SideLink item={it} wide={wide} active={active === it.key} onClick={() => go(it.key)} />
-                  </li>
-                ))}
+                {g.items.map((it) => {
+                  const childOn = !!it.children?.some((c) => c.key === active)
+                  return (
+                    <li key={it.key}>
+                      {/* A parent opens its first sub-page; its sub-pages show indented below it. */}
+                      <SideLink item={it} wide={wide} active={active === it.key || childOn} onClick={() => go(it.children ? it.children[0].key : it.key)} />
+                      {it.children && (
+                        <ul className={`ml-[26px] mt-0.5 space-y-0.5 border-l border-white/15 pl-2 ${L}`}>
+                          {it.children.map((c) => (
+                            <li key={c.key}>
+                              <SideLink item={c} wide={wide} sub active={active === c.key} onClick={() => go(c.key)} />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           ))}
@@ -475,8 +495,20 @@ function FooterButton({ wide, icon: Icon, label, onClick, danger }: { wide: bool
   )
 }
 
-function SideLink({ item, active, wide, onClick }: { item: NavItem; active: boolean; wide: boolean; onClick: () => void }) {
+function SideLink({ item, active, wide, onClick, sub }: { item: NavItem; active: boolean; wide: boolean; onClick: () => void; sub?: boolean }) {
   const Icon = item.icon
+  if (sub)
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-current={active ? 'page' : undefined}
+        className={`flex min-h-8 w-full items-center gap-2.5 rounded-md px-2 py-1 text-left text-[12.5px] transition-colors duration-150 ease-out ${active ? 'bg-white/12 font-bold text-white' : 'font-medium text-white/70 hover:bg-white/8 hover:text-white'}`}
+      >
+        <Icon className={`h-3.5 w-3.5 shrink-0 ${active ? 'text-white' : 'text-white/60'}`} />
+        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      </button>
+    )
   return (
     <button
       type="button"
@@ -684,7 +716,7 @@ function CommandPalette({ groups, role, onClose, onGo, onTheme }: { groups: NavG
 
   const results = useMemo(() => {
     const t = q.toLowerCase()
-    const pages = groups.flatMap((g) => g.items).filter((i) => i.label.toLowerCase().includes(t))
+    const pages = groups.flatMap((g) => flat(g.items)).filter((i) => i.label.toLowerCase().includes(t))
     const people = role === 'reviewer' || !t ? [] : participants.filter((p) => `${p.id} ${p.name}`.toLowerCase().includes(t)).slice(0, 5)
     const actions = [...(role !== 'reviewer' ? [{ key: 'new-session', label: 'Create a new session', icon: Plus }] : []), { key: 'theme', label: 'Toggle dark mode', icon: Moon }].filter((a) => a.label.toLowerCase().includes(t))
     return { pages, people, actions }
@@ -864,7 +896,7 @@ function MoreSheet(props: {
               <div key={g.title} className="mt-5 px-3">
                 <div className="mb-1 px-2 text-[11px] font-medium text-faint">{g.title}</div>
                 <ul className="grid grid-cols-1 gap-0.5 min-[420px]:grid-cols-2">
-                  {g.items.map((it) => {
+                  {flat(g.items).map((it) => {
                     const Icon = it.icon
                     const on = active === it.key
                     return (
@@ -963,6 +995,22 @@ function navFor(role: Role, portal: Portal): NavGroup[] {
       title: 'Workspace',
       items: [
         { key: 'overview', label: 'Overview', icon: LayoutGrid },
+        // HENT staff and the MELA admin only (VENTURE-REGISTRY-SPEC §1).
+        ...(canUseVentures({ role, pillars: pillarsFor(portal) }) && (portal === 'hent' || portal === 'admin')
+          ? [
+              {
+                key: 'ventures-group',
+                label: 'Ventures',
+                icon: Rocket,
+                children: [
+                  { key: 'ventures', label: 'Registry', icon: BookOpen },
+                  { key: 'ventures-analytics', label: 'Analytics', icon: PieChart },
+                  { key: 'ventures-updates', label: 'Updates', icon: RefreshCw },
+                  { key: 'ventures-import', label: 'Import', icon: Upload },
+                ],
+              },
+            ]
+          : []),
         { key: 'analytics', label: 'Analytics', icon: BarChart3 },
         { key: 'interventions', label: 'Interventions', short: 'Sessions', icon: Layers },
         { key: 'participants', label: 'CHII Participants', short: 'People', icon: Users },

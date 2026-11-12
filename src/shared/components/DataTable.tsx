@@ -69,6 +69,7 @@ export function DataTable<T>({
   heading,
   description,
   headerRight,
+  initialHidden,
 }: {
   title: string
   rows: T[]
@@ -95,12 +96,14 @@ export function DataTable<T>({
   heading?: string
   description?: React.ReactNode
   headerRight?: React.ReactNode
+  /** Columns hidden at first; people can show them from the column chooser. */
+  initialHidden?: string[]
 }) {
   const reduce = useReducedMotion()
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(initialSort ?? null)
   const [filters, setFilters] = useState<Record<string, ColFilter>>({})
-  const [hidden, setHidden] = useState<string[]>([])
+  const [hidden, setHidden] = useState<string[]>(initialHidden ?? [])
   const [page, setPage] = useState(0)
   const [size, setSize] = useState(initialPageSize)
   const [exportFmt, setExportFmt] = useState<ExportFormat | null>(null)

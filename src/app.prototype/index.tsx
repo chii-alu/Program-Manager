@@ -16,6 +16,7 @@ import StaffAccess from '../staff-access.frame'
 import DataExports from '../data-exports.frame'
 import Applications from '../applications.frame'
 import Reports from '../reports.frame'
+import Ventures, { type VentureView } from '../ventures.frame'
 import PublicForm from '../public-form.frame'
 import { resolveAccount } from '../shared/lib/auth'
 import { roleMeta } from '../shared/data/mela'
@@ -34,6 +35,7 @@ const SHEET = 'consolidated-sheet'
 const IMPORT = 'import-sheet'
 const STAFF = 'staff-access'
 const REPORTS = 'reports'
+const VENTURES = 'ventures'
 const DATA = 'data-exports'
 const APPLICATIONS = 'applications'
 const FORM = 'public-form'
@@ -57,6 +59,10 @@ const routes: Record<string, string> = {
   data: DATA,
   applications: APPLICATIONS,
   reports: REPORTS,
+  ventures: VENTURES,
+  'ventures-analytics': VENTURES,
+  'ventures-updates': VENTURES,
+  'ventures-import': VENTURES,
 }
 
 const defaultPortal = (role: string) => (role === 'admin' ? 'admin' : role === 'pillar_lead' ? 'hent' : 'hemp')
@@ -76,6 +82,7 @@ export default function MelaManager(props: Props) {
   const [sessionId, setSessionId] = useState('s2')
   const [sheet, setSheet] = useState<'participants' | 'feedback'>('participants')
   const [newSession, setNewSession] = useState(false)
+  const [ventureView, setVentureView] = useState<VentureView>('registry')
 
   // The role control re-renders in place: adopt it and its home portal.
   useEffect(() => {
@@ -122,6 +129,7 @@ export default function MelaManager(props: Props) {
       setNewSession(true)
       return setStep(INTERVENTIONS)
     }
+    if (to.startsWith('ventures')) setVentureView((to.split('-')[1] as VentureView) ?? 'registry')
     if (to === 'db-participants') setSheet('participants')
     if (to === 'db-feedback') setSheet('feedback')
     if (routes[to]) setStep(routes[to])
@@ -187,6 +195,8 @@ export default function MelaManager(props: Props) {
       return <DataExports {...shared} />
     case REPORTS:
       return <Reports {...shared} />
+    case VENTURES:
+      return <Ventures {...shared} view={ventureView} />
     case APPLICATIONS:
       return <Applications {...shared} />
     case FORM:
