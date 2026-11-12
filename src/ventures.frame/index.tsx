@@ -3,17 +3,19 @@
  * HENT staff and the MELA admin only; everyone else gets "no access", even with a direct link.
  */
 import React, { useEffect, useState } from 'react'
-import { BarChart3, Clock, FileUp, Plus, RefreshCw, ShieldOff } from 'lucide-react'
+import { BarChart3, FileUp, Link2, Plus, ShieldOff } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
 import { EmptyState } from '../shared/components/EmptyState'
 import { Button, PageHeader, Panel } from '../shared/components/ui'
 import { Portal, Role, canSeeIdentity, pillarsFor, portalMeta, roleMeta } from '../shared/data/mela'
-import { canUseVentures, useRegistry } from '../shared/ventures/store'
+import { canUseVentures, setRegistrationOpen, settingsOf, useRegistry } from '../shared/ventures/store'
 import { Registry } from './Registry'
 import { VentureForm } from './VentureForm'
 import { VenturePage } from './VenturePage'
 import { ImportVentures } from './ImportVentures'
-import { fmtDate } from './parts'
+import { ShareLink, formUrl } from './ShareLink'
+import { SubmissionsPanel } from './Submissions'
+import { UpdatesPage } from './Updates'
 
 export const args = { role: 'admin', portal: 'hent', view: 'registry' }
 
@@ -44,6 +46,7 @@ export default function Ventures(props: Props) {
   const showIdentity = canSeeIdentity(role)
   const me = roleMeta[role].user
   const data = useRegistry()
+  const [sharing, setSharing] = useState(false)
 
   const [page, setPage] = useState<Page>(() => {
     const id = linked()
@@ -84,7 +87,7 @@ export default function Ventures(props: Props) {
 
   if (view === 'analytics') return shell(<Upcoming icon={BarChart3} title="Venture Analytics" step="build step 5" body="Every Ventures Portfolio metric from the CHII dashboard, computed live from the registry with the same definitions: portfolio size, stage and status, women-, youth- and PWD-led, founders, jobs, funding deployed and raised, revenue, survival and stage progression, by intake year and over time." />)
   if (view === 'import') return shell(<ImportVentures data={data} me={me} onOpen={(id) => (onNavigate?.('ventures'), setPage({ kind: 'venture', id }))} />)
-  if (view === 'updates') return shell(<UpdatesPage data={data} onOpen={(id) => (onNavigate?.('ventures'), setPage({ kind: 'venture', id }))} />)
+  if (view === 'updates') return shell(<UpdatesPage data={data} me={me} showIdentity={showIdentity} onOpen={(id) => (onNavigate?.('ventures'), setPage({ kind: 'venture', id }))} />)
 
   if (page.kind === 'new' || page.kind === 'edit')
     return shell(<VentureForm data={data} ventureId={page.kind === 'edit' ? page.id : undefined} me={me} onDone={(id) => setPage(id ? { kind: 'venture', id } : { kind: 'list' })} />)
@@ -110,6 +113,9 @@ export default function Ventures(props: Props) {
         description="Every health venture HENT supports, with its founders, stage, status and outcomes. One record per venture."
         actions={
           <>
+            <Button onClick={() => setSharing(true)}>
+              <Link2 className="h-4 w-4" /> Share form
+            </Button>
             <Button onClick={() => onNavigate?.('ventures-import')}>
               <FileUp className="h-4 w-4" /> Import
             </Button>
@@ -118,6 +124,17 @@ export default function Ventures(props: Props) {
             </Button>
           </>
         }
+      />
+      <SubmissionsPanel data={data} me={me} showIdentity={showIdentity} onOpen={(id) => setPage({ kind: 'venture', id })} />
+      <ShareLink
+        open={sharing}
+        onClose={() => setSharing(false)}
+        title="Share the venture registration form"
+        description="Founders register their venture here. Registrations wait for your review before they join the registry."
+        url={formUrl('venture-register')}
+        accepting={settingsOf(data).registrationOpen}
+        onToggle={setRegistrationOpen}
+        fileName="hent-venture-registration"
       />
       <Registry data={data} showIdentity={showIdentity} onOpen={(id) => setPage({ kind: 'venture', id })} onEdit={(id) => setPage({ kind: 'edit', id })} />
     </>,
@@ -130,42 +147,6 @@ function Upcoming({ icon, title, step, body }: { icon: React.ComponentType<{ cla
       <PageHeader crumbs={['HENT', 'Ventures', title]} title={title} />
       <Panel>
         <EmptyState icon={icon} title={`Coming in ${step}`} body={body} />
-      </Panel>
-    </>
-  )
-}
-
-/** Founder updates waiting for staff. Sending the update form and reminders come in build step 6. */
-function UpdatesPage({ data, onOpen }: { data: ReturnType<typeof useRegistry>; onOpen: (id: string) => void }) {
-  const pending = data.updates.filter((u) => !u.acceptedAt).sort((a, b) => b.asOf.localeCompare(a.asOf))
-  return (
-    <>
-      <PageHeader crumbs={['HENT', 'Ventures', 'Updates']} title="Venture updates" description="Updates founders send in. They count only after staff accept them." />
-      <Panel title="Waiting for review" sub={`${pending.length} founder update${pending.length === 1 ? '' : 's'}`}>
-        {pending.length ? (
-          <ul className="divide-y divide-line">
-            {pending.map((u) => {
-              const v = data.ventures.find((x) => x.id === u.ventureId)!
-              return (
-                <li key={u.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                  <Clock className="h-4 w-4 text-warn" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-ink">{v.name}</span>
-                    <span className="block text-xs text-muted">
-                      <span className="font-mono text-brand-600">{v.code}</span> · as of {fmtDate(u.asOf)} · {u.jobsTotal} jobs · {u.stage} · {u.status}
-                    </span>
-                  </span>
-                  <Button onClick={() => onOpen(v.id)}>Review</Button>
-                </li>
-              )
-            })}
-          </ul>
-        ) : (
-          <EmptyState compact icon={RefreshCw} title="Nothing to review" body="New founder updates will appear here." />
-        )}
-      </Panel>
-      <Panel>
-        <EmptyState icon={RefreshCw} title="Sending the update form comes in build step 6" body="A personal link for each founder (no login, no CHII ID shown), a schedule aligned with the bi-annual survey, response rates and reminders." />
       </Panel>
     </>
   )

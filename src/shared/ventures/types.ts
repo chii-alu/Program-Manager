@@ -148,6 +148,60 @@ export type Person = {
   disability?: boolean
 }
 
+/** A venture registered by its founders through the public registration form, waiting for staff. */
+export type VentureSubmission = {
+  id: string
+  receivedAt: string
+  status: 'pending' | 'accepted' | 'rejected'
+  name: string
+  description: string
+  countries: string[]
+  healthSector: string
+  source: string
+  yearFounded: number
+  institution: string
+  legalStatus: LegalStatus
+  stage: Stage
+  /** Lead founder first, then co-founders. Matched to CHII IDs only when staff accept. */
+  founders: { name: string; email: string; phone?: string; gender: Person['gender']; dob?: string; disability?: boolean }[]
+  jobsTotal: number
+  jobsWomen: number
+  jobsPwd: number
+  jobsDisplaced: number
+  fundingAmount: number
+  fundingCurrency: string
+  revenueAmount: number | null
+  revenueCurrency: string | null
+  /** Set when accepted. */
+  ventureId?: string
+  reviewedBy?: string
+  reviewedAt?: string
+  rejectReason?: string
+}
+
+/** A founder's personal update-form link for one round (spec §3 Updates). No login; no CHII ID shown. */
+export type UpdateLink = {
+  token: string
+  ventureId: string
+  roundId: string
+  /** The lead founder it goes to. */
+  chiiId: string
+  createdAt: string
+  sentAt: string | null
+  remindedAt: string | null
+  respondedAt: string | null
+  updateId: string | null
+}
+
+export type UpdateRound = { id: string; label: string; opensOn: string; dueOn: string }
+
+export type RegistrySettings = {
+  registrationOpen: boolean
+  /** Months between update rounds (aligned with the bi-annual survey by default). */
+  updateEveryMonths: 3 | 6 | 12
+  rounds: UpdateRound[]
+}
+
 export type RegistryData = {
   /** Last Venture ID number handed out. Never goes down, so codes are never reused. */
   seq: number
@@ -158,4 +212,8 @@ export type RegistryData = {
   funding: VentureFunding[]
   awards: FundingAward[]
   history: VentureHistory[]
+  /** Added with the public forms; missing in registries saved before them. */
+  submissions?: VentureSubmission[]
+  links?: UpdateLink[]
+  settings?: RegistrySettings
 }

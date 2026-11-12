@@ -17,6 +17,7 @@ import DataExports from '../data-exports.frame'
 import Applications from '../applications.frame'
 import Reports from '../reports.frame'
 import Ventures, { type VentureView } from '../ventures.frame'
+import VentureForms from '../venture-forms.frame'
 import PublicForm from '../public-form.frame'
 import { resolveAccount } from '../shared/lib/auth'
 import { roleMeta } from '../shared/data/mela'
@@ -199,6 +200,10 @@ export default function MelaManager(props: Props) {
       return <Ventures {...shared} view={ventureView} />
     case APPLICATIONS:
       return <Applications {...shared} />
+    case 'venture-register':
+      return <VentureForms kind="register" />
+    case 'venture-update':
+      return <VentureForms kind="update" />
     case FORM:
       return <PublicForm preview onExitPreview={() => setStep(SESSION)} />
     default:

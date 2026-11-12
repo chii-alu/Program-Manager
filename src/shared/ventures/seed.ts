@@ -6,7 +6,7 @@
  */
 import { participants } from '../data/mela'
 import { toUsd } from './lists'
-import type { FundingAward, FundingType, RegistryData, Stage, Venture, VentureCountry, VentureFunding, VentureHistory, VentureMember, VentureStatus, VentureUpdate } from './types'
+import type { RegistrySettings, UpdateLink, VentureSubmission, FundingAward, FundingType, RegistryData, Stage, Venture, VentureCountry, VentureFunding, VentureHistory, VentureMember, VentureStatus, VentureUpdate } from './types'
 
 const NAMES = [
   'AfyaLink', 'MamaCare Health', 'Dawa Direct', 'ScanRight Diagnostics', 'Kijiji Clinics', 'NutriPath', 'MindBridge', 'Sauti Health', 'PharmaTrace', 'CareCredit',
@@ -186,7 +186,50 @@ export function seedRegistry(): RegistryData {
   const femaleLed = ventures.find((v) => members.some((m) => m.ventureId === v.id && participants.find((p) => p.id === m.chiiId)?.gender === 'F'))
   if (femaleLed) femaleLed.womenLedOverride = false
 
-  return { seq: ventures.length, ventures, countries, members, updates, funding, awards, history }
+  // Founder update round H2 2025: personal links sent on 20 Oct; the founders who answered have pending updates.
+  const settings = defaultSettings()
+  const round = settings.rounds[settings.rounds.length - 1]
+  const links: UpdateLink[] = ventures.flatMap((v, i) => {
+    const lead = members.find((m) => m.ventureId === v.id && m.isPrimary)
+    if (!lead || v.currentStatus === 'Closed' || v.currentStatus === 'Acquired') return []
+    const answered = updates.find((u) => u.ventureId === v.id && u.source === 'founder_form')
+    return [{ token: `t${String(i + 1).padStart(3, '0')}${v.code.slice(-2)}x`, ventureId: v.id, roundId: round.id, chiiId: lead.chiiId, createdAt: '2025-10-20T08:00:00.000Z', sentAt: '2025-10-20T08:00:00.000Z', remindedAt: i % 3 === 0 && !answered ? '2025-11-03T08:00:00.000Z' : null, respondedAt: answered ? `${answered.asOf}T15:00:00.000Z` : null, updateId: answered?.id ?? null }]
+  })
+
+  // Registrations founders sent through the public form, waiting for staff.
+  const tele = ventures.find((v) => v.name === 'TeleDaktari')!
+  const teleCountry = countryOf(countries, tele.id)
+  const sub = (s: Omit<VentureSubmission, 'status'>): VentureSubmission => ({ ...s, status: 'pending' })
+  const submissions: VentureSubmission[] = [
+    sub({
+      id: 'sub-001', receivedAt: '2025-11-07T10:12:00.000Z', name: 'Mwanga Diagnostics', description: 'Solar-powered rapid test reader for rural clinics.', countries: ['KE'], healthSector: 'Diagnostics', source: 'Open call', yearFounded: 2024, institution: 'Other', legalStatus: 'In progress', stage: 'Expose',
+      founders: [{ name: 'Grace Akinyi', email: 'grace.akinyi@mwangadx.co.ke', phone: '+254 712 000 111', gender: 'F', dob: '1997-04-12', disability: false }, { name: 'Peter Otieno', email: 'p.otieno@mwangadx.co.ke', gender: 'M', dob: '1995-09-30' }],
+      jobsTotal: 3, jobsWomen: 2, jobsPwd: 0, jobsDisplaced: 0, fundingAmount: 650000, fundingCurrency: 'KES', revenueAmount: null, revenueCurrency: null,
+    }),
+    sub({
+      id: 'sub-002', receivedAt: '2025-11-08T16:40:00.000Z', name: 'AfyaBot', description: 'WhatsApp nurse line for first-time mothers.', countries: ['NG'], healthSector: 'Maternal & child health', source: 'Masterclass', yearFounded: 2025, institution: 'ALU', legalStatus: 'Informal', stage: 'Expose',
+      founders: [{ name: 'Aisha Bello', email: 'a.bello@alustudent.com', gender: 'F' }],
+      jobsTotal: 1, jobsWomen: 1, jobsPwd: 0, jobsDisplaced: 0, fundingAmount: 0, fundingCurrency: 'USD', revenueAmount: null, revenueCurrency: null,
+    }),
+    sub({
+      id: 'sub-003', receivedAt: '2025-11-09T09:05:00.000Z', name: 'Tele Daktari', description: 'Video consultations for rural patients.', countries: [teleCountry], healthSector: 'Digital health', source: 'Referral', yearFounded: 2023, institution: 'Other', legalStatus: 'Registered', stage: 'Build',
+      founders: [{ name: 'Samuel Wekesa', email: 's.wekesa@teledaktari.com', gender: 'M', dob: '1990-02-02' }],
+      jobsTotal: 6, jobsWomen: 3, jobsPwd: 1, jobsDisplaced: 0, fundingAmount: 20000, fundingCurrency: 'USD', revenueAmount: 15000, revenueCurrency: 'USD',
+    }),
+  ]
+
+  return { seq: ventures.length, ventures, countries, members, updates, funding, awards, history, submissions, links, settings }
+}
+
+export function defaultSettings(): RegistrySettings {
+  return {
+    registrationOpen: true,
+    updateEveryMonths: 6,
+    rounds: [
+      { id: '2025-H1', label: 'H1 2025 update', opensOn: '2025-06-01', dueOn: '2025-06-30' },
+      { id: '2025-H2', label: 'H2 2025 update', opensOn: '2025-10-20', dueOn: '2025-11-30' },
+    ],
+  }
 }
 
 const countryOf = (cs: VentureCountry[], ventureId: string) => cs.find((c) => c.ventureId === ventureId && c.isPrimary)?.countryCode ?? 'RW'

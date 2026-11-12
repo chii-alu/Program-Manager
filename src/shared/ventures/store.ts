@@ -11,8 +11,8 @@ import { REPORTING_DATE, acceptedUpdates } from './derive'
 import { toUsd } from './lists'
 import { resolveBeneficiary, type ResolveInput, type ResolveResult } from './people'
 import { validateUpdate, validateVenture } from './quality'
-import { seedRegistry } from './seed'
-import type { FundingAward, MemberRole, RegistryData, UpdateSource, Venture, VentureFunding, VentureHistory, VentureUpdate } from './types'
+import { defaultSettings, seedRegistry } from './seed'
+import type { FundingAward, MemberRole, RegistryData, RegistrySettings, UpdateLink, UpdateSource, Venture, VentureFunding, VentureHistory, VentureSubmission, VentureUpdate } from './types'
 
 const KEY = 'mela-ventures-v1'
 
@@ -33,7 +33,7 @@ function load(): RegistryData {
   if (cache) return cache
   try {
     const raw = localStorage.getItem(KEY)
-    cache = raw ? (JSON.parse(raw) as RegistryData) : seedRegistry()
+    cache = raw ? withFormData(JSON.parse(raw) as RegistryData) : seedRegistry()
   } catch {
     cache = seedRegistry()
   }
@@ -206,4 +206,143 @@ export function addAward(row: Omit<FundingAward, 'id'>, by: string) {
   if (row.amountUsd <= 0) throw new VentureValidationError(['The award must be more than 0.'])
   const d = load()
   persist({ ...d, awards: [...d.awards, { ...row, id: uid('a') }], history: log(d, row.ventureId, by, 'award_added', `CHII award of $${row.amountUsd.toLocaleString()}`) })
+}
+
+/* ---------- Public forms (registration and founder updates) ---------- */
+
+/** Registries saved before the public forms existed get empty form data. */
+function withFormData(d: RegistryData): RegistryData {
+  return { ...d, submissions: d.submissions ?? [], links: d.links ?? [], settings: d.settings ?? defaultSettings() }
+}
+
+export const settingsOf = (d: RegistryData): RegistrySettings => d.settings ?? defaultSettings()
+export const currentRound = (d: RegistryData) => settingsOf(d).rounds.slice(-1)[0]
+
+export function setRegistrationOpen(open: boolean) {
+  const d = load()
+  persist({ ...d, settings: { ...settingsOf(d), registrationOpen: open } })
+}
+
+export function setUpdateSchedule(months: RegistrySettings['updateEveryMonths']) {
+  const d = load()
+  persist({ ...d, settings: { ...settingsOf(d), updateEveryMonths: months } })
+}
+
+export class FormClosedError extends Error {}
+
+export type RegistrationInput = Omit<VentureSubmission, 'id' | 'receivedAt' | 'status' | 'ventureId' | 'reviewedBy' | 'reviewedAt' | 'rejectReason'>
+
+/** Check a registration the way the registry would, before it's sent. Returns messages. */
+export function checkRegistration(r: RegistrationInput): string[] {
+  const out = [
+    ...validateVenture({ name: r.name, healthSector: r.healthSector, stage: r.stage, currentStatus: 'Active', yearFounded: r.yearFounded, description: r.description }, r.countries),
+    ...validateUpdate({ ...r, cofoundersCount: null, cofoundersFemaleCount: null }),
+  ]
+  if (!r.founders[0]?.name.trim() || !r.founders[0]?.email.trim()) out.push('Add the lead founder’s name and email.')
+  r.founders.slice(1).forEach((f, i) => (f.name.trim() || f.email.trim()) && (!f.name.trim() || !f.email.trim()) && out.push(`Co-founder ${i + 1}: add both a name and an email.`))
+  return out.map((m) => m.replace("Add the venture's", 'Add your venture’s'))
+}
+
+/** A founder registers their venture. It waits for staff; nothing enters the registry yet. */
+export function submitRegistration(r: RegistrationInput) {
+  const d = load()
+  if (!settingsOf(d).registrationOpen) throw new FormClosedError('The registration form is closed.')
+  const problems = checkRegistration(r)
+  if (problems.length) throw new VentureValidationError(problems)
+  const sub: VentureSubmission = { ...r, founders: r.founders.filter((f) => f.name.trim() && f.email.trim()), id: uid('s'), receivedAt: now(), status: 'pending' }
+  persist({ ...d, submissions: [...(d.submissions ?? []), sub] })
+  return sub
+}
+
+/** Staff accept a registration: it becomes a venture, founders are matched to (or given) CHII IDs. */
+export function acceptSubmission(id: string, extra: { intakeYear: number; track: string }, by: string) {
+  const d = load()
+  const s = d.submissions?.find((x) => x.id === id)
+  if (!s || s.status !== 'pending') throw new Error('This registration has already been reviewed.')
+  const asOf = s.receivedAt.slice(0, 10) > REPORTING_DATE ? REPORTING_DATE : s.receivedAt.slice(0, 10)
+  const { venture } = createVenture(
+    {
+      name: s.name,
+      description: s.description,
+      countries: s.countries,
+      healthSector: s.healthSector,
+      source: s.source,
+      yearFounded: s.yearFounded,
+      intakeYear: extra.intakeYear,
+      institution: s.institution,
+      track: extra.track,
+      legalStatus: s.legalStatus,
+      inAccelerator: false,
+      youthLedOverride: null,
+      womenLedOverride: null,
+      pwdLedOverride: null,
+    },
+    s.founders.map((f, i) => ({ person: f, role: i === 0 ? 'lead_founder' : 'co_founder' })),
+    {
+      asOf,
+      stage: s.stage,
+      status: 'Active',
+      cofoundersCount: null,
+      cofoundersFemaleCount: null,
+      jobsTotal: s.jobsTotal,
+      jobsWomen: s.jobsWomen,
+      jobsPwd: s.jobsPwd,
+      jobsDisplaced: s.jobsDisplaced,
+      fundingAmount: s.fundingAmount,
+      fundingCurrency: s.fundingCurrency,
+      revenueAmount: s.revenueAmount,
+      revenueCurrency: s.revenueCurrency,
+      notes: 'From the venture registration form.',
+    },
+    by,
+    'founder_form',
+  )
+  const after = load()
+  persist({ ...after, submissions: (after.submissions ?? []).map((x) => (x.id === id ? { ...x, status: 'accepted' as const, ventureId: venture.id, reviewedBy: by, reviewedAt: now() } : x)) })
+  return venture
+}
+
+export function rejectSubmission(id: string, reason: string, by: string) {
+  const d = load()
+  persist({ ...d, submissions: (d.submissions ?? []).map((x) => (x.id === id ? { ...x, status: 'rejected' as const, rejectReason: reason, reviewedBy: by, reviewedAt: now() } : x)) })
+}
+
+/* Founder update links */
+
+const token = () => Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6)
+
+/** One personal link per active venture with a lead founder, for the current round. Existing links are kept. */
+export function createRoundLinks() {
+  const d = load()
+  const round = currentRound(d)
+  const links = d.links ?? []
+  const fresh: UpdateLink[] = []
+  for (const v of d.ventures) {
+    const last = acceptedUpdates(d, v.id, '9999-12-31').slice(-1)[0]
+    const lead = d.members.find((m) => m.ventureId === v.id && m.isPrimary && !m.leftOn)
+    if (!lead || last?.status === 'Closed' || last?.status === 'Acquired') continue
+    if (links.some((l) => l.ventureId === v.id && l.roundId === round.id)) continue
+    fresh.push({ token: token(), ventureId: v.id, roundId: round.id, chiiId: lead.chiiId, createdAt: now(), sentAt: null, remindedAt: null, respondedAt: null, updateId: null })
+  }
+  persist({ ...d, links: [...links, ...fresh] })
+  return fresh.length
+}
+
+export function markLinks(tokens: string[], what: 'sent' | 'reminded') {
+  const d = load()
+  const at = now()
+  persist({ ...d, links: (d.links ?? []).map((l) => (tokens.includes(l.token) ? (what === 'sent' ? { ...l, sentAt: l.sentAt ?? at } : { ...l, remindedAt: at }) : l)) })
+}
+
+export const linkByToken = (t: string) => load().links?.find((l) => l.token === t) ?? null
+
+/** A founder sends an update through their link. It waits for staff to accept it. */
+export function submitFounderUpdate(t: string, input: UpdateInput) {
+  const d = load()
+  const link = d.links?.find((l) => l.token === t)
+  if (!link) throw new FormClosedError('This link isn’t valid any more.')
+  const u = addUpdate(link.ventureId, input, 'Founder (update form)', 'founder_form')
+  const after = load()
+  persist({ ...after, links: (after.links ?? []).map((l) => (l.token === t ? { ...l, respondedAt: now(), updateId: u.id } : l)) })
+  return u
 }
