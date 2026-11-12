@@ -6,7 +6,7 @@
  */
 import React, { useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend as RLegend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { BookOpen, Briefcase, DollarSign, Download, Filter, Target, TrendingUp, Users, X } from 'lucide-react'
+import { BookOpen, Briefcase, Banknote, Coins, HandCoins, Wallet, Download, Filter, Target, TrendingUp, Users, X } from 'lucide-react'
 import { CHART, ChartTooltip, categoryAxisProps, gridProps, lineProps, valueAxisProps } from '../shared/components/charts'
 import { Modal } from '../shared/components/Modal'
 import { Popover } from '../shared/components/Popover'
@@ -175,8 +175,8 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
           { label: 'Women-led ventures', value: v['venture.women_led']!, prev: prev.values['venture.women_led']!, icon: Users, hint: share(v['venture.women_led'], v['venture.supported']), tip: indicator('venture.women_led') },
           { label: 'PWD-led ventures', value: v['venture.pwd_led']!, prev: prev.values['venture.pwd_led']!, icon: Target, hint: share(v['venture.pwd_led'], v['venture.supported']), tip: indicator('venture.pwd_led') },
           { label: 'Jobs created', value: v['venture.jobs']!, prev: prev.values['venture.jobs']!, icon: TrendingUp, hint: target('venture.jobs', v['venture.jobs']) ?? `${v['venture.jobs_per_venture']} per venture`, tip: indicator('venture.jobs') },
-          { label: 'Funding deployed', value: v['venture.funding_deployed']!, display: money(v['venture.funding_deployed']), prev: prev.values['venture.funding_deployed']!, icon: DollarSign, hint: target('venture.funding_deployed', v['venture.funding_deployed']), tip: indicator('venture.funding_deployed') },
-          { label: 'Revenue generated', value: v['venture.revenue']!, display: money(v['venture.revenue']), prev: prev.values['venture.revenue']!, icon: DollarSign, hint: 'last 12 months, as reported', tip: indicator('venture.revenue') },
+          { label: 'Funding deployed', value: v['venture.funding_deployed']!, display: money(v['venture.funding_deployed']), prev: prev.values['venture.funding_deployed']!, icon: Banknote, hint: target('venture.funding_deployed', v['venture.funding_deployed']), tip: indicator('venture.funding_deployed') },
+          { label: 'Revenue generated', value: v['venture.revenue']!, display: money(v['venture.revenue']), prev: prev.values['venture.revenue']!, icon: Wallet, hint: 'last 12 months, as reported', tip: indicator('venture.revenue') },
         ]}
       />
 
@@ -256,8 +256,8 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
             columns={4}
             items={[
               { label: 'Jobs added since baseline', value: v['venture.jobs_change']!, icon: TrendingUp, hint: `${v['venture.jobs_per_venture']} jobs per venture`, tip: indicator('venture.jobs_change') },
-              { label: 'External funding raised', value: v['venture.funding_raised']!, display: money(v['venture.funding_raised']), icon: DollarSign, hint: `${v['venture.raised_pct'] ?? 0}% of ventures have raised`, tip: indicator('venture.funding_raised') },
-              { label: 'Median raised', value: v['venture.funding_raised_median'] ?? 0, display: money(v['venture.funding_raised_median']), icon: DollarSign, hint: `average ${money(v['venture.funding_raised_avg'])}`, tip: indicator('venture.funding_raised_median') },
+              { label: 'External funding raised', value: v['venture.funding_raised']!, display: money(v['venture.funding_raised']), icon: HandCoins, hint: `${v['venture.raised_pct'] ?? 0}% of ventures have raised`, tip: indicator('venture.funding_raised') },
+              { label: 'Median raised', value: v['venture.funding_raised_median'] ?? 0, display: money(v['venture.funding_raised_median']), icon: Coins, hint: `average ${money(v['venture.funding_raised_avg'])}`, tip: indicator('venture.funding_raised_median') },
               { label: 'Ventures funded by CHII', value: v['venture.ventures_funded']!, icon: Briefcase, hint: `${money(v['venture.funding_deployed'])} deployed`, tip: indicator('venture.ventures_funded') },
             ]}
           />

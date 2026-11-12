@@ -4,7 +4,7 @@
  * women-led, year founded…), quick views, column chooser and CSV/XLSX export.
  */
 import React, { useMemo, useState } from 'react'
-import { AlertTriangle, Briefcase, Clock, DollarSign, Eye, Pencil, Rocket, TrendingUp, UserRound, Users } from 'lucide-react'
+import { AlertTriangle, Briefcase, Clock, Banknote, Eye, Pencil, Rocket, TrendingUp, UserRound, Users } from 'lucide-react'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { StatCards } from '../shared/components/StatStrip'
 import { ventureLatest, deriveFlags, type VentureRow } from '../shared/ventures/derive'
@@ -170,7 +170,7 @@ export function Registry({ data, showIdentity, onOpen, onEdit }: { data: Registr
             tip: 'Founders and co-founders linked to the ventures, counted once by CHII ID (a founder of two ventures counts once).',
           },
           { label: 'Jobs created', value: jobs, icon: TrendingUp, hint: 'latest values', tip: 'Total jobs from each venture’s latest accepted update.' },
-          { label: 'CHII funding', value: deployed, display: money(deployed), icon: DollarSign, hint: 'awards to date', tip: 'CHII Venture Funding awards (dashboard: Funding Deployed). External funding is counted separately.' },
+          { label: 'CHII funding', value: deployed, display: money(deployed), icon: Banknote, hint: 'awards to date', tip: 'CHII Venture Funding awards (dashboard: Funding Deployed). External funding is counted separately.' },
         ]}
       />
 
