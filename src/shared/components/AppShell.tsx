@@ -1023,6 +1023,8 @@ function navFor(role: Role, portal: Portal): NavGroup[] {
       items: [
         { key: 'db-participants', label: 'Participants sheet', icon: Table2 },
         { key: 'db-feedback', label: 'Feedback sheet', icon: Sheet },
+        // The Ventures sheet (VENTURE-REGISTRY-SPEC §8 step 7): same audience as the registry.
+        ...(canUseVentures({ role, pillars: pillarsFor(portal) }) && (portal === 'hent' || portal === 'admin') ? [{ key: 'db-ventures', label: 'Ventures sheet', icon: Rocket }] : []),
       ],
     },
     {

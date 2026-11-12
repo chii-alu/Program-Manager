@@ -145,6 +145,87 @@ export const SYSTEM_TEMPLATES: ReportTemplate[] = [
     system: true,
     active: true,
   },
+  {
+    // VENTURE-REGISTRY-SPEC §8 step 7. Every number comes from the registry through the same
+    // definitions as Venture Analytics and the dashboard's Ventures Portfolio.
+    id: 'tpl-venture-portfolio',
+    name: 'Venture portfolio report',
+    description: 'HENT ventures as of the period end: portfolio, survival, jobs, funding, revenue and inclusion. Ventures only, no founder names.',
+    scopeType: 'ventures',
+    defaultDateRule: 'session',
+    layout: 'a4_portrait',
+    audienceDefault: 'internal',
+    needsApproval: false,
+    needsVentures: true,
+    pillars: ['HENT'],
+    sections: [
+      {
+        title: 'Executive summary',
+        blocks: ['text'],
+        required: true,
+        settings: [
+          {
+            textRole: 'executive_summary',
+            html: '<p>By the end of {{period.label}}, HENT had supported <strong>{{venture.supported}}</strong> ventures, {{venture.active}} of them active. They employ {{venture.jobs}} people and report {{venture.revenue}} in revenue over the last 12 months. CHII has deployed {{venture.funding_deployed}} in Venture Funding.</p><p>Summarise the portfolio’s main changes here.</p>',
+          },
+        ],
+      },
+      {
+        title: 'Headline numbers',
+        blocks: ['kpi', 'kpi', 'kpi', 'kpi', 'kpi', 'kpi'],
+        required: true,
+        settings: [
+          { metric: 'venture.supported', showComparison: true },
+          { metric: 'venture.active', showComparison: true, target: 400 },
+          { metric: 'venture.women_led', showComparison: true },
+          { metric: 'venture.jobs', showComparison: true, target: 2000 },
+          { metric: 'venture.funding_deployed', showComparison: true, target: 910_904 },
+          { metric: 'venture.revenue', showComparison: true },
+        ],
+      },
+      {
+        title: 'Portfolio composition',
+        blocks: ['chart', 'chart'],
+        settings: [
+          { chart: 'bar', metric: 'venture.supported', breakdown: 'venture_country', sort: 'value_desc', topN: 8 },
+          { chart: 'donut', metric: 'venture.supported', breakdown: 'venture_stage' },
+        ],
+      },
+      {
+        title: 'Portfolio health',
+        blocks: ['chart', 'table'],
+        settings: [
+          { chart: 'bar', metric: 'venture.survival', breakdown: 'venture_intake_year', sort: 'label', topN: null },
+          { table: 'breakdown', metric: 'venture.supported', breakdown: 'venture_status', sort: 'label', topN: null },
+        ],
+      },
+      {
+        title: 'Jobs and funding',
+        blocks: ['kpi', 'kpi', 'kpi', 'chart', 'table'],
+        settings: [
+          { metric: 'venture.jobs_change', showComparison: true },
+          { metric: 'venture.funding_raised', showComparison: true },
+          { metric: 'venture.ventures_funded', showComparison: true },
+          { chart: 'bar', metric: 'venture.jobs', breakdown: 'venture_intake_year', sort: 'label', topN: null },
+          { table: 'breakdown', metric: 'venture.funding_deployed', breakdown: 'venture_track', sort: 'value_desc', topN: null },
+        ],
+      },
+      {
+        title: 'Founders and inclusion',
+        blocks: ['kpi', 'kpi', 'kpi', 'chart'],
+        settings: [
+          { metric: 'venture.founders', showComparison: true },
+          { metric: 'venture.female_founders_pct', showComparison: true },
+          { metric: 'venture.youth_led', showComparison: true },
+          { chart: 'bar', metric: 'venture.women_led', breakdown: 'venture_sector', sort: 'value_desc', topN: null },
+        ],
+      },
+      { title: 'Challenges and next steps', blocks: ['text'] },
+    ],
+    version: 1,
+    system: true,
+    active: true,
+  },
 ]
 
 export const templateById = (id: string | null) => SYSTEM_TEMPLATES.find((t) => t.id === id) ?? null
@@ -156,5 +237,6 @@ export const SCOPE_TYPE_LABEL: Record<ReportTemplate['scopeType'], string> = {
   all_pillars: 'All pillars',
   survey: 'One survey wave',
   data_quality: 'Data quality',
+  ventures: 'HENT ventures',
   any: 'Any scope',
 }

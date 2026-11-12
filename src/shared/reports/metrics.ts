@@ -17,7 +17,11 @@ import type { Pillar, Role } from '../data/mela'
 import { cohorts, facts, type Fact } from './facts'
 import { indicatorByCode, type Indicator } from './indicators'
 import { REPORT_SETTINGS, comparisonPeriod } from './periods'
-import type { Audience, DateRule, Dimension, FilterKey, MetricCell, MetricRequest, MetricResult, Period, Scope, Viewer } from './types'
+import type { Audience, DateRule, Dimension, FilterKey, MetricCell, MetricRequest, MetricResult, Period, Scope, VentureDimension, Viewer } from './types'
+import type { VentureRow } from '../ventures/derive'
+import { countryName } from '../ventures/lists'
+import { analyse, type VFilters } from '../ventures/metrics'
+import { canUseVentures, getRegistry } from '../ventures/store'
 
 /* ---------- Errors ---------- */
 
@@ -52,6 +56,102 @@ export const DIMENSIONS: Record<Dimension, { label: string; sensitive?: boolean;
   beneficiary_type: { label: 'Beneficiary type', get: (f) => f.beneficiaryType },
   month: { label: 'Month', get: (f) => f.sessionDate.slice(0, 7) },
   quarter: { label: 'Quarter', get: (f) => `${f.sessionDate.slice(0, 4)} Q${Math.floor((Number(f.sessionDate.slice(5, 7)) - 1) / 3) + 1}` },
+  // Venture breakdowns group registry rows, not people facts (see ventureMetric below).
+  venture_stage: { label: 'Stage', get: () => '' },
+  venture_status: { label: 'Venture status', get: () => '' },
+  venture_intake_year: { label: 'Intake year', get: () => '' },
+  venture_country: { label: 'Country of operation', get: () => '' },
+  venture_region: { label: 'Region', get: () => '' },
+  venture_sector: { label: 'Health sector', get: () => '' },
+  venture_track: { label: 'Track', get: () => '' },
+}
+
+/* ---------- Venture registry metrics ---------- */
+
+const VENTURE_BY: Record<VentureDimension, { filter: keyof VFilters; value: (r: VentureRow) => string | number | null; order?: string[]; label?: (k: string) => string }> = {
+  venture_stage: { filter: 'stage', value: (r) => r.stage, order: ['Expose', 'Build', 'Scale'] },
+  venture_status: { filter: 'status', value: (r) => r.status, order: ['Active', 'Paused', 'Pivoted', 'Acquired', 'Closed'] },
+  venture_intake_year: { filter: 'intakeYear', value: (r) => r.intakeYear },
+  venture_country: { filter: 'country', value: (r) => r.country, label: countryName },
+  venture_region: { filter: 'region', value: (r) => r.region },
+  venture_sector: { filter: 'sector', value: (r) => r.sector },
+  venture_track: { filter: 'track', value: (r) => r.track },
+}
+
+/**
+ * A registry indicator for a report. The value is exactly what Venture Analytics shows for the
+ * same period (analyse()), so the two never disagree. Report filters on people (gender, cohort…)
+ * don't apply to ventures. n is the ventures behind a number, and drives suppression.
+ */
+function ventureValue(code: string, unit: Indicator['unit'], period: Period, filters: VFilters = {}) {
+  const a = analyse(getRegistry(), { key: 'report', label: period.label, start: period.start, end: period.end }, filters)
+  const raw = a.values[code] ?? null
+  const value = raw == null ? null : unit === 'amount' ? Math.round(raw) : raw
+  const n = unit === 'count' && !code.startsWith('venture.jobs') ? value ?? 0 : a.rows.length
+  return { value, n, rows: a.rows }
+}
+
+function ventureMetric(viewer: Viewer, req: MetricRequest, ind: Indicator): MetricResult {
+  if (!canUseVentures({ role: viewer.role, pillars: viewer.pillars })) throw new MetricAccessError('Venture data is for HENT staff and MELA only.')
+  if (!req.scope.pillars.includes('HENT')) throw new MetricAccessError('Venture metrics need HENT in the report’s pillars.')
+  if (req.breakdown && !(req.breakdown in VENTURE_BY)) throw new MetricPolicyError(`${ind.name} can only be broken down by venture fields (stage, status, country…).`)
+
+  const threshold = thresholdFor(req.audience)
+  const hide = (v: { value: number | null; n: number }) => v.n > 0 && v.n < threshold
+  const main = ventureValue(req.code, ind.unit, req.period)
+  const small = hide(main)
+  const result: MetricResult = {
+    code: ind.code,
+    label: ind.name,
+    unit: ind.unit,
+    value: small ? null : main.value,
+    display: main.value == null ? 'No data' : small ? (ind.additive ? `<${threshold}` : `n<${threshold}`) : formatValue(main.value, ind),
+    n: small ? 0 : main.n,
+    suppressed: small,
+    threshold,
+    definition: ind.definition,
+    definitionVersion: ind.version,
+    dateRule: req.dateRule,
+    asOf: new Date().toISOString(),
+  }
+
+  if (req.breakdown) {
+    const by = VENTURE_BY[req.breakdown as VentureDimension]
+    const keys = [...new Set(main.rows.map(by.value).filter((k): k is string | number => k != null && k !== ''))]
+    const total = ind.additive ? main.value ?? 0 : 0
+    const cells: MetricCell[] = keys.map((k) => {
+      const c = ventureValue(req.code, ind.unit, req.period, { [by.filter]: [k] } as VFilters)
+      return {
+        key: String(k),
+        label: by.label ? by.label(String(k)) : String(k),
+        value: c.value,
+        display: formatValue(c.value, ind),
+        pct: ind.additive && total ? Math.round(((c.value ?? 0) / total) * 1000) / 10 : null,
+        // For totals (jobs, dollars) the cell's ventures are what could identify someone.
+        n: ind.additive && ind.unit === 'count' && !req.code.startsWith('venture.jobs') ? c.value ?? 0 : c.n,
+        suppressed: false,
+      }
+    })
+    const rank = (k: string) => (by.order ? by.order.indexOf(k) : 0)
+    cells.sort((x, y) => (by.order ? rank(x.key) - rank(y.key) : req.breakdown === 'venture_intake_year' ? x.key.localeCompare(y.key) : (y.value ?? 0) - (x.value ?? 0)))
+    result.rows = suppress(cells, threshold, ind.additive)
+  }
+
+  if (req.comparison && req.comparison !== 'none') {
+    const cp = comparisonPeriod(req.period, req.comparison)
+    const prev = ventureValue(req.code, ind.unit, cp)
+    const pv = hide(prev) ? null : prev.value
+    const delta = pv != null && result.value != null ? Math.round((result.value - pv) * 10) / 10 : null
+    result.comparison = {
+      label: cp.label,
+      period: cp,
+      value: pv,
+      display: prev.value == null || (prev.n === 0 && !prev.value) ? 'No data' : hide(prev) ? `<${threshold}` : formatValue(pv, ind),
+      delta,
+      deltaPct: delta != null && pv ? Math.round((delta / Math.abs(pv)) * 1000) / 10 : null,
+    }
+  }
+  return result
 }
 
 export const FILTERS: Record<FilterKey, { label: string; sensitive?: boolean; get: (f: Fact) => string }> = {
@@ -220,6 +320,7 @@ export function getMetric(viewer: Viewer, req: MetricRequest): MetricResult {
   const ind = indicatorByCode.get(req.code)
   if (!ind) throw new MetricPolicyError(`Unknown indicator “${req.code}”.`)
   checkScope(viewer, req.scope)
+  if (ind.source === 'registry') return ventureMetric(viewer, req, ind)
   checkPrivacy(viewer, req, ind)
 
   const threshold = thresholdFor(req.audience)

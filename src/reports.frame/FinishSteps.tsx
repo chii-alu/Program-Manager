@@ -59,7 +59,7 @@ function DataCheckPanel({ check, onFix }: { check: DataCheck; onFix: (t: FixTarg
   const { critical, warning } = check.counts
   return (
     <section className="overflow-hidden rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-surface shadow-[var(--shadow-soft)]">
-      <PanelHeader title="Data check" sub={`${check.people.toLocaleString()} people in scope · checked just now`} info="Completeness and data quality issues for this report’s scope and period. Warnings are listed in the report’s data notes; critical issues block finalising." />
+      <PanelHeader title="Data check" sub={`${[check.people || check.ventures == null ? `${check.people.toLocaleString()} people` : '', check.ventures != null ? `${check.ventures} ventures` : ''].filter(Boolean).join(' · ')} in scope · checked just now`} info="Completeness and data quality issues for this report’s scope and period. Warnings are listed in the report’s data notes; critical issues block finalising." />
       <div
         className={`flex items-start gap-2.5 border-b border-line px-4 py-3 text-[13px] ${critical ? 'bg-bad-bg text-bad' : warning ? 'bg-warn-bg text-warn' : 'bg-good-bg text-good'}`}
       >

@@ -55,6 +55,7 @@ const routes: Record<string, string> = {
   'chii-db': CHII_DB,
   'db-participants': SHEET,
   'db-feedback': SHEET,
+  'db-ventures': SHEET,
   import: IMPORT,
   staff: STAFF,
   data: DATA,
@@ -81,7 +82,7 @@ export default function MelaManager(props: Props) {
   const [resetState, setResetState] = useState<'default' | 'sending' | 'sent'>('default')
   const [personId, setPersonId] = useState('CHII-000214')
   const [sessionId, setSessionId] = useState('s2')
-  const [sheet, setSheet] = useState<'participants' | 'feedback'>('participants')
+  const [sheet, setSheet] = useState<'participants' | 'feedback' | 'ventures'>('participants')
   const [newSession, setNewSession] = useState(false)
   const [ventureView, setVentureView] = useState<VentureView>('registry')
 
@@ -133,6 +134,7 @@ export default function MelaManager(props: Props) {
     if (to.startsWith('ventures')) setVentureView((to.split('-')[1] as VentureView) ?? 'registry')
     if (to === 'db-participants') setSheet('participants')
     if (to === 'db-feedback') setSheet('feedback')
+    if (to === 'db-ventures') setSheet('ventures')
     if (routes[to]) setStep(routes[to])
   }
 
@@ -187,7 +189,7 @@ export default function MelaManager(props: Props) {
     case CHII_DB:
       return <ChiiDatabase {...shared} onOpenPerson={openPerson} />
     case SHEET:
-      return <ConsolidatedSheet {...shared} sheet={sheet} onSheetChange={(s) => setSheet(s as 'participants' | 'feedback')} />
+      return <ConsolidatedSheet {...shared} sheet={sheet} onSheetChange={(s) => setSheet(s as 'participants' | 'feedback' | 'ventures')} />
     case IMPORT:
       return <ImportSheet {...shared} />
     case STAFF:

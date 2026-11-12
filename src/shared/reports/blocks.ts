@@ -48,6 +48,14 @@ export const PLACEHOLDERS: { token: string; label: string; metric?: string }[] =
   { token: 'feedback.response_rate', label: 'Response rate', metric: 'feedback.response_rate' },
   { token: 'nps', label: 'Net Promoter Score', metric: 'feedback.nps' },
   { token: 'outcomes.placements', label: 'Placements', metric: 'outcomes.placements' },
+  // Venture Registry (HENT). Only work in reports whose pillars include HENT.
+  { token: 'venture.supported', label: 'Ventures supported', metric: 'venture.supported' },
+  { token: 'venture.active', label: 'Active ventures', metric: 'venture.active' },
+  { token: 'venture.women_led', label: 'Women-led ventures', metric: 'venture.women_led' },
+  { token: 'venture.jobs', label: 'Jobs created by ventures', metric: 'venture.jobs' },
+  { token: 'venture.funding_deployed', label: 'Funding deployed', metric: 'venture.funding_deployed' },
+  { token: 'venture.funding_raised', label: 'External funding raised', metric: 'venture.funding_raised' },
+  { token: 'venture.revenue', label: 'Venture revenue (12 months)', metric: 'venture.revenue' },
 ]
 
 /**
@@ -179,9 +187,11 @@ export function defaultContent(templateId: string | null): { sections: ReportSec
     const kpiSet = sec.title === 'Response' ? KPI_SETS.response : t.id === 'tpl-data-quality' ? KPI_SETS.dq : KPI_SETS.default
     let k = 0
     let c = 0
-    sec.blocks.forEach((kind) => {
-      const settings: BlockSettings =
-        kind === 'kpi'
+    sec.blocks.forEach((kind, i) => {
+      const own = sec.settings?.[i]
+      const settings: BlockSettings = own
+        ? structuredClone(own)
+        : kind === 'kpi'
           ? { metric: kpiSet[k++ % kpiSet.length], showComparison: true }
           : kind === 'chart'
             ? chartFor(sec.title, c++)

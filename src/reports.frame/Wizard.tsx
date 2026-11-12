@@ -13,6 +13,7 @@ import type { Audience, Comparison, DateRule, FilterKey, Report, Scope, Viewer }
 import { AUDIENCE, ChoiceCard, Chip, DATE_RULE, Field, TemplateThumb, inputCls } from './parts'
 import { ContentStep, ensureContent } from './ContentStep'
 import { defaultContent } from '../shared/reports/blocks'
+import { canUseVentures } from '../shared/ventures/store'
 
 const STEPS = [
   { n: 1, label: 'Template' },
@@ -134,7 +135,7 @@ export function Wizard({
       )}
 
       <fieldset disabled={readOnly} className="contents">
-        {step === 1 && <StepTemplate d={d} set={set} />}
+        {step === 1 && <StepTemplate d={d} set={set} viewer={viewer} />}
         {step === 2 && <StepScope d={d} set={set} setScope={setScope} viewer={viewer} errors={tried ? problems[2] : []} />}
         {step === 3 && <StepDetails d={d} set={set} me={me} errors={tried ? problems[3] : []} templateNeedsApproval={!!template?.needsApproval} />}
       </fieldset>
@@ -242,10 +243,14 @@ function Stepper({ step, onStep }: { step: number; onStep: (n: Step) => void }) 
 
 /* ---------- Step 1: Template ---------- */
 
-function StepTemplate({ d, set }: { d: Draft; set: (p: Partial<Draft>) => void }) {
+function StepTemplate({ d, set, viewer }: { d: Draft; set: (p: Partial<Draft>) => void; viewer: Viewer }) {
+  // The venture template is for people who can use the Venture Registry (HENT staff and MELA).
+  const templates = SYSTEM_TEMPLATES.filter((t) => !t.needsVentures || canUseVentures({ role: viewer.role, pillars: viewer.pillars }))
   const pick = (id: string | null) => {
     const t = templateById(id)
+    const pillars = t?.pillars?.filter((p) => viewer.pillars.includes(p))
     set({
+      ...(pillars?.length ? { scope: { ...d.scope, pillars, interventions: [], cohorts: [] } } : {}),
       templateId: id,
       templateVersion: t?.version ?? null,
       dateRule: t?.defaultDateRule ?? d.dateRule,
@@ -257,7 +262,7 @@ function StepTemplate({ d, set }: { d: Draft; set: (p: Partial<Draft>) => void }
   return (
     <Panel title="Choose a template" sub="It sets the default sections, date rule and audience. You can change everything later.">
       <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-4">
-        {SYSTEM_TEMPLATES.map((t) => (
+        {templates.map((t) => (
           <TemplateCard key={t.id} on={d.templateId === t.id} onClick={() => pick(t.id)} name={t.name} body={t.description} thumb={<TemplateThumb template={t} />}>
             <span className="rounded bg-canvas px-1.5 py-0.5 text-[10px] font-semibold text-muted">{SCOPE_TYPE_LABEL[t.scopeType]}</span>
             <span className="rounded bg-canvas px-1.5 py-0.5 text-[10px] font-semibold text-muted">{DATE_RULE[t.defaultDateRule].label}</span>

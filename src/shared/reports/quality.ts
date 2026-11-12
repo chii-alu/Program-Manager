@@ -7,16 +7,20 @@
  *
  * Findings are aggregate only (counts and percentages); the facts carry no identity data.
  */
-import { PLACEHOLDERS, TEXT_ROLES } from './blocks'
+import { PLACEHOLDERS, TEXT_ROLES, metricsUsed } from './blocks'
 import { cohorts, type Fact } from './facts'
+import { indicatorByCode } from './indicators'
 import { MetricAccessError, factsInScope } from './metrics'
+import { REPORTING_DATE, ventureLatest } from '../ventures/derive'
+import { DQ_RULES, runVentureChecks } from '../ventures/quality'
+import { getRegistry } from '../ventures/store'
 import type { Recorded } from './source'
 import type { Report, Viewer } from './types'
 
 export type Severity = 'critical' | 'warning' | 'info'
 
 /** Where "Fix" goes: an app page, or a wizard step. */
-export type FixTarget = { label: string; page?: 'interventions' | 'feedback' | 'participants' | 'import'; step?: 4 }
+export type FixTarget = { label: string; page?: 'interventions' | 'feedback' | 'participants' | 'import' | 'ventures'; step?: 4 }
 
 export type Issue = { id: string; severity: Severity; title: string; detail: string; fix?: FixTarget }
 
@@ -29,6 +33,8 @@ export type DataCheck = {
   /** Values hidden by small-number suppression across the report's blocks. */
   suppressed: number
   people: number
+  /** Ventures behind the report's venture numbers, when it has any. */
+  ventures?: number
   checkedAt: string
 }
 
@@ -53,6 +59,12 @@ export function runDataCheck(viewer: Viewer, report: Report, answers?: Record<st
     if (!(e instanceof MetricAccessError)) throw e
     issues.push({ id: 'access', severity: 'critical', title: 'You can’t report on this scope', detail: e.message })
   }
+
+  // A report built only from Venture Registry metrics: attendance and feedback don't apply to it.
+  const used = metricsUsed(report.blocks ?? [])
+  const ventureCodes = used.filter((c) => indicatorByCode.get(c)?.source === 'registry')
+  const ventureOnly = ventureCodes.length > 0 && ventureCodes.length === used.length
+  if (ventureOnly) rows = []
 
   /* ---- Attendance completeness, per cohort in scope ---- */
   const cohortIds = [...new Set(rows.map((f) => f.cohortId))]
@@ -123,7 +135,39 @@ export function runDataCheck(viewer: Viewer, report: Report, answers?: Record<st
     })
   }
 
-  if (!rows.length && !issues.some((i) => i.id === 'access')) {
+  /* ---- Venture Registry (VEN-01..11), counted per rule: no venture or founder is named ---- */
+  const ventureCompleteness: Completeness[] = []
+  let ventureCount: number | undefined
+  if (ventureCodes.length) {
+    const asOf = report.period.end > REPORTING_DATE ? REPORTING_DATE : report.period.end
+    const d = getRegistry()
+    const found = runVentureChecks(d, asOf)
+    DQ_RULES.forEach((r) => {
+      const n = new Set(found.filter((f) => f.rule === r.rule).map((f) => f.ventureId)).size
+      if (!n) return
+      issues.push({
+        id: `ven-${r.rule}`,
+        severity: r.severity,
+        title: `${r.rule} · ${n} ${n === 1 ? 'venture' : 'ventures'}: ${r.check.charAt(0).toLowerCase()}${r.check.slice(1)}`,
+        detail:
+          r.severity === 'critical'
+            ? 'These records make the venture numbers wrong. Fix them in the Venture Registry before finalising.'
+            : 'The venture numbers may be off. Check these records in the Venture Registry; the issue goes in the data notes.',
+        fix: { label: 'Open Venture Registry', page: 'ventures' },
+      })
+    })
+    const vrows = ventureLatest(d, asOf)
+    const yearAgo = `${Number(asOf.slice(0, 4)) - 1}${asOf.slice(4)}`
+    const active = vrows.filter((v) => v.active)
+    const current = active.filter((v) => v.latestAsOf >= yearAgo).length
+    ventureCount = vrows.length
+    ventureCompleteness.push(
+      { key: 'venture-updates', label: 'Venture updates (last 12 months)', pct: pct(current, active.length), detail: `${current} of ${active.length} active ventures` },
+      { key: 'venture-revenue', label: 'Revenue reported', pct: pct(vrows.filter((v) => v.revenueUsd != null).length, vrows.length), detail: `${vrows.filter((v) => v.revenueUsd != null).length} of ${vrows.length} ventures` },
+    )
+  }
+
+  if (!ventureOnly && !rows.length && !issues.some((i) => i.id === 'access')) {
     issues.push({ id: 'empty', severity: 'warning', title: 'No data for this scope and period', detail: 'Every number in the report will be empty. Check the pillars, interventions and dates in step 2.' })
   }
 
@@ -166,7 +210,8 @@ export function runDataCheck(viewer: Viewer, report: Report, answers?: Record<st
   const order: Record<Severity, number> = { critical: 0, warning: 1, info: 2 }
   issues.sort((a, b) => order[a.severity] - order[b.severity])
 
-  const completeness: Completeness[] = [
+  const completeness: Completeness[] = ventureOnly ? ventureCompleteness : [
+    ...ventureCompleteness,
     { key: 'attendance', label: 'Attendance records', pct: pct(held - missing, held), detail: held ? `${held - missing} of ${held} sessions marked` : 'No sessions held' },
     { key: 'feedback', label: 'Feedback', pct: rate, detail: attended ? `${responded} of ${attended} who attended` : 'Nobody attended yet' },
     ...demo.map((d) => ({ key: d.key, label: d.label, pct: pct(people.length - blank(d.get), people.length), detail: `${people.length - blank(d.get)} of ${people.length} people` })),
@@ -178,6 +223,7 @@ export function runDataCheck(viewer: Viewer, report: Report, answers?: Record<st
     counts: { critical: issues.filter((i) => i.severity === 'critical').length, warning: issues.filter((i) => i.severity === 'warning').length, info: issues.filter((i) => i.severity === 'info').length },
     suppressed,
     people: people.length,
+    ventures: ventureCount,
     checkedAt: new Date().toISOString(),
   }
 }

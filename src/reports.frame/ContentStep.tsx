@@ -39,6 +39,7 @@ import { Popover } from '../shared/components/Popover'
 import { LIBRARY, OVERRIDE_PRESETS, PLACEHOLDERS, TEXT_ROLES, blockContext, blockId, blockTitle, defaultContent, newBlock, sectionId, type LibraryItem } from '../shared/reports/blocks'
 import { INDICATORS, indicatorByCode } from '../shared/reports/indicators'
 import { DIMENSIONS, scopeOptions } from '../shared/reports/metrics'
+import { canUseVentures } from '../shared/ventures/store'
 import { BlockView } from '../shared/reports/render/BlockView'
 import { ReportDocument } from '../shared/reports/render/ReportDocument'
 import type { BlockKind, BlockSettings, ChartKind, Dimension, Report, ReportBlock, ReportSection, TableKind, TextRole, Viewer } from '../shared/reports/types'
@@ -478,7 +479,10 @@ function BlockSettingsPanel({
   const isPublic = report.audience === 'public' && !(viewer.role === 'admin' && viewer.allowSensitive)
 
   // Donuts show shares, so only additive (count-of-people) metrics make sense there.
-  const metrics = INDICATORS.filter((i) => (block.type === 'chart' && s.chart === 'donut' ? i.additive : true))
+  // Venture metrics: only for people with Venture Registry access, in reports that include HENT,
+  // and not on trend charts (ventures are "as of" a date, not month by month).
+  const ventures = canUseVentures({ role: viewer.role, pillars: viewer.pillars }) && report.scope.pillars.includes('HENT') && s.chart !== 'trend'
+  const metrics = INDICATORS.filter((i) => (block.type === 'chart' && s.chart === 'donut' ? i.additive : true)).filter((i) => i.source !== 'registry' || ventures || i.code === s.metric)
   const dims: Dimension[] = s.chart === 'trend' ? ['month', 'quarter'] : (ind?.breakdowns ?? []).filter((d) => !(s.chart === 'donut' && (d === 'month' || d === 'quarter')))
   const opts = useMemo(() => scopeOptions(viewer), [viewer])
   const narrowable = opts.interventions.filter((i) => report.scope.pillars.includes(i.pillar) && (!report.scope.interventions.length || report.scope.interventions.includes(i.name)))
@@ -547,7 +551,7 @@ function BlockSettingsPanel({
                 onSettings({ metric: next.code, ...(keep ? {} : { breakdown: next.breakdowns.find((d) => d !== 'month' && d !== 'quarter') }) })
               }}
             >
-              {(['Reach', 'Intake', 'Participation', 'Feedback', 'Outcomes'] as const).map((g) => (
+              {(['Reach', 'Intake', 'Participation', 'Feedback', 'Outcomes', 'Ventures'] as const).filter((g) => metrics.some((i) => i.group === g)).map((g) => (
                 <optgroup key={g} label={g}>
                   {metrics
                     .filter((i) => i.group === g)
@@ -664,7 +668,7 @@ function BlockSettingsPanel({
 }
 
 function chartDefaults(chart: ChartKind, s: BlockSettings): Partial<BlockSettings> {
-  if (chart === 'trend') return { chart, metric: s.metric ?? 'reach.unique_people', breakdown: 'month' }
+  if (chart === 'trend') return { chart, metric: s.metric && indicatorByCode.get(s.metric)?.source !== 'registry' ? s.metric : 'reach.unique_people', breakdown: 'month' }
   if (chart === 'donut') {
     const m = s.metric && indicatorByCode.get(s.metric)?.additive ? s.metric : 'reach.unique_people'
     return { chart, metric: m, breakdown: s.breakdown && s.breakdown !== 'month' && s.breakdown !== 'quarter' ? s.breakdown : 'gender' }
