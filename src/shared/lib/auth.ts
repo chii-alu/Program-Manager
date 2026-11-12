@@ -1,4 +1,4 @@
-import { Portal, Role, staff } from '../data/mela'
+import { Portal, Role, roleMeta, staff } from '../data/mela'
 
 export type Account = { role: Role; portal: Portal; name: string; email: string }
 
@@ -7,6 +7,7 @@ export const DEMO_PASSWORD = 'chii-demo-2026'
 export const demoAccounts: (Account & { label: string; scope: string; initials: string })[] = [
   { role: 'admin', portal: 'admin', name: 'Amara Okafor', initials: 'AO', email: 'amara.okafor@chii.alu.edu', label: 'MELA admin', scope: 'All pillars · sees identity' },
   { role: 'pillar_lead', portal: 'hent', name: 'Tendai Moyo', initials: 'TM', email: 'tendai.moyo@chii.alu.edu', label: 'Pillar lead', scope: 'HENT only' },
+  { role: 'pillar_lead', portal: 'heco', name: 'Esi Owusu', initials: 'EO', email: 'esi.owusu@chii.alu.edu', label: 'Pillar lead', scope: 'HECO only' },
   { role: 'pillar_staff', portal: 'hemp', name: 'Grace Wanjiru', initials: 'GW', email: 'grace.wanjiru@chii.alu.edu', label: 'Pillar staff', scope: 'HEMP only' },
   { role: 'reviewer', portal: 'hemp', name: 'Kofi Mensah', initials: 'KM', email: 'kofi.mensah@chii.alu.edu', label: 'Reviewer', scope: 'Scores applications' },
   { role: 'none', portal: 'hent', name: 'Lina Haddad', initials: 'LH', email: 'lina.haddad@alu.edu', label: 'No staff role', scope: 'Signs in, sees no data' },
@@ -40,3 +41,13 @@ export function resolveAccount(email: string): Account {
 }
 
 export const portalName: Record<Portal, string> = { admin: 'MELA admin view', hent: 'HENT portal', hemp: 'HEMP portal', heco: 'HECO portal' }
+
+/**
+ * Who is signed in, from their role and portal. Two people can share a role (Tendai Moyo leads
+ * HENT, Esi Owusu leads HECO), so the portal decides which one. The MELA admin is the same person
+ * whichever pillar they're viewing.
+ */
+export function userFor(role: Role, portal: Portal): { label: string; user: string; initials: string; email: string } {
+  const acct = role === 'admin' ? undefined : demoAccounts.find((d) => d.role === role && d.portal === portal)
+  return acct ? { label: roleMeta[role].label, user: acct.name, initials: acct.initials, email: acct.email } : roleMeta[role]
+}

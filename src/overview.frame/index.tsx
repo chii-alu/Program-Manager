@@ -92,7 +92,7 @@ export default function Overview(props: Props) {
     clearCols()
   }
   const todo = attention.filter((a) => pillars.includes(a.pillar))
-  const firstName = roleMeta[role].user.split(' ')[0]
+  const firstName = userFor(role, portal).user.split(' ')[0]
   const { range, label } = useTimeRange()
   const now = totals(range)
   const prev = totals(previous(range))

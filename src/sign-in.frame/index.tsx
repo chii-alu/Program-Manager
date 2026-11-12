@@ -196,7 +196,7 @@ export default function SignIn(props: Props) {
                   <div className="px-2 pb-1.5 pt-1 text-[11px] text-muted">Fills the form and signs in. Password {DEMO_PASSWORD}</div>
                   <ul>
                     {demoAccounts.map((d) => (
-                      <li key={d.role}>
+                      <li key={d.email}>
                         <button
                           type="button"
                           onClick={() => {

@@ -45,7 +45,7 @@ export default function Ventures(props: Props) {
   const portal = (role !== 'admin' && p === 'admin' ? 'hent' : p) as Portal
   const allowed = canUseVentures({ role, pillars: pillarsFor(portal) })
   const showIdentity = canSeeIdentity(role)
-  const me = roleMeta[role].user
+  const me = userFor(role, portal).user
   const data = useRegistry()
   const [sharing, setSharing] = useState(false)
 

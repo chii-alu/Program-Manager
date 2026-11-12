@@ -118,7 +118,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
   const { range } = useTimeRange()
   const groups = navFor(role, portal)
   const primary = bottomFor(role)
-  const me = roleMeta[role]
+  const me = userFor(role, portal)
   const collapsed = sb.collapsed
 
   // Hovering the collapsed rail peeks it open over the page; it shrinks back on leave.
@@ -668,7 +668,7 @@ function InstallItem({ onDone }: { onDone?: () => void }) {
 
 function UserMenu(props: { role: Role; portal: Portal; theme: 'light' | 'dark'; onTheme: () => void; onGo: (k: string) => void; onShortcuts: () => void; onSignOut?: () => void }) {
   const { role, portal, theme, onTheme, onGo, onShortcuts, onSignOut } = props
-  const me = roleMeta[role]
+  const me = userFor(role, portal)
   const dept = department(role, portal)
   return (
     <Popover
@@ -830,7 +830,7 @@ function MoreSheet(props: {
 }) {
   const { open, onClose, role, portal, groups, active, theme, onTheme, onGo, onPortalChange, onSignOut } = props
   const reduce = useReducedMotion()
-  const me = roleMeta[role]
+  const me = userFor(role, portal)
   const dept = department(role, portal)
   const { range, setRange } = useTimeRange()
   const b = bounds(range)

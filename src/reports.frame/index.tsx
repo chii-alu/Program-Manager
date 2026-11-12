@@ -43,7 +43,7 @@ export default function Reports(props: Props) {
   const portal = (role !== 'admin' && p === 'admin' ? 'hent' : p) as Portal
   const portalPillars = pillarsFor(portal)
   const viewer = useMemo(() => viewerFor(role, portalPillars), [role, portal])
-  const me = { email: roleMeta[role].email, name: roleMeta[role].user }
+  const me = { email: userFor(role, portal).email, name: userFor(role, portal).user }
   const all = useReports()
 
   const [view, setView] = useState<View>(() => {
