@@ -4,7 +4,7 @@
  * attendance and sheet imports. Participants appear by CHII ID at most, never by name.
  */
 import React, { useMemo, useState } from 'react'
-import { CalendarCheck, CalendarPlus, Check, ClipboardCheck, FileInput, History, Lock, Pencil, Search, ShieldOff, Unlock, Users } from 'lucide-react'
+import { CalendarCheck, CalendarPlus, Check, ClipboardCheck, FileInput, History, Lock, Pencil, Search, ShieldOff, Trash2, Unlock, Users } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
 import { EmptyState } from '../shared/components/EmptyState'
 import { PageHeader, Panel } from '../shared/components/ui'
@@ -26,6 +26,8 @@ export const LOG_PORTALS: Portal[] = ['hemp', 'heco']
 
 const ICON: Record<LogAction, { icon: React.ComponentType<{ className?: string }>; tone: string }> = {
   session_created: { icon: CalendarPlus, tone: 'text-brand-600 bg-brand-50' },
+  session_changed: { icon: Pencil, tone: 'text-brand-600 bg-brand-50' },
+  session_deleted: { icon: Trash2, tone: 'text-bad bg-bad-bg' },
   form_opened: { icon: Unlock, tone: 'text-good bg-good-bg' },
   form_closed: { icon: Lock, tone: 'text-muted bg-canvas' },
   form_draft: { icon: Pencil, tone: 'text-warn bg-warn-bg' },
@@ -36,7 +38,7 @@ const ICON: Record<LogAction, { icon: React.ComponentType<{ className?: string }
 }
 
 const FILTERS: { key: string; label: string; actions: LogAction[] }[] = [
-  { key: 'sessions', label: 'Sessions', actions: ['session_created'] },
+  { key: 'sessions', label: 'Sessions', actions: ['session_created', 'session_changed', 'session_deleted'] },
   { key: 'forms', label: 'Forms', actions: ['form_opened', 'form_closed', 'form_draft'] },
   { key: 'applicants', label: 'Applicants', actions: ['applicants_decided', 'application_scored'] },
   { key: 'attendance', label: 'Attendance', actions: ['attendance_marked'] },

@@ -36,3 +36,24 @@ describe('creating a session and taking it from registration to feedback', () =>
     expect(lifecycleOf('s7').forms).toEqual({ reg: 'draft', att: 'draft', fbk: 'draft' }) // draft
   })
 })
+
+describe('fixing a session created under the wrong intervention', () => {
+  it('moves it to the right intervention, and its forms follow', async () => {
+    const { updateSession } = await import('./sessionStore')
+    const { templateFor } = await import('../forms/templates')
+    const s = createSession({ interventionId: 'i5', name: 'Career Workshop · Networking', dates: ['2025-12-01'], venue: 'Kigali' })
+    expect(s.intervention).toBe('SIE')
+    const moved = updateSession(s.id, { interventionId: 'i8' })
+    expect(moved).toMatchObject({ intervention: 'Career Workshops', kind: 'open', pillar: 'HEMP' })
+    expect(templateFor(moved.intervention, 'registration', moved.name)?.id).toBe('career-workshop-registration')
+    expect(sessionById(s.id)!.intervention).toBe('Career Workshops')
+  })
+
+  it('deletes created sessions only', async () => {
+    const { deleteSession } = await import('./sessionStore')
+    const s = createSession({ interventionId: 'i8', name: 'Oops', dates: ['2025-12-01'], venue: '' })
+    deleteSession(s.id)
+    expect(sessionById(s.id)).toBeUndefined()
+    expect(() => deleteSession('s2')).toThrow()
+  })
+})

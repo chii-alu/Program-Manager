@@ -33,6 +33,8 @@ export default function Interventions(props: Props) {
   const [kind, setKind] = useState<'all' | 'open' | 'selective'>('all')
   const [q, setQ] = useState('')
   const [modal, setModal] = useState(newSession)
+  // Which intervention "Add a session to …" was clicked under, so the form starts on it.
+  const [modalFor, setModalFor] = useState<string | undefined>(undefined)
   const reduce = useReducedMotion()
   const allSessions = useSessions()
   const { range, label } = useTimeRange()
@@ -48,8 +50,10 @@ export default function Interventions(props: Props) {
         pillars={pillars}
         by={userFor(role, portal).user}
         onCreate={(id) => onOpenSession?.(id)}
+        initialIntervention={modalFor}
         onClose={() => {
           setModal(false)
+          setModalFor(undefined)
           onCloseNew?.()
         }}
       />
@@ -172,7 +176,7 @@ export default function Interventions(props: Props) {
                                 ) : (
                                   <p className="text-sm text-muted">Past sessions are archived. Start a new run to collect registrations.</p>
                                 )}
-                                <button type="button" onClick={() => setModal(true)} className="mt-2.5 inline-flex items-center gap-1.5 text-sm font-medium text-brand-600">
+                                <button type="button" onClick={() => (setModalFor(i.id), setModal(true))} className="mt-2.5 inline-flex items-center gap-1.5 text-sm font-medium text-brand-600">
                                   <Plus className="h-4 w-4" /> Add a session to {i.name}
                                 </button>
                               </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { CalendarPlus, Plus, X } from 'lucide-react'
 import { Modal } from './Modal'
 import { Pillar, interventions } from '../data/mela'
@@ -7,12 +7,19 @@ import { logAction } from '../lib/interventionLog'
 import { createSession } from '../data/sessionStore'
 
 /** `by`: the signed-in staff member, for the Interventions activity log. */
-export function NewSessionModal({ open, onClose, pillars, onCreate, by }: { open: boolean; onClose: () => void; pillars: Pillar[]; onCreate?: (id: string) => void; by?: string }) {
+/** `initialIntervention`: the intervention it was opened from (e.g. "Add a session to Career Workshops"). */
+export function NewSessionModal({ open, onClose, pillars, onCreate, by, initialIntervention }: { open: boolean; onClose: () => void; pillars: Pillar[]; onCreate?: (id: string) => void; by?: string; initialIntervention?: string }) {
   const options = interventions.filter((i) => pillars.includes(i.pillar))
   const [intervention, setIntervention] = useState(options[0]?.id ?? '')
   const [dates, setDates] = useState(['2025-11-24'])
   const chosen = options.find((o) => o.id === intervention)
   const [name, setName] = useState('')
+  // Each time it opens, start from the intervention it was opened for (not whatever was picked last).
+  useEffect(() => {
+    if (!open) return
+    setIntervention(initialIntervention && options.some((o) => o.id === initialIntervention) ? initialIntervention : (options[0]?.id ?? ''))
+    setName('')
+  }, [open, initialIntervention])
   const [venue, setVenue] = useState('ALU Kigali campus')
   const suggested = chosen ? `${chosen.name} · Cohort ${chosen.sessions + 1}` : ''
 

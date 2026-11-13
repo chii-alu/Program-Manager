@@ -11,6 +11,8 @@ import type { Pillar } from '../data/mela'
 
 export type LogAction =
   | 'session_created'
+  | 'session_changed'
+  | 'session_deleted'
   | 'form_opened'
   | 'form_closed'
   | 'form_draft'
@@ -32,6 +34,8 @@ export type LogEntry = {
 
 export const ACTION_LABEL: Record<LogAction, string> = {
   session_created: 'Session created',
+  session_changed: 'Session changed',
+  session_deleted: 'Session deleted',
   form_opened: 'Form opened',
   form_closed: 'Form closed',
   form_draft: 'Form set to draft',

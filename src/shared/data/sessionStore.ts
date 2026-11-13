@@ -126,7 +126,7 @@ export function createSession(input: NewSession): SessionRun {
     intervention: iv.name,
     pillar: iv.pillar,
     kind: iv.kind,
-    dates: sorted.length > 1 ? `${fmt(sorted[0])} – ${fmt(sorted[sorted.length - 1])}` : sorted[0] ? fmt(sorted[0]) : 'Dates to be set',
+    dates: fmtRange(sorted),
     status: 'draft',
     registered: 0,
     attended: 0,
@@ -139,6 +139,41 @@ export function createSession(input: NewSession): SessionRun {
   }
   persist({ ...s, created: [...s.created, run], life: { ...s.life, [run.id]: { forms: { reg: 'draft', att: 'draft', fbk: 'draft' }, selected: 0, attendanceDays: 0 } } })
   return run
+}
+
+const fmtRange = (sorted: string[]) => (sorted.length > 1 ? `${fmt(sorted[0])} – ${fmt(sorted[sorted.length - 1])}` : sorted[0] ? fmt(sorted[0]) : 'Dates to be set')
+
+/**
+ * Change a session staff created: its name, intervention (e.g. it was started under the wrong
+ * one), dates or venue. Its forms follow the new intervention's templates. Sample sessions are fixed.
+ */
+export function updateSession(id: string, patch: { name?: string; interventionId?: string; dates?: string[]; venue?: string }): SessionRun {
+  const s = load()
+  const run = s.created.find((x) => x.id === id)
+  if (!run) throw new Error('Only sessions created here can be changed.')
+  const iv = patch.interventionId ? interventions.find((i) => i.id === patch.interventionId) : undefined
+  if (patch.interventionId && !iv) throw new Error('Choose an intervention.')
+  const sorted = patch.dates ? [...patch.dates].filter(Boolean).sort() : undefined
+  const next: SessionRun = {
+    ...run,
+    ...(patch.name?.trim() ? { name: patch.name.trim() } : {}),
+    ...(iv ? { intervention: iv.name, pillar: iv.pillar, kind: iv.kind } : {}),
+    ...(sorted ? { dateList: sorted, startDate: sorted[0], endDate: sorted[sorted.length - 1], dates: fmtRange(sorted) } : {}),
+    ...(patch.venue != null ? { venue: patch.venue } : {}),
+  }
+  persist({ ...s, created: s.created.map((x) => (x.id === id ? next : x)) })
+  return next
+}
+
+/** Delete a session staff created, with its progress. Sample sessions can't be deleted. */
+export function deleteSession(id: string) {
+  const s = load()
+  if (!s.created.some((x) => x.id === id)) throw new Error('Only sessions created here can be deleted.')
+  const { [id]: _l, ...life } = s.life
+  const { [id]: _c, ...counts } = s.counts
+  void _l
+  void _c
+  persist({ created: s.created.filter((x) => x.id !== id), life, counts })
 }
 
 export function resetSessions() {

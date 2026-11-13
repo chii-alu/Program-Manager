@@ -7,7 +7,7 @@ import { Modal } from '../shared/components/Modal'
 import { Field, inputClass } from '../shared/components/NewSessionModal'
 import { ChartTooltip, axisProps, gridProps, valueAxisProps, categoryAxisProps, valueLabelProps } from '../shared/components/charts'
 import { QrMark } from '../shared/components/QrMark'
-import { Participant, Portal, Role, applications, canSeeIdentity, feedbackRows, participants, sessions } from '../shared/data/mela'
+import { Participant, Portal, Role, applications, canSeeIdentity, interventions, feedbackRows, participants, sessions } from '../shared/data/mela'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { EmptyState } from '../shared/components/EmptyState'
 import { applicationTemplateFor, askedOnForm, reviewQuestions, templateFor, type Answers, type FormTemplate } from '../shared/forms/templates'
@@ -18,7 +18,7 @@ import { userFor } from '../shared/lib/auth'
 
 type Log = (action: LogAction, detail: string) => void
 import { CheckCheck, UserRound, Users, XCircle } from 'lucide-react'
-import { addSampleResponses, recordAttendance, recordSelected, setFormStatus, useLifecycle, useSessions, type FormStatus, type SessionRun } from '../shared/data/sessionStore'
+import { addSampleResponses, deleteSession, recordAttendance, updateSession, recordSelected, setFormStatus, useLifecycle, useSessions, type FormStatus, type SessionRun } from '../shared/data/sessionStore'
 
 export const args = {
   role: 'admin',
@@ -111,7 +111,7 @@ export default function Session(props: Props) {
             ) : (
               <FeedbackTab attended={s.attended} feedback={s.feedback} />
             ))}
-          {tab === 'details' && <DetailsTab name={s.name} onDeleted={onBack} />}
+          {tab === 'details' && <DetailsTab key={s.id} s={s} log={log} onDeleted={onBack} />}
         </div>
       </div>
     </AppShell>
@@ -913,26 +913,72 @@ function TemplateFeedbackTab({ template, attended, feedback, cohort, interventio
 
 /* ---------------- Details ---------------- */
 
-function DetailsTab({ name, onDeleted }: { name: string; onDeleted?: () => void }) {
+/**
+ * A session's details. Sessions created here can be renamed, moved to another intervention (if
+ * they were started under the wrong one), re-dated and deleted; the sample sessions are read-only.
+ */
+function DetailsTab({ s, log, onDeleted }: { s: SessionRun; log: Log; onDeleted?: () => void }) {
+  const editable = !!s.created
+  const options = interventions.filter((i) => i.pillar === s.pillar)
+  const current = interventions.find((i) => i.name === s.intervention)
+  const [name, setName] = useState(s.name)
+  const [ivId, setIvId] = useState(current?.id ?? '')
+  const [start, setStart] = useState(s.startDate ?? '2025-11-03')
+  const [end, setEnd] = useState(s.endDate ?? '2025-12-15')
+  const [venue, setVenue] = useState(s.venue ?? 'ALU Kigali campus · Room 4')
   const [confirm, setConfirm] = useState(false)
   const [typed, setTyped] = useState('')
+  const moved = editable && ivId !== current?.id
+  const dirty = editable && (moved || name !== s.name || start !== s.startDate || end !== s.endDate || venue !== (s.venue ?? ''))
+
+  const save = () => {
+    const dates = s.dateList && s.dateList.length > 2 && start === s.startDate && end === s.endDate ? s.dateList : [start, end].filter((d, k, a) => d && a.indexOf(d) === k)
+    const next = updateSession(s.id, { name, interventionId: moved ? ivId : undefined, dates, venue })
+    log('session_changed', moved ? `Moved ${next.name} from ${current?.name} to ${next.intervention}; its forms now use ${next.intervention}’s templates` : `Changed the details of ${next.name}`)
+    toast({ title: moved ? `Moved to ${next.intervention}` : 'Session saved', body: next.name, tone: 'good' })
+  }
+  const remove = () => {
+    deleteSession(s.id)
+    log('session_deleted', `Deleted ${s.name}`)
+    toast({ title: 'Session deleted', body: s.name, tone: 'info' })
+    setConfirm(false)
+    onDeleted?.()
+  }
+
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
       <Panel className="p-4 sm:p-5">
-        <div className="grid gap-4 sm:grid-cols-2">
+        {!editable && <p className="mb-4 rounded-lg bg-canvas px-3 py-2 text-xs text-muted">This is a sample session, so its details can’t be changed in the prototype. Sessions you create can be edited here.</p>}
+        <fieldset disabled={!editable} className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <Field label="Session name">
-              <input defaultValue={name} className={inputClass} />
+              <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
             </Field>
           </div>
+          <div className="sm:col-span-2">
+            <Field label="Intervention">
+              <select value={ivId} onChange={(e) => setIvId(e.target.value)} className={inputClass}>
+                {options.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.pillar} · {o.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            {moved && (
+              <p className="mt-1.5 rounded-md bg-warn-bg px-2.5 py-1.5 text-xs text-warn">
+                It will move to {options.find((o) => o.id === ivId)?.name}, and its forms will use that intervention’s templates.
+              </p>
+            )}
+          </div>
           <Field label="Start date">
-            <input type="date" defaultValue="2025-11-03" className={inputClass} />
+            <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className={inputClass} />
           </Field>
           <Field label="End date">
-            <input type="date" defaultValue="2025-12-15" className={inputClass} />
+            <input type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} className={inputClass} />
           </Field>
           <Field label="Venue">
-            <input defaultValue="ALU Kigali campus · Room 4" className={inputClass} />
+            <input value={venue} onChange={(e) => setVenue(e.target.value)} className={inputClass} />
           </Field>
           <Field label="Completion threshold">
             <select defaultValue="75" className={inputClass}>
@@ -941,15 +987,19 @@ function DetailsTab({ name, onDeleted }: { name: string; onDeleted?: () => void 
               <option value="100">All dates</option>
             </select>
           </Field>
-        </div>
-        <div className="mt-5 flex justify-end border-t border-line pt-4">
-          <Button variant="primary">Save changes</Button>
-        </div>
+        </fieldset>
+        {editable && (
+          <div className="mt-5 flex justify-end border-t border-line pt-4">
+            <Button variant="primary" onClick={() => dirty && save()} className={dirty ? '' : 'pointer-events-none opacity-50'}>
+              {moved ? 'Move and save' : 'Save changes'}
+            </Button>
+          </div>
+        )}
       </Panel>
       <Panel className="self-start border-bad/30 p-4 sm:p-5">
         <h3 className="text-sm font-semibold text-bad">Delete session</h3>
-        <p className="mt-1 text-sm leading-6 text-muted">Removes its forms and check-ins. People keep their CHII IDs and other sessions.</p>
-        <Button className="mt-4 w-full text-bad" onClick={() => setConfirm(true)}>
+        <p className="mt-1 text-sm leading-6 text-muted">{editable ? 'Removes its forms and check-ins. People keep their CHII IDs and other sessions.' : 'Sample sessions can’t be deleted in the prototype.'}</p>
+        <Button className={`mt-4 w-full text-bad ${editable ? '' : 'pointer-events-none opacity-50'}`} onClick={() => editable && setConfirm(true)}>
           <Trash2 className="h-4 w-4" /> Delete session
         </Button>
       </Panel>
@@ -963,12 +1013,7 @@ function DetailsTab({ name, onDeleted }: { name: string; onDeleted?: () => void 
         footer={
           <>
             <Button onClick={() => setConfirm(false)}>Cancel</Button>
-            <button
-              type="button"
-              disabled={typed !== 'DELETE'}
-              onClick={() => (setConfirm(false), onDeleted?.())}
-              className="h-9 rounded-lg bg-bad px-4 text-sm font-semibold text-white disabled:opacity-40"
-            >
+            <button type="button" disabled={typed !== 'DELETE'} onClick={remove} className="h-9 rounded-lg bg-bad px-4 text-sm font-semibold text-white disabled:opacity-40">
               Delete session
             </button>
           </>
