@@ -193,3 +193,43 @@ describe('Career Workshop feedback (HEMP)', () => {
     for (const q of t.questions.filter((q) => q.type === 'scale')) expect(q.scale!.labels).toHaveLength(5)
   })
 })
+
+describe('sample answers drawn from templates (SIE Cohort 4 tabs)', () => {
+  it('feedback samples are deterministic, valid and anonymous', async () => {
+    const { sampleResponses } = await import('./samples')
+    const a = sampleResponses(SIE_FEEDBACK, 41, 'SIE Cohort 4')
+    expect(a).toHaveLength(41)
+    expect(sampleResponses(SIE_FEEDBACK, 41, 'SIE Cohort 4')).toEqual(a)
+    for (const r of a) expect(checkAnswers(SIE_FEEDBACK, r)).toEqual({})
+    expect(JSON.stringify(a)).not.toMatch(/@|CHII-\d{6}/)
+  })
+
+  it('application samples answer every programme question with real options, and no identity', async () => {
+    const { sampleAnswers } = await import('./samples')
+    const a = sampleAnswers(SIE_APPLICATION, 'CHII-000999')
+    for (const q of reviewQuestions(SIE_APPLICATION).filter((q) => q.options && isAsked(q, a))) {
+      const v = a[q.id]
+      expect(Array.isArray(v) ? v.every((x) => q.options!.includes(x)) : q.options!.includes(String(v)), q.id).toBe(true)
+    }
+    expect(a.email ?? a.full_name ?? a.cv).toBeUndefined()
+  })
+})
+
+describe('Career Workshop sample answers (session tabs)', () => {
+  it('feedback samples are valid (with an email added) and follow the session branching', async () => {
+    const { sampleResponses } = await import('./samples')
+    const { CAREER_WORKSHOP_FEEDBACK: t } = await import('./templates')
+    const rs = sampleResponses(t, 21, 'Career Workshop · CV & interview skills')
+    for (const r of rs) expect(checkAnswers(t, { ...r, email: 'a@alustudent.com' })).toEqual({})
+    expect(rs.some((r) => r.session === 'Session 1') && rs.some((r) => r.orgs_met)).toBe(true)
+    for (const r of rs) expect(Boolean(r.orgs_met)).toBe(r.session !== 'Session 1')
+  })
+
+  it('registration samples never fill identity, sensitive or record fields', async () => {
+    const { sampleAnswers } = await import('./samples')
+    const { CAREER_WORKSHOP_REGISTRATION: t } = await import('./templates')
+    const a = sampleAnswers(t, 'CHII-000700')
+    for (const id of ['email', 'full_name', 'student_id', 'financial_standing', 'academic_standing', 'disciplinary_standing', 'period']) expect(a[id], id).toBeUndefined()
+    expect(t.questions.find((q) => q.id === 'program')!.options).toContain(a.program)
+  })
+})

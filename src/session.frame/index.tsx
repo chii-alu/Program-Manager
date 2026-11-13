@@ -7,10 +7,11 @@ import { Modal } from '../shared/components/Modal'
 import { Field, inputClass } from '../shared/components/NewSessionModal'
 import { ChartTooltip, axisProps, gridProps, valueAxisProps, categoryAxisProps, valueLabelProps } from '../shared/components/charts'
 import { QrMark } from '../shared/components/QrMark'
-import { Participant, Portal, Role, canSeeIdentity, feedbackRows, participants, sessions } from '../shared/data/mela'
+import { Participant, Portal, Role, applications, canSeeIdentity, feedbackRows, participants, sessions } from '../shared/data/mela'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { EmptyState } from '../shared/components/EmptyState'
-import { applicationTemplateFor, askedOnForm, templateFor } from '../shared/forms/templates'
+import { applicationTemplateFor, askedOnForm, reviewQuestions, templateFor, type Answers, type FormTemplate } from '../shared/forms/templates'
+import { sampleAnswers, sampleResponses } from '../shared/forms/samples'
 import { notify, toast } from '../shared/lib/notify'
 import { logAction, type LogAction } from '../shared/lib/interventionLog'
 import { userFor } from '../shared/lib/auth'
@@ -100,7 +101,12 @@ export default function Session(props: Props) {
           {tab === 'forms' && <FormsTab log={log} kind={s.kind} intervention={s.intervention} cohort={s.name} registered={s.registered} attended={s.attended} feedback={s.feedback} onPreview={onOpenForm} onShare={setShare} />}
           {tab === 'people' && <PeopleTab log={log} role={role} selective={s.kind === 'selective'} intervention={s.intervention} session={s.name} onOpenPerson={onOpenPerson} />}
           {tab === 'attendance' && <AttendanceTab log={log} role={role} intervention={s.intervention} onQr={() => setShare('Attendance check-in')} />}
-          {tab === 'feedback' && <FeedbackTab attended={s.attended} feedback={s.feedback} />}
+          {tab === 'feedback' &&
+            (templateFor(s.intervention, 'feedback', s.name) ? (
+              <TemplateFeedbackTab template={templateFor(s.intervention, 'feedback', s.name)!} attended={s.attended} feedback={s.feedback} cohort={s.name} intervention={s.intervention} />
+            ) : (
+              <FeedbackTab attended={s.attended} feedback={s.feedback} />
+            ))}
           {tab === 'details' && <DetailsTab name={s.name} onDeleted={onBack} />}
         </div>
       </div>
@@ -228,7 +234,33 @@ function ShareModal({ form, code, onClose }: { form: string | null; code: string
 
 /* ---------------- People ---------------- */
 
-type Entry = Participant & { score: number | null; submitted: string; st: string }
+type Entry = Participant & { score: number | null; submitted: string; st: string; answers?: Answers }
+
+/** Short column headings and values for application answers in the applicant table. */
+const SHORT: Record<string, string> = {
+  degree: 'Degree',
+  intake: 'Intake',
+  has_mission: 'Health mission',
+  available: 'Full programme',
+  credit: 'SI credit',
+  si_term: 'SI term',
+  department: 'SFH department',
+  enrollment: 'Enrollment',
+  year_group: 'Year group',
+  program: 'Programme',
+  institution: 'Institution',
+}
+const SHORT_VALUE: Record<string, string> = {
+  'Yes, I’m available for the full programme': 'Available',
+  No: 'No',
+  'Yes, for Skills Immersion 1': 'SI 1',
+  'Yes, for Skills Immersion 2': 'SI 2',
+  'No, not for credit': 'Not for credit',
+  'BSc (Hons) Software Engineering': 'Software Engineering',
+  'BSc (Hons) Entrepreneurial Leadership': 'Entrepreneurial Leadership',
+  'BSc (Hons) Global Challenges': 'Global Challenges',
+  'BA (Hons) International Business & Trade': 'International Business & Trade',
+}
 
 function PeopleTab({ log, role, selective, intervention, session, onOpenPerson }: { log: Log; role: Role; selective: boolean; intervention: string; session: string; onOpenPerson?: (id: string) => void }) {
   const showId = canSeeIdentity(role)
@@ -240,7 +272,17 @@ function PeopleTab({ log, role, selective, intervention, session, onOpenPerson }
     const score = selective ? ((i * 7) % 5 === 0 ? null : 9 + ((i * 13) % 12)) : null
     return { ...x, score, submitted: x.joined, def: selective ? (score != null && score >= 16 ? 'Selected' : 'Applied') : i % 9 === 4 ? 'Cancelled' : i % 3 === 0 ? 'Confirmed' : 'Registered' }
   })
-  const all: Entry[] = base.map((x) => ({ ...x, st: state[x.id] ?? x.def }))
+  // A cohort with its own application template (SIE, SFH…) shows each applicant's answers to it:
+  // the real ones where we have them, otherwise sample answers. Identity answers never appear.
+  // Open interventions use their registration template the same way (e.g. Career Workshops).
+  const tpl = selective ? applicationTemplateFor(intervention, session) : templateFor(intervention, 'registration', session)
+  const answerCols = !tpl
+    ? []
+    : selective
+      ? reviewQuestions(tpl).filter((q) => (q.type === 'radio' || q.type === 'select') && !q.showIf)
+      : // Registrations: the programme answers staff use, never identity or sensitive ones (disability, humanitarian status, standing).
+        tpl.questions.filter((q) => (q.type === 'radio' || q.type === 'select') && !q.identity && !q.sensitive && !q.fromRecords && !q.auto && !q.showIf && !['gender', 'gender_identity'].includes(q.id))
+  const all: Entry[] = base.map((x) => ({ ...x, st: state[x.id] ?? x.def, answers: tpl ? (applications.find((a) => a.id === x.id)?.answers ?? sampleAnswers(tpl, x.id)) : undefined }))
   const rows = only ? all.filter((x) => x.st === only) : all
   const setStatus = (ids: string[], st: string) => {
     setState((s) => ({ ...s, ...Object.fromEntries(ids.map((id) => [id, st])) }))
@@ -258,6 +300,19 @@ function PeopleTab({ log, role, selective, intervention, session, onOpenPerson }
     { key: 'country', label: 'Country' },
     { key: 'age', label: 'Age', numeric: true, hideBelow: 'xl' },
     { key: 'submitted', className: 'whitespace-nowrap', label: selective ? 'Applied' : 'Registered', filterable: false, hideBelow: 'lg' },
+    ...answerCols.map(
+      (q, k): Column<Entry> => ({
+        key: `a_${q.id}`,
+        label: SHORT[q.id] ?? q.label,
+        value: (x) => String(x.answers?.[q.id] ?? ''),
+        hideBelow: k > 1 ? 'xl' : undefined,
+        render: (x) => {
+          const v = String(x.answers?.[q.id] ?? '')
+          const flag = q.warnIf && v === q.warnIf.equals
+          return <span className={`block max-w-[200px] truncate ${flag ? 'font-semibold text-bad' : 'text-body'}`} title={v}>{v ? (SHORT_VALUE[v] ?? v) : '—'}</span>
+        },
+      }),
+    ),
     ...(selective
       ? [{ key: 'score', label: 'Score /20', numeric: true, value: (x: Entry) => x.score ?? '', render: (x: Entry) => (x.score != null ? <span className={`font-semibold ${x.score >= 16 ? 'text-good' : ''}`}>{x.score}</span> : <span className="text-xs text-warn">Unscored</span>) } as Column<Entry>]
       : []),
@@ -531,6 +586,152 @@ function FeedbackTab({ attended, feedback }: { attended: number; feedback: numbe
             </li>
           ))}
         </ul>
+      </Panel>
+    </div>
+  )
+}
+
+/**
+ * Feedback for a cohort whose survey has its own template (e.g. SIE Kenya 2026): the average of
+ * each rating question, the spread of the overall rating, and the written answers. Anonymous
+ * surveys show participant codes, never CHII IDs or names.
+ */
+function TemplateFeedbackTab({ template, attended, feedback, cohort, intervention }: { template: FormTemplate; attended: number; feedback: number; cohort: string; intervention: string }) {
+  const responses = React.useMemo(() => sampleResponses(template, feedback, cohort), [template, feedback, cohort])
+  const scales = template.questions.filter((q) => q.type === 'scale')
+  const texts = template.questions.filter((q) => q.type === 'textarea')
+  const [textQ, setTextQ] = useState(texts[texts.length - 2]?.id ?? texts[0]?.id)
+  const rate = attended ? Math.round((feedback / attended) * 100) : 0
+  const avg = (id: string) => {
+    const xs = responses.map((r) => Number(r[id])).filter((n) => n > 0)
+    return xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null
+  }
+  const overall = scales.find((q) => /overall/.test(q.id)) ?? scales[scales.length - 1]
+  const dist = overall
+    ? Array.from({ length: overall.scale!.max - overall.scale!.min + 1 }, (_, k) => {
+        const v = overall.scale!.min + k
+        return { score: overall.scale!.labels?.[k] ? `${v} · ${overall.scale!.labels[k]}` : String(v), n: responses.filter((r) => Number(r[overall.id]) === v).length }
+      })
+    : []
+  const anonymous = !template.questions.some((q) => q.type === 'email')
+  const codeQ = template.questions.find((q) => q.pattern)
+  // Named surveys show the respondent's CHII ID (never a name); anonymous ones their participant code.
+  const pool = participants.filter((x) => x.interventions.includes(intervention))
+  const whoOf = (r: Answers, i: number) => (codeQ ? String(r[codeQ.id]) : (pool[i % Math.max(pool.length, 1)]?.id ?? `Response ${i + 1}`))
+  const answers = responses.map((r, i) => ({ who: whoOf(r, i), text: String(r[textQ] ?? '') })).filter((x) => x.text)
+  // Choice questions (which session, opportunities, skills…): how many picked each option.
+  const choices = template.questions.filter((q) => (q.type === 'radio' || q.type === 'select' || q.type === 'checkboxes') && !q.identity && !q.sensitive)
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <Panel className="p-4 sm:p-5">
+        <PanelHeader title="Feedback summary" sub={`${template.title} (v${template.version}) · ${feedback} responses`} className="-mx-4 -mt-4 mb-4 sm:-mx-5 sm:-mt-5" />
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3">
+          <div>
+            <dt className="text-xs text-muted">Responses</dt>
+            <dd className="mt-1 text-xl font-semibold tabular-nums">{feedback}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Response rate</dt>
+            <dd className={`mt-1 text-xl font-semibold tabular-nums ${rate < 40 ? 'text-warn' : ''}`}>{rate}%</dd>
+          </div>
+          {overall && (
+            <div>
+              <dt className="text-xs text-muted">Overall rating</dt>
+              <dd className="mt-1 text-xl font-semibold tabular-nums">
+                {avg(overall.id) ?? '—'}/{overall.scale!.max}
+              </dd>
+            </div>
+          )}
+        </dl>
+        <div className="mt-5 border-t border-line pt-4">
+          <h3 className="text-sm font-semibold">Average rating per question</h3>
+          <ul className="mt-3 space-y-3">
+            {scales.map((q) => {
+              const a = avg(q.id)
+              return (
+                <li key={q.id}>
+                  <div className="flex items-start justify-between gap-3 text-[13px]">
+                    <span className="text-body">{q.label}</span>
+                    <span className="shrink-0 font-semibold tabular-nums text-ink">{a ?? '—'}</span>
+                  </div>
+                  <div className="mt-1 h-1.5 rounded-full bg-canvas">
+                    <div className="h-1.5 rounded-full bg-brand-600" style={{ width: `${a ? ((a - q.scale!.min) / (q.scale!.max - q.scale!.min)) * 100 : 0}%` }} />
+                  </div>
+                  <div className="mt-0.5 flex justify-between text-[10.5px] text-faint">
+                    <span>{q.scale!.minLabel}</span>
+                    <span>{q.scale!.maxLabel}</span>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+        {choices.map((q) => {
+          const asked = responses.filter((r) => r[q.id] != null && r[q.id] !== '')
+          const counts = q.options!.map((o) => ({ o, n: asked.filter((r) => (Array.isArray(r[q.id]) ? (r[q.id] as string[]).includes(o) : r[q.id] === o)).length }))
+          const top = Math.max(1, ...counts.map((c) => c.n))
+          return (
+            <div key={q.id} className="mt-5 border-t border-line pt-4">
+              <h3 className="text-sm font-semibold">{q.label}</h3>
+              <p className="text-xs text-muted">
+                {asked.length} answered{q.type === 'checkboxes' ? ' · could pick more than one' : ''}
+              </p>
+              <ul className="mt-2.5 space-y-1.5">
+                {counts.map((c) => (
+                  <li key={c.o} className="grid grid-cols-[minmax(0,1fr)_120px_32px] items-center gap-2 text-[13px]">
+                    <span className="truncate text-body" title={c.o}>
+                      {c.o}
+                    </span>
+                    <span className="h-1.5 rounded-full bg-canvas">
+                      <span className="block h-1.5 rounded-full bg-brand-600" style={{ width: `${(c.n / top) * 100}%` }} />
+                    </span>
+                    <span className="text-right font-semibold tabular-nums text-ink">{c.n}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })}
+        {overall && (
+          <div className="mt-5 border-t border-line pt-4">
+            <h3 className="text-sm font-semibold">{overall.label}</h3>
+            <div className="-ml-4 mt-3 h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dist} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid vertical={false} {...gridProps} />
+                  <XAxis dataKey="score" {...categoryAxisProps} tick={{ fontSize: 10, fill: 'var(--color-muted)' }} interval={0} />
+                  <YAxis {...valueAxisProps} width={32} allowDecimals={false} />
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
+                  <Bar dataKey="n" name="Responses" fill="var(--color-navy)" radius={[4, 4, 0, 0]} barSize={30}>
+                    <LabelList dataKey="n" position="top" {...valueLabelProps} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </Panel>
+      <Panel>
+        <div className="flex flex-col gap-2 border-b border-line px-4 py-3 sm:px-5">
+          <h3 className="text-sm font-semibold">Written answers</h3>
+          <select value={textQ} onChange={(e) => setTextQ(e.target.value)} aria-label="Question" className="h-9 w-full rounded-md border border-line-strong bg-surface px-2.5 text-[13px] outline-none focus:border-brand-600">
+            {texts.map((q) => (
+              <option key={q.id} value={q.id}>
+                {q.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <ul className="max-h-[640px] divide-y divide-line overflow-y-auto">
+          {answers.slice(0, 25).map((x, i) => (
+            <li key={i} className="px-4 py-3 sm:px-5">
+              <p className="text-sm leading-6 text-body">“{x.text}”</p>
+              <div className="mt-1 font-mono text-xs text-brand-600">{x.who}</div>
+            </li>
+          ))}
+        </ul>
+        {anonymous && <p className="border-t border-line px-4 py-2.5 text-xs text-faint sm:px-5">Anonymous survey: answers show participant codes, not CHII IDs or names.</p>}
       </Panel>
     </div>
   )
