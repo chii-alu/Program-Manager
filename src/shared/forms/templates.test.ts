@@ -165,3 +165,31 @@ describe('Career Workshop registration (HEMP)', () => {
     expect(by('disciplinary_standing').sensitive && by('disciplinary_standing').fromRecords).toBe(true)
   })
 })
+
+describe('Career Workshop feedback (HEMP)', () => {
+  const base: Answers = {
+    email: 'a@alustudent.com', session: 'Session 1', overall: '4', career_value: '5', employment_relevance: '4', most_valuable: 'The CV clinic.',
+    opportunity: 'Internship', skills: ['Data and analytics'], mission: 'Maternal health, because…', suggestions: 'More time for Q&A.', follow_up: 'Yes',
+  }
+
+  it('is the Career Workshops feedback form, with HealthX replaced by Career Workshop', async () => {
+    const { CAREER_WORKSHOP_FEEDBACK: t } = await import('./templates')
+    expect(templateFor('Career Workshops', 'feedback', 'Career Workshop · CV & interview skills')).toBe(t)
+    expect(JSON.stringify(t)).not.toMatch(/healthx/i)
+    expect(t.questions.filter((q) => /Career Workshop/.test(q.label)).length).toBeGreaterThanOrEqual(7)
+  })
+
+  it('asks the repeated block once; organisation questions only for the sessions that had them', async () => {
+    const { CAREER_WORKSHOP_FEEDBACK: t } = await import('./templates')
+    expect(new Set(t.questions.map((q) => q.label)).size).toBe(t.questions.length)
+    expect(checkAnswers(t, base)).toEqual({})
+    const s2 = checkAnswers(t, { ...base, session: 'Session 2' })
+    expect(Object.keys(s2).sort()).toEqual(['orgs_met', 'orgs_next'])
+  })
+
+  it('every rating point has its label, 1 – Poor to 5 – Excellent', async () => {
+    const { CAREER_WORKSHOP_FEEDBACK: t } = await import('./templates')
+    expect(t.questions.find((q) => q.id === 'overall')!.scale!.labels).toEqual(['Poor', 'Fair', 'Good', 'Very good', 'Excellent'])
+    for (const q of t.questions.filter((q) => q.type === 'scale')) expect(q.scale!.labels).toHaveLength(5)
+  })
+})

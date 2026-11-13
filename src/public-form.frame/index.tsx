@@ -294,16 +294,27 @@ function Field({
       return (
         <div>
           <div role="radiogroup" aria-label={q.label} className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${pts.length}, minmax(0, 1fr))` }}>
-            {pts.map((n) => (
-              <button key={n} type="button" role="radio" aria-checked={str === String(n)} onClick={() => onAnswer(String(n))} className={scale(str === String(n))}>
+            {pts.map((n, k) => (
+              <button
+                key={n}
+                type="button"
+                role="radio"
+                aria-checked={str === String(n)}
+                aria-label={sc.labels ? `${n} – ${sc.labels[k]}` : String(n)}
+                onClick={() => onAnswer(String(n))}
+                className={`${scale(str === String(n))} ${sc.labels ? 'flex h-auto min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-1.5' : ''}`}
+              >
                 {n}
+                {sc.labels && <span className={`text-[10px] font-medium leading-tight ${str === String(n) ? 'text-white/85' : 'text-muted'}`}>{sc.labels[k]}</span>}
               </button>
             ))}
           </div>
-          <div className="mt-1.5 flex justify-between text-[11px] text-faint">
-            <span>{sc.minLabel}</span>
-            <span>{sc.maxLabel}</span>
-          </div>
+          {!sc.labels && (
+            <div className="mt-1.5 flex justify-between text-[11px] text-faint">
+              <span>{sc.minLabel}</span>
+              <span>{sc.maxLabel}</span>
+            </div>
+          )}
         </div>
       )
     }

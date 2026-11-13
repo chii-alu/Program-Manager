@@ -29,7 +29,7 @@ export type Question = {
   accept?: string
   maxMb?: number
   /** Only asked when another answer has this value. */
-  showIf?: { id: string; equals: string }
+  showIf?: { id: string; equals: string } | { id: string; oneOf: string[] }
   /** Shown under the answer when it has this value (e.g. "only fully available students are selected"). */
   warnIf?: { equals: string; message: string }
   /**
@@ -44,7 +44,7 @@ export type Question = {
   /** Starts a new section of the form, with this heading. */
   section?: string
   /** Rating scales: the points and what the two ends mean. */
-  scale?: { min: number; max: number; minLabel: string; maxLabel: string }
+  scale?: { min: number; max: number; minLabel: string; maxLabel: string; /** A label for every point, e.g. 1 – Poor … 5 – Excellent. */ labels?: string[] }
   /** Text answers that must follow a format, e.g. a participant code. */
   pattern?: string
   patternMessage?: string
@@ -247,6 +247,74 @@ export const CAREER_WORKSHOP_REGISTRATION: FormTemplate = {
   ],
 }
 
+/**
+ * Career Workshops (HEMP) feedback. HEMP's sheet (titled HealthX 2026) branches on the session:
+ * each session repeats the same questions, and the later sessions add two questions about the
+ * organisations met. Here they're asked once, with the organisation questions shown only for
+ * those sessions, so answers from every session land in the same columns.
+ */
+const CW_SESSIONS = ['Session 1', 'Session 2', 'Session 3']
+const CW_ORG_SESSIONS = ['Session 2', 'Session 3']
+
+export const CAREER_WORKSHOP_FEEDBACK: FormTemplate = {
+  id: 'career-workshop-feedback',
+  pillar: 'HEMP',
+  intervention: 'Career Workshops',
+  kind: 'feedback',
+  title: 'Career Workshop · Feedback',
+  intro: 'Tell us how the Career Workshop went for you. It takes about 4 minutes, and your answers shape the next workshops.',
+  version: 1,
+  questions: [
+    { id: 'email', label: 'Email address', type: 'email', required: true, identity: true, help: 'We use it to match you to your CHII ID.' },
+    { id: 'session', label: 'Which Career Workshop session are you providing feedback on?', type: 'radio', required: true, provisional: true, options: CW_SESSIONS },
+    {
+      id: 'overall',
+      label: 'Overall, how would you rate your experience at the Career Workshop?',
+      type: 'scale',
+      required: true,
+      scale: { min: 1, max: 5, minLabel: 'Poor', maxLabel: 'Excellent', labels: ['Poor', 'Fair', 'Good', 'Very good', 'Excellent'] },
+    },
+    {
+      id: 'career_value',
+      label: 'How valuable was the Career Workshop session for your career development?',
+      type: 'scale',
+      required: true,
+      scale: { min: 1, max: 5, minLabel: 'Not valuable', maxLabel: 'Extremely valuable', labels: ['Not valuable', 'Slightly valuable', 'Moderately valuable', 'Very valuable', 'Extremely valuable'] },
+    },
+    {
+      id: 'employment_relevance',
+      label: 'On a scale of 1 to 5, how relevant and helpful was the Career Workshop session in preparing you to secure either self-employment or wage employment?',
+      type: 'scale',
+      required: true,
+      scale: { min: 1, max: 5, minLabel: 'Not at all relevant', maxLabel: 'Extremely relevant', labels: ['Not at all relevant', 'Slightly relevant', 'Moderately relevant', 'Very relevant', 'Extremely relevant'] },
+    },
+    { id: 'most_valuable', label: 'What was the most valuable part of the Career Workshop session for you?', type: 'textarea', rows: 3, required: true },
+    { id: 'orgs_met', label: 'Which organisations did you interact with during the Career Workshop?', type: 'textarea', rows: 2, required: true, showIf: { id: 'session', oneOf: CW_ORG_SESSIONS } },
+    { id: 'orgs_next', label: 'Which organisations would you be interested in engaging with after the Career Workshop?', type: 'textarea', rows: 2, required: true, showIf: { id: 'session', oneOf: CW_ORG_SESSIONS } },
+    {
+      id: 'opportunity',
+      label: 'Which of the following opportunities are you currently most interested in?',
+      type: 'radio',
+      required: true,
+      provisional: true,
+      options: ['Internship', 'Full-time job', 'Part-time or freelance work', 'Starting or growing my own venture', 'Fellowship', 'Further study'],
+    },
+    {
+      id: 'skills',
+      label: 'Which skills or areas of expertise best describe you?',
+      type: 'checkboxes',
+      required: true,
+      minSelect: 1,
+      provisional: true,
+      help: 'Select all that apply.',
+      options: ['Clinical or health sciences', 'Public health and research', 'Data and analytics', 'Software and technology', 'Business, finance and operations', 'Policy and advocacy', 'Communications and design', 'Entrepreneurship'],
+    },
+    { id: 'mission', label: 'What health issue or mission are you most passionate about, and why?', type: 'textarea', rows: 3, required: true },
+    { id: 'suggestions', label: 'What suggestions do you have to improve future Career Workshop sessions?', type: 'textarea', rows: 3, required: true },
+    { id: 'follow_up', label: 'Would you like the Career Workshop team to share relevant follow-up opportunities with you?', type: 'radio', required: true, options: ['Yes', 'No'] },
+  ],
+}
+
 const AGREE = { min: 1, max: 5, minLabel: 'Strongly disagree', maxLabel: 'Strongly agree' }
 
 export const SIE_FEEDBACK: FormTemplate = {
@@ -335,7 +403,7 @@ function intakes() {
   return out
 }
 
-export const FORM_TEMPLATES: FormTemplate[] = [SIE_APPLICATION, SIE_FEEDBACK, SFH_APPLICATION, CAREER_WORKSHOP_REGISTRATION]
+export const FORM_TEMPLATES: FormTemplate[] = [SIE_APPLICATION, SIE_FEEDBACK, SFH_APPLICATION, CAREER_WORKSHOP_REGISTRATION, CAREER_WORKSHOP_FEEDBACK]
 
 /** The questions people actually answer on the form (not filled from records or automatically). */
 export const askedOnForm = (t: FormTemplate) => t.questions.filter((q) => !q.fromRecords && !q.auto)
@@ -359,7 +427,12 @@ export type Answers = Record<string, string | string[] | undefined>
 export const wordCount = (s: string) => s.trim().split(/\s+/).filter(Boolean).length
 
 /** Whether a question is asked, given the answers so far. Record and automatic fields never are. */
-export const isAsked = (q: Question, a: Answers) => !q.fromRecords && !q.auto && (!q.showIf || a[q.showIf.id] === q.showIf.equals)
+export const isAsked = (q: Question, a: Answers) => {
+  if (q.fromRecords || q.auto) return false
+  if (!q.showIf) return true
+  const v = a[q.showIf.id]
+  return 'oneOf' in q.showIf ? typeof v === 'string' && q.showIf.oneOf.includes(v) : v === q.showIf.equals
+}
 
 /** Problems with a set of answers, keyed by question id. Empty when the form can be sent. */
 export function checkAnswers(t: FormTemplate, a: Answers, files: Record<string, { name: string; size: number } | undefined> = {}): Record<string, string> {
