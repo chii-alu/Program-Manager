@@ -351,6 +351,57 @@ export const npsByIntervention = [
 ]
 
 /* ---------- Applications (reviewer) ---------- */
+/**
+ * Sample SIE answers, keyed by the SIE application template's question ids (shared/forms/templates).
+ * Only programme answers: identity and demographic answers live in the restricted tables and
+ * aren't shown to reviewers.
+ */
+const sieAnswers = {
+  'CHII-000231': {
+    degree: 'BSc (Hons) Global Challenges',
+    intake: 'September 2023',
+    has_mission: 'Yes',
+    mission: 'Make essential medicines reliably available in rural East African clinics.',
+    why_sie:
+      'Two summers ago I volunteered at a dispensary in Nyeri where patients were sent home without antimalarials because the clinic had run out three weeks earlier. The medicines existed in the county store; the problem was ordering, transport and data. That experience shaped my health mission and my Global Challenges coursework, where I have studied last-mile delivery models and stock-out reporting tools. SIE Kenya would let me see how county health teams, distributors and health workers actually make supply decisions, and where digital tools help or get in the way. I want to understand the system from the inside before I design anything for it. I also want to learn from professionals who have spent years in procurement and logistics, and to test my assumptions against their experience. After the programme I plan to work on a stock visibility project with my campus health club and to pursue an internship in a health supply chain organisation. SIE is the bridge between what I have read and what I want to build.',
+    interests: ['Medicines, supply chains and logistics', 'Health information systems and digital health', 'Community and public health'],
+    available: 'Yes, I’m available for the full programme',
+    credit: 'Yes, for Skills Immersion 1',
+  },
+  'CHII-000284': {
+    degree: 'BA (Hons) International Business & Trade',
+    intake: 'January 2024',
+    has_mission: 'Yes',
+    mission: 'Shorten waiting times in public hospitals in Tanzania.',
+    why_sie:
+      'In Dar es Salaam my family has spent whole days waiting to be seen at a regional referral hospital, not because doctors were absent but because records, triage and payments were handled in separate queues. My degree in international business has taught me how operations and process design shape outcomes, and I want to apply that to hospitals. SIE Kenya interests me because it combines a structured virtual phase with time inside real health facilities, where I can observe patient flow and talk to administrators about the constraints they face. I am especially curious about how hospitals finance improvements and how insurance schemes affect the way patients move through care. I hope to come back with a clearer picture of which problems are about money, which are about management and which are about information. I am fully available for both phases and I am ready to contribute my analysis and teamwork skills to the group projects.',
+    interests: ['Health service delivery', 'Health financing and insurance', 'Leadership, governance and policy'],
+    available: 'Yes, I’m available for the full programme',
+    credit: 'Yes, for Skills Immersion 2',
+  },
+  'CHII-000341': {
+    degree: 'BSc (Hons) Entrepreneurial Leadership',
+    intake: 'September 2024',
+    has_mission: 'No',
+    why_sie:
+      'I lead our campus student health club, where we organise screening days and peer sessions on mental health. Running the club showed me how little I understand about the health system beyond our campus: who pays for services, how clinics are staffed and why some programmes last while others disappear after one donor cycle. I have not yet declared a health mission because I want to choose it based on real exposure rather than assumptions, and SIE Kenya is the best opportunity I have seen to get that exposure. The virtual phase would give me the frameworks, and the immersion would let me meet health workers, entrepreneurs and officials in one place. I am particularly interested in community health workers and how they are trained, paid and supported. I would bring energy, organisation and experience of running events to the cohort, and I would share what I learn with the club when I return to campus.',
+    interests: ['Health workforce', 'Community and public health'],
+    available: 'Yes, I’m available for the full programme',
+    credit: 'No, not for credit',
+  },
+  'CHII-000215': {
+    degree: 'BSc (Hons) Software Engineering',
+    intake: 'May 2023',
+    has_mission: 'Yes',
+    mission: 'Build digital tools that help community health workers follow up patients.',
+    why_sie:
+      'After attending Career Exposure in Kigali I spent a month shadowing a digital health startup that builds follow-up reminders for community health workers. I saw how much good software depends on understanding the people who use it: health workers with limited data bundles, supervisors who need simple reports and ministries that set standards. As a software engineering student I can build applications, but I still lack a deep understanding of how health systems are organised and financed. SIE Kenya would give me that understanding, and Kenya’s experience with community health programmes and digital health policy is directly relevant to my mission. During the immersion I hope to speak with implementers about what makes tools stick after a pilot ends. I am available for the virtual phase, but I have a family commitment during the second week of the Kenya immersion, which I am trying to move. I am applying because I believe the experience would change how I build.',
+    interests: ['Health information systems and digital health', 'Health workforce', 'Health service delivery'],
+    available: 'No',
+    credit: 'Yes, for Skills Immersion 1',
+  },
+} as Record<string, Record<string, string | string[]>>
+
 export const applications = [
   { id: 'CHII-000231', session: 'SIE Cohort 4', submitted: '2 Nov', motivation: 'I want to build a career in digital health supply chains after seeing medicine stock-outs in rural Kenya.', score: null as number | null },
   { id: 'CHII-000284', session: 'SIE Cohort 4', submitted: '2 Nov', motivation: 'My goal is to work in hospital administration and improve patient flow in Dar es Salaam.', score: null },
@@ -358,4 +409,4 @@ export const applications = [
   { id: 'CHII-000341', session: 'SIE Cohort 4', submitted: '5 Nov', motivation: 'I run a student health club and want structured exposure to employers in the sector.', score: 14 },
   { id: 'CHII-000263', session: 'Public Sector Fellowship 2026', submitted: '6 Nov', motivation: 'I am interested in how health budgets are set and want to support Senegal’s UHC agenda.', score: null },
   { id: 'CHII-000215', session: 'SIE Cohort 4', submitted: '6 Nov', motivation: 'After Career Exposure I want hands-on experience in a health startup.', score: 17 },
-]
+].map((a) => ({ ...a, answers: sieAnswers[a.id] as Record<string, string | string[]> | undefined }))

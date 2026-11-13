@@ -84,6 +84,7 @@ export default function MelaManager(props: Props) {
   const [sessionId, setSessionId] = useState('s2')
   const [sheet, setSheet] = useState<'participants' | 'feedback' | 'ventures'>('participants')
   const [newSession, setNewSession] = useState(false)
+  const [formKind, setFormKind] = useState<'application' | 'registration' | 'attendance' | 'feedback'>('feedback')
   const [ventureView, setVentureView] = useState<VentureView>('registry')
 
   // The role control re-renders in place: adopt it and its home portal.
@@ -179,7 +180,7 @@ export default function MelaManager(props: Props) {
     case INTERVENTIONS:
       return <Interventions {...shared} newSession={newSession} onCloseNew={() => setNewSession(false)} onOpenSession={openSession} />
     case SESSION:
-      return <Session {...shared} sessionId={sessionId} onBack={() => setStep(INTERVENTIONS)} onOpenPerson={openPerson} onOpenForm={() => setStep(FORM)} />
+      return <Session {...shared} sessionId={sessionId} onBack={() => setStep(INTERVENTIONS)} onOpenPerson={openPerson} onOpenForm={(k) => (setFormKind(k), setStep(FORM))} />
     case PARTICIPANTS:
       return <Participants {...shared} onOpenPerson={openPerson} />
     case PERSON:
@@ -207,7 +208,7 @@ export default function MelaManager(props: Props) {
     case 'venture-update':
       return <VentureForms kind="update" />
     case FORM:
-      return <PublicForm preview onExitPreview={() => setStep(SESSION)} />
+      return <PublicForm preview kind={formKind} onExitPreview={() => setStep(SESSION)} />
     default:
       return (
         <SignIn

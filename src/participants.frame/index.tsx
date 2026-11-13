@@ -4,7 +4,7 @@ import { AppShell } from '../shared/components/AppShell'
 import { PageHeader, PillarTag } from '../shared/components/ui'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { StatCards } from '../shared/components/StatStrip'
-import { Participant, Portal, Role, canSeeIdentity, interventionsIn, participants, pillarsFor, portalMeta } from '../shared/data/mela'
+import { Participant, Portal, Role, canSeeIdentity, participants, portalMeta } from '../shared/data/mela'
 import { inRange, previous, useTimeRange } from '../shared/lib/time'
 import { toast } from '../shared/lib/notify'
 
@@ -25,14 +25,11 @@ export default function Participants(props: Props) {
   const role = r as Role
   const portal = (role !== 'admin' && p === 'admin' ? 'hent' : p) as Portal
   const showId = canSeeIdentity(role)
-  const scope = pillarsFor(portal)
   const { range, label } = useTimeRange()
 
-  // A pillar portal lists only its own interventions for each person (MELA sees all of them).
-  const inScope = useMemo(
-    () => participants.filter((x) => x.pillars.some((pl) => scope.includes(pl))).map((x) => ({ ...x, interventions: interventionsIn(x.interventions, scope) })).filter((x) => x.interventions.length > 0),
-    [portal],
-  )
+  // CHII Participants is the same list in every portal: everyone, across all pillars, as MELA
+  // sees it. Pillar-only lists are the pillar's own Participants sheet (consolidated-sheet.frame).
+  const inScope = participants
   const rows = useMemo(() => inScope.filter((x) => inRange(range, x.lastActive)), [inScope, range])
   const prevRows = useMemo(() => inScope.filter((x) => inRange(previous(range), x.lastActive)), [inScope, range])
   const fresh = rows.filter((x) => inRange(range, x.joined)).length
@@ -85,7 +82,8 @@ export default function Participants(props: Props) {
           description={
             <>
               People active in <span className="font-medium text-ink">{label.toLowerCase()}</span>
-              {portal === 'admin' ? ' across all pillars' : ` linked to ${portalMeta[portal].label}`}. One row per person.
+              {' '}across all pillars. One row per person.
+              {portal !== 'admin' && <> For {portalMeta[portal].label} only, use the {portalMeta[portal].label} Participants Sheet.</>}
               {!showId && ' Names are hidden for your role.'}
             </>
           }

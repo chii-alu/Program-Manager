@@ -4,7 +4,7 @@ import { AppShell } from '../shared/components/AppShell'
 import { PageHeader, PillarTag } from '../shared/components/ui'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { StatCards } from '../shared/components/StatStrip'
-import { FeedbackRow, Portal, Role, feedbackRows, pillarsFor, portalMeta } from '../shared/data/mela'
+import { FeedbackRow, Portal, Role, feedbackRows, portalMeta } from '../shared/data/mela'
 import { inRange, previous, useTimeRange } from '../shared/lib/time'
 import { toast } from '../shared/lib/notify'
 
@@ -24,9 +24,10 @@ export default function Feedbacks(props: Props) {
   const { role: r, portal: p, onNavigate, onPortalChange, onSignOut, onOpenPerson } = { ...args, ...props }
   const role = r as Role
   const portal = (role !== 'admin' && p === 'admin' ? 'hent' : p) as Portal
-  const scope = pillarsFor(portal)
   const { range, label } = useTimeRange()
-  const inScope = useMemo(() => feedbackRows.filter((f) => scope.includes(f.pillar)), [portal])
+  // CHII Feedbacks is the same in every portal: every pillar's responses, as MELA sees them.
+  // Pillar-only feedback is the pillar's own Feedback sheet (consolidated-sheet.frame).
+  const inScope = feedbackRows
   const inPeriod = useMemo(() => inScope.filter((f) => inRange(range, f.date)), [inScope, range])
   const prev = useMemo(() => inScope.filter((f) => inRange(previous(range), f.date)), [inScope, range])
   const rows = inPeriod
@@ -52,7 +53,12 @@ export default function Feedbacks(props: Props) {
         <PageHeader
           crumbs={[portalMeta[portal].label, 'CHII Feedbacks']}
           title="CHII Feedbacks"
-          description={<>Every feedback response in <span className="font-medium text-ink">{label.toLowerCase()}</span>. One response per person per session.</>}
+          description={
+            <>
+              Every feedback response across all pillars in <span className="font-medium text-ink">{label.toLowerCase()}</span>. One response per person per session.
+              {portal !== 'admin' && <> For {portalMeta[portal].label} only, use the {portalMeta[portal].label} Feedback Sheet.</>}
+            </>
+          }
         />
 
         <StatCards
@@ -67,7 +73,7 @@ export default function Feedbacks(props: Props) {
         <DataTable
           heading="All feedback"
           description={`${rows.length.toLocaleString()} responses · one per person per session`}
-          title={`CHII Feedbacks · ${portalMeta[portal].label}`}
+          title="CHII Feedbacks · All pillars"
           rows={rows}
           columns={columns}
           rowKey={(f) => f.id}

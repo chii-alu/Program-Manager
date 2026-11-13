@@ -10,6 +10,7 @@ import { QrMark } from '../shared/components/QrMark'
 import { Participant, Portal, Role, canSeeIdentity, feedbackRows, participants, sessions } from '../shared/data/mela'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { EmptyState } from '../shared/components/EmptyState'
+import { applicationTemplateFor } from '../shared/forms/templates'
 import { notify, toast } from '../shared/lib/notify'
 import { CheckCheck, UserRound, Users, XCircle } from 'lucide-react'
 
@@ -26,7 +27,8 @@ type Props = Partial<typeof args> & {
   onSignOut?: () => void
   onBack?: () => void
   onOpenPerson?: (id: string) => void
-  onOpenForm?: () => void
+  /** Opens the form preview: application/registration, attendance or feedback. */
+  onOpenForm?: (kind: 'application' | 'registration' | 'attendance' | 'feedback') => void
 }
 
 const tabs = ['forms', 'people', 'attendance', 'feedback', 'details'] as const
@@ -89,7 +91,7 @@ export default function Session(props: Props) {
         </nav>
 
         <div className="mt-5">
-          {tab === 'forms' && <FormsTab kind={s.kind} registered={s.registered} attended={s.attended} feedback={s.feedback} onPreview={onOpenForm} onShare={setShare} />}
+          {tab === 'forms' && <FormsTab kind={s.kind} intervention={s.intervention} registered={s.registered} attended={s.attended} feedback={s.feedback} onPreview={onOpenForm} onShare={setShare} />}
           {tab === 'people' && <PeopleTab role={role} selective={s.kind === 'selective'} intervention={s.intervention} session={s.name} onOpenPerson={onOpenPerson} />}
           {tab === 'attendance' && <AttendanceTab role={role} intervention={s.intervention} onQr={() => setShare('Attendance check-in')} />}
           {tab === 'feedback' && <FeedbackTab attended={s.attended} feedback={s.feedback} />}
@@ -102,12 +104,21 @@ export default function Session(props: Props) {
 
 /* ---------------- Forms ---------------- */
 
-function FormsTab({ kind, registered, attended, feedback, onPreview, onShare }: { kind: string; registered: number; attended: number; feedback: number; onPreview?: () => void; onShare: (f: string) => void }) {
+function FormsTab({ kind, intervention, registered, attended, feedback, onPreview, onShare }: { kind: string; intervention: string; registered: number; attended: number; feedback: number; onPreview?: (k: 'application' | 'registration' | 'attendance' | 'feedback') => void; onShare: (f: string) => void }) {
   const [status, setStatus] = useState<Record<string, string>>({ a: 'open', b: 'open', c: 'draft' })
   const forms = [
-    { id: 'a', name: kind === 'selective' ? 'Application' : 'Registration', code: 'SIE4-REG', responses: registered, questions: 14 },
-    { id: 'b', name: 'Attendance check-in', code: 'SIE4-ATT', responses: attended, questions: 3 },
-    { id: 'c', name: 'Feedback', code: 'SIE4-FBK', responses: feedback, questions: 11 },
+    {
+      id: 'a',
+      name: kind === 'selective' ? 'Application' : 'Registration',
+      code: 'SIE4-REG',
+      responses: registered,
+      // Selective interventions with their own application template (e.g. SIE) count its questions.
+      questions: (kind === 'selective' && applicationTemplateFor(intervention)?.questions.length) || 14,
+      template: kind === 'selective' ? applicationTemplateFor(intervention) : null,
+      preview: (kind === 'selective' && applicationTemplateFor(intervention) ? 'application' : 'registration') as 'application' | 'registration',
+    },
+    { id: 'b', name: 'Attendance check-in', code: 'SIE4-ATT', responses: attended, questions: 3, template: null, preview: 'attendance' as const },
+    { id: 'c', name: 'Feedback', code: 'SIE4-FBK', responses: feedback, questions: 11, template: null, preview: 'feedback' as const },
   ]
   return (
     <Panel>
@@ -121,6 +132,7 @@ function FormsTab({ kind, registered, attended, feedback, onPreview, onShare }: 
               </div>
               <div className="mt-0.5 text-xs text-muted">
                 {f.questions} questions · consent required · {f.responses.toLocaleString()} responses
+                {f.template && <> · template: {f.template.title} (v{f.template.version})</>}
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -144,7 +156,7 @@ function FormsTab({ kind, registered, attended, feedback, onPreview, onShare }: 
                   </button>
                 ))}
               </div>
-              <Button className="h-8 px-3 text-xs" onClick={onPreview}>
+              <Button className="h-8 px-3 text-xs" onClick={() => onPreview?.(f.preview)}>
                 <Eye className="h-3.5 w-3.5" /> Preview
               </Button>
               <Button className="h-8 px-3 text-xs" onClick={() => onShare(f.name)}>

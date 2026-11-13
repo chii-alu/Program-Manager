@@ -6,6 +6,7 @@ import { AppShell } from '../shared/components/AppShell'
 import { Button, PageHeader, Panel } from '../shared/components/ui'
 import { Modal } from '../shared/components/Modal'
 import { Portal, Role, applications, portalMeta } from '../shared/data/mela'
+import { SIE_APPLICATION, isAsked, reviewQuestions, wordCount } from '../shared/forms/templates'
 
 export const args = {
   role: 'reviewer',
@@ -47,7 +48,7 @@ export default function Applications(props: Props) {
     (a) =>
       (show === 'all' || (show === 'todo') === (scores[a.id] == null)) &&
       (sessionF === 'all' || a.session === sessionF) &&
-      `${a.id} ${a.motivation}`.toLowerCase().includes(q.toLowerCase()),
+      `${a.id} ${a.motivation} ${Object.values(a.answers ?? {}).flat().join(' ')}`.toLowerCase().includes(q.toLowerCase()),
   )
 
   const submit = (total: number) => {
@@ -178,8 +179,14 @@ const ScoreForm: React.FC<{ app: (typeof applications)[number]; existing: number
         </div>
       )}
       <div className={bare ? '' : 'px-5 py-4'}>
-        <h3 className="text-xs font-medium text-muted">Why do you want to join?</h3>
-        <p className="mt-1.5 text-[15px] leading-7 text-ink">{app.motivation}</p>
+        {app.answers ? (
+          <Answers answers={app.answers} />
+        ) : (
+          <>
+            <h3 className="text-xs font-medium text-muted">Why do you want to join?</h3>
+            <p className="mt-1.5 text-[15px] leading-7 text-ink">{app.motivation}</p>
+          </>
+        )}
 
         <div className="mt-5 space-y-4 border-t border-line pt-4">
           {criteria.map((c) => (
@@ -224,5 +231,50 @@ const ScoreForm: React.FC<{ app: (typeof applications)[number]; existing: number
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * An application's answers, in the template's order. Reviewers score blind: identity (name,
+ * email, year of birth, CV) and demographic answers (gender, nationality, funding, campus) are
+ * left out by reviewQuestions().
+ */
+function Answers({ answers }: { answers: Record<string, string | string[]> }) {
+  const qs = reviewQuestions(SIE_APPLICATION).filter((q) => isAsked(q, answers))
+  return (
+    <dl className="space-y-4">
+      {qs.map((q) => {
+        const v = answers[q.id]
+        const long = q.type === 'textarea'
+        const flag = q.warnIf && v === q.warnIf.equals
+        return (
+          <div key={q.id}>
+            <dt className="text-xs font-medium text-muted">{q.label}</dt>
+            <dd className={`mt-1 ${long ? 'text-[15px] leading-7' : 'text-sm'} text-ink`}>
+              {v == null || v === '' ? (
+                <span className="text-faint">No answer</span>
+              ) : Array.isArray(v) ? (
+                <span className="flex flex-wrap gap-1.5">
+                  {v.map((x) => (
+                    <span key={x} className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-600">
+                      {x}
+                    </span>
+                  ))}
+                </span>
+              ) : (
+                <>
+                  <span className={flag ? 'font-semibold text-bad' : ''}>{v}</span>
+                  {flag && <span className="mt-1 block text-xs text-bad">{q.warnIf!.message}</span>}
+                  {q.words && <span className="mt-1 block text-xs text-faint">{wordCount(v)} words</span>}
+                </>
+              )}
+            </dd>
+          </div>
+        )
+      })}
+      <p className="flex items-center gap-1.5 text-xs text-faint">
+        <EyeOff className="h-3.5 w-3.5" /> Name, email, year of birth, CV and demographic answers are hidden so you score blind.
+      </p>
+    </dl>
   )
 }
