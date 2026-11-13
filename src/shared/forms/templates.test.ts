@@ -106,3 +106,29 @@ describe('SIE feedback survey (HEMP)', () => {
     expect(checkAnswers(SIE_FEEDBACK, { ...answers, confidence: '' }).confidence).toBe('Answer this question.')
   })
 })
+
+describe('SFH internship application (HEMP · Internships)', () => {
+  it('every SFH cohort uses it; other internships and SIE keep their own', async () => {
+    const { SFH_APPLICATION } = await import('./templates')
+    expect(templateFor('Internships', 'application', 'SFH Internship · Cohort 4')).toBe(SFH_APPLICATION)
+    expect(templateFor('Internships', 'application', 'SFH Internship · Cohort 7')).toBe(SFH_APPLICATION)
+    expect(templateFor('Internships', 'application', 'Hospital Internship · Cohort 1')).toBeNull()
+    expect(templateFor('SIE', 'application', 'SIE Cohort 4')).toBe(SIE_APPLICATION)
+  })
+
+  it('asks HEMP’s questions once each (one email), with the mission only after “Yes”', async () => {
+    const { SFH_APPLICATION } = await import('./templates')
+    expect(SFH_APPLICATION.questions.map((q) => q.id)).toEqual(['full_name', 'email', 'degree', 'has_mission', 'mission', 'si_term', 'department', 'cv'])
+    const a: Answers = { full_name: 'A B', email: 'a.b@alustudent.com', degree: 'BSc (Hons) Global Challenges', has_mission: 'No', si_term: 'Yes', department: 'Programmes' }
+    expect(checkAnswers(SFH_APPLICATION, a, { cv: { name: 'cv.pdf', size: 1000 } })).toEqual({})
+    expect(checkAnswers(SFH_APPLICATION, a, { cv: { name: 'cv.docx', size: 1000 } }).cv).toBe('Upload a PDF file.')
+  })
+
+  it('sample SFH applications answer every programme question, and reviewers see no identity', async () => {
+    const { SFH_APPLICATION } = await import('./templates')
+    const sfh = applications.filter((x) => x.session.startsWith('SFH'))
+    expect(sfh.length).toBeGreaterThan(0)
+    for (const app of sfh) for (const q of reviewQuestions(SFH_APPLICATION).filter((q) => isAsked(q, app.answers!))) expect(app.answers![q.id], `${app.id} ${q.id}`).toBeTruthy()
+    expect(reviewQuestions(SFH_APPLICATION).map((q) => q.id)).not.toContain('email')
+  })
+})

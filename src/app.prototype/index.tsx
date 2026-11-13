@@ -209,7 +209,7 @@ export default function MelaManager(props: Props) {
     case 'venture-update':
       return <VentureForms kind="update" />
     case FORM:
-      return <PublicForm preview kind={formKind} template={templateFor(sessions.find((x) => x.id === sessionId)?.intervention ?? '', formKind)} onExitPreview={() => setStep(SESSION)} />
+      return <PublicForm preview kind={formKind} template={(() => { const se = sessions.find((x) => x.id === sessionId); return se ? templateFor(se.intervention, formKind, se.name) : null })()} onExitPreview={() => setStep(SESSION)} />
     default:
       return (
         <SignIn

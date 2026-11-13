@@ -48,7 +48,7 @@ export const sessions: Session[] = [
   { id: 's3', name: 'Career Exposure · Kigali', intervention: 'Career Exposure', pillar: 'HEMP', kind: 'open', dates: '28 Oct', status: 'completed', registered: 96, attended: 74, feedback: 19 },
   { id: 's4', name: 'Public Sector Fellowship 2026', intervention: 'Public Sector Fellowship', pillar: 'HECO', kind: 'selective', dates: '20 Nov – 30 Jan', status: 'upcoming', registered: 58, attended: 0, feedback: 0 },
   { id: 's5', name: 'HealthTech Hackathon', intervention: 'Hackathon', pillar: 'HENT', kind: 'open', dates: '18–20 Oct', status: 'completed', registered: 204, attended: 167, feedback: 88 },
-  { id: 's6', name: 'Internship Placement · Q4', intervention: 'Internships', pillar: 'HEMP', kind: 'selective', dates: '1 Oct – 20 Dec', status: 'open', registered: 64, attended: 61, feedback: 0 },
+  { id: 's6', name: 'SFH Internship · Cohort 4', intervention: 'Internships', pillar: 'HEMP', kind: 'selective', dates: '1 Oct – 20 Dec', status: 'open', registered: 64, attended: 61, feedback: 0 },
   { id: 's7', name: 'Exec Course · Health financing', intervention: 'Executive Courses', pillar: 'HECO', kind: 'open', dates: '2 Dec', status: 'draft', registered: 0, attended: 0, feedback: 0 },
   { id: 's8', name: 'Mentorship Circle · Founders', intervention: 'Mentorship', pillar: 'HENT', kind: 'selective', dates: '6 Nov – 18 Dec', status: 'open', registered: 42, attended: 38, feedback: 12 },
 ]
@@ -402,6 +402,30 @@ const sieAnswers = {
   },
 } as Record<string, Record<string, string | string[]>>
 
+/** Sample SFH internship answers (SFH_APPLICATION question ids), programme answers only. */
+const sfhAnswers = {
+  'CHII-000533': {
+    degree: 'BSc (Hons) Global Challenges',
+    has_mission: 'Yes',
+    mission: 'Improve family planning access for young women in rural Rwanda.',
+    si_term: 'Yes',
+    department: 'Programmes',
+  },
+  'CHII-000631': {
+    degree: 'BSc (Hons) Software Engineering',
+    has_mission: 'No',
+    si_term: 'Yes',
+    department: 'Monitoring, evaluation and research',
+  },
+  'CHII-000561': {
+    degree: 'BA (Hons) International Business & Trade',
+    has_mission: 'Yes',
+    mission: 'Strengthen supply chains for essential health commodities in Southern Africa.',
+    si_term: 'No',
+    department: 'Supply chain and logistics',
+  },
+} as Record<string, Record<string, string | string[]>>
+
 export const applications = [
   { id: 'CHII-000231', session: 'SIE Cohort 4', submitted: '2 Nov', motivation: 'I want to build a career in digital health supply chains after seeing medicine stock-outs in rural Kenya.', score: null as number | null },
   { id: 'CHII-000284', session: 'SIE Cohort 4', submitted: '2 Nov', motivation: 'My goal is to work in hospital administration and improve patient flow in Dar es Salaam.', score: null },
@@ -409,4 +433,7 @@ export const applications = [
   { id: 'CHII-000341', session: 'SIE Cohort 4', submitted: '5 Nov', motivation: 'I run a student health club and want structured exposure to employers in the sector.', score: 14 },
   { id: 'CHII-000263', session: 'Public Sector Fellowship 2026', submitted: '6 Nov', motivation: 'I am interested in how health budgets are set and want to support Senegal’s UHC agenda.', score: null },
   { id: 'CHII-000215', session: 'SIE Cohort 4', submitted: '6 Nov', motivation: 'After Career Exposure I want hands-on experience in a health startup.', score: 17 },
-].map((a) => ({ ...a, answers: sieAnswers[a.id] as Record<string, string | string[]> | undefined }))
+  { id: 'CHII-000533', session: 'SFH Internship · Cohort 4', submitted: '24 Sep', motivation: 'Improve family planning access for young women in rural Rwanda.', score: null },
+  { id: 'CHII-000631', session: 'SFH Internship · Cohort 4', submitted: '25 Sep', motivation: 'Interested in monitoring, evaluation and research at SFH.', score: null },
+  { id: 'CHII-000561', session: 'SFH Internship · Cohort 4', submitted: '26 Sep', motivation: 'Strengthen supply chains for essential health commodities in Southern Africa.', score: 15 },
+].map((a) => ({ ...a, answers: (sieAnswers[a.id] ?? sfhAnswers[a.id]) as Record<string, string | string[]> | undefined }))

@@ -43,7 +43,7 @@ export default function Session(props: Props) {
 
   return (
     <AppShell role={role} portal={portal} active="interventions" onNavigate={onNavigate} onPortalChange={onPortalChange} onSignOut={onSignOut}>
-      <ShareModal form={share} onClose={() => setShare(null)} />
+      <ShareModal form={share} code={formCode(s.name)} onClose={() => setShare(null)} />
       <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-5">
         <button type="button" onClick={onBack} className="-ml-1 flex items-center gap-1.5 rounded-md px-1 py-1 text-sm font-medium text-muted hover:text-ink">
           <ArrowLeft className="h-4 w-4" /> Interventions
@@ -91,7 +91,7 @@ export default function Session(props: Props) {
         </nav>
 
         <div className="mt-5">
-          {tab === 'forms' && <FormsTab kind={s.kind} intervention={s.intervention} registered={s.registered} attended={s.attended} feedback={s.feedback} onPreview={onOpenForm} onShare={setShare} />}
+          {tab === 'forms' && <FormsTab kind={s.kind} intervention={s.intervention} cohort={s.name} registered={s.registered} attended={s.attended} feedback={s.feedback} onPreview={onOpenForm} onShare={setShare} />}
           {tab === 'people' && <PeopleTab role={role} selective={s.kind === 'selective'} intervention={s.intervention} session={s.name} onOpenPerson={onOpenPerson} />}
           {tab === 'attendance' && <AttendanceTab role={role} intervention={s.intervention} onQr={() => setShare('Attendance check-in')} />}
           {tab === 'feedback' && <FeedbackTab attended={s.attended} feedback={s.feedback} />}
@@ -104,21 +104,24 @@ export default function Session(props: Props) {
 
 /* ---------------- Forms ---------------- */
 
-function FormsTab({ kind, intervention, registered, attended, feedback, onPreview, onShare }: { kind: string; intervention: string; registered: number; attended: number; feedback: number; onPreview?: (k: 'application' | 'registration' | 'attendance' | 'feedback') => void; onShare: (f: string) => void }) {
+/** Short form code from the cohort name: "SIE Cohort 4" → SIE4, "SFH Internship · Cohort 4" → SFH4. */
+export const formCode = (cohort: string) => `${cohort.split(/[\s·]+/)[0].toUpperCase().slice(0, 4)}${cohort.match(/(\d+)\s*$/)?.[1] ?? ''}`
+
+function FormsTab({ kind, intervention, cohort, registered, attended, feedback, onPreview, onShare }: { kind: string; intervention: string; cohort: string; registered: number; attended: number; feedback: number; onPreview?: (k: 'application' | 'registration' | 'attendance' | 'feedback') => void; onShare: (f: string) => void }) {
   const [status, setStatus] = useState<Record<string, string>>({ a: 'open', b: 'open', c: 'draft' })
   const forms = [
     {
       id: 'a',
       name: kind === 'selective' ? 'Application' : 'Registration',
-      code: 'SIE4-REG',
+      code: `${formCode(cohort)}-REG`,
       responses: registered,
       // Selective interventions with their own application template (e.g. SIE) count its questions.
-      questions: (kind === 'selective' && applicationTemplateFor(intervention)?.questions.length) || 14,
-      template: kind === 'selective' ? applicationTemplateFor(intervention) : null,
-      preview: (kind === 'selective' && applicationTemplateFor(intervention) ? 'application' : 'registration') as 'application' | 'registration',
+      questions: (kind === 'selective' && applicationTemplateFor(intervention, cohort)?.questions.length) || 14,
+      template: kind === 'selective' ? applicationTemplateFor(intervention, cohort) : null,
+      preview: (kind === 'selective' && applicationTemplateFor(intervention, cohort) ? 'application' : 'registration') as 'application' | 'registration',
     },
-    { id: 'b', name: 'Attendance check-in', code: 'SIE4-ATT', responses: attended, questions: 3, template: null, preview: 'attendance' as const },
-    { id: 'c', name: 'Feedback', code: 'SIE4-FBK', responses: feedback, questions: templateFor(intervention, 'feedback')?.questions.length ?? 11, template: templateFor(intervention, 'feedback'), preview: 'feedback' as const },
+    { id: 'b', name: 'Attendance check-in', code: `${formCode(cohort)}-ATT`, responses: attended, questions: 3, template: null, preview: 'attendance' as const },
+    { id: 'c', name: 'Feedback', code: `${formCode(cohort)}-FBK`, responses: feedback, questions: templateFor(intervention, 'feedback', cohort)?.questions.length ?? 11, template: templateFor(intervention, 'feedback', cohort), preview: 'feedback' as const },
   ]
   return (
     <Panel>
@@ -171,9 +174,9 @@ function FormsTab({ kind, intervention, registered, attended, feedback, onPrevie
   )
 }
 
-function ShareModal({ form, onClose }: { form: string | null; onClose: () => void }) {
+function ShareModal({ form, code, onClose }: { form: string | null; code: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false)
-  const url = `mela.chii.alu.edu/f/${form === 'Attendance check-in' ? 'SIE4-ATT' : form === 'Feedback' ? 'SIE4-FBK' : 'SIE4-REG'}`
+  const url = `mela.chii.alu.edu/f/${code}-${form === 'Attendance check-in' ? 'ATT' : form === 'Feedback' ? 'FBK' : 'REG'}`
   return (
     <Modal open={!!form} onClose={() => (setCopied(false), onClose())} title={`Share ${form?.toLowerCase() ?? ''} form`} description="Anyone with the link can respond while the form is open." size="sm" icon={<QrCode className="h-4 w-4" />}>
       <div className="flex flex-col items-center">

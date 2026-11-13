@@ -56,6 +56,12 @@ export type FormTemplate = {
   id: string
   pillar: 'HENT' | 'HEMP' | 'HECO'
   intervention: string
+  /**
+   * A named programme inside the intervention whose cohorts all share this form (e.g. the SFH
+   * internship under Internships). Matched against the cohort's name; without it the template
+   * covers every cohort of the intervention.
+   */
+  programme?: string
   kind: 'application' | 'registration' | 'feedback' | 'attendance'
   title: string
   intro: string
@@ -137,6 +143,47 @@ export const SIE_APPLICATION: FormTemplate = {
       options: ['Yes, for Skills Immersion 1', 'Yes, for Skills Immersion 2', 'No, not for credit'],
     },
     { id: 'cv', label: 'Upload CV / résumé', type: 'file', required: true, identity: true, accept: '.pdf,.doc,.docx', maxMb: 5, help: 'PDF or Word, up to 5 MB.' },
+  ],
+}
+
+/**
+ * SFH internship (HEMP · Internships): one application form shared by every SFH cohort.
+ * "Score" in HEMP's sheet is the reviewers' score, set on the Applications page, not a question;
+ * the second email column was Google Forms' collected address, so email is asked once.
+ */
+export const SFH_APPLICATION: FormTemplate = {
+  id: 'sfh-internship-application',
+  pillar: 'HEMP',
+  intervention: 'Internships',
+  programme: 'SFH',
+  kind: 'application',
+  title: 'SFH Internship · Application',
+  intro: 'Apply for an internship with SFH. One application per cohort; the HEMP team will be in touch after the selection.',
+  version: 1,
+  questions: [
+    { id: 'full_name', label: 'Full name', type: 'text', required: true, identity: true },
+    { id: 'email', label: 'Email', type: 'email', required: true, identity: true, help: 'Your ALU email. We use it to match you to your CHII ID.' },
+    {
+      id: 'degree',
+      label: 'Programme',
+      type: 'select',
+      required: true,
+      provisional: true,
+      help: 'Your degree programme.',
+      options: ['BSc (Hons) Software Engineering', 'BSc (Hons) Entrepreneurial Leadership', 'BSc (Hons) Global Challenges', 'BA (Hons) International Business & Trade', 'Other'],
+    },
+    { id: 'has_mission', label: 'Do you have a mission in healthcare?', type: 'radio', required: true, options: ['Yes', 'No'] },
+    { id: 'mission', label: 'Kindly state your mission', type: 'textarea', required: true, showIf: { id: 'has_mission', equals: 'Yes' } },
+    { id: 'si_term', label: 'Are you in the Skills Immersion Internship term?', type: 'radio', required: true, options: ['Yes', 'No'] },
+    {
+      id: 'department',
+      label: 'Which SFH department are you interested in?',
+      type: 'select',
+      required: true,
+      provisional: true,
+      options: ['Programmes', 'Monitoring, evaluation and research', 'Finance and grants', 'Supply chain and logistics', 'Communications and marketing', 'Human resources and administration'],
+    },
+    { id: 'cv', label: 'Kindly upload your CV in PDF format', type: 'file', required: true, identity: true, accept: '.pdf', maxMb: 5, help: 'PDF only, up to 5 MB.' },
   ],
 }
 
@@ -228,13 +275,19 @@ function intakes() {
   return out
 }
 
-export const FORM_TEMPLATES: FormTemplate[] = [SIE_APPLICATION, SIE_FEEDBACK]
+export const FORM_TEMPLATES: FormTemplate[] = [SIE_APPLICATION, SIE_FEEDBACK, SFH_APPLICATION]
 
-/** An intervention's own template for a kind of form (e.g. SIE's feedback survey), if it has one. */
-export const templateFor = (intervention: string, kind: FormTemplate['kind']) => FORM_TEMPLATES.find((t) => t.kind === kind && t.intervention === intervention) ?? null
+/**
+ * A cohort's own template for a kind of form, if it has one: a programme's template (matched on
+ * the cohort's name, e.g. "SFH Internship · Cohort 4") before the intervention's general one.
+ */
+export function templateFor(intervention: string, kind: FormTemplate['kind'], cohortName = ''): FormTemplate | null {
+  const mine = FORM_TEMPLATES.filter((t) => t.kind === kind && t.intervention === intervention)
+  return mine.find((t) => t.programme && cohortName.split(/[\s·]+/).includes(t.programme)) ?? mine.find((t) => !t.programme) ?? null
+}
 
-/** The application template for an intervention, if it has its own. */
-export const applicationTemplateFor = (intervention: string) => templateFor(intervention, 'application')
+/** The application template for a cohort, if it has its own. */
+export const applicationTemplateFor = (intervention: string, cohortName = '') => templateFor(intervention, 'application', cohortName)
 
 /* ---------- Answers ---------- */
 

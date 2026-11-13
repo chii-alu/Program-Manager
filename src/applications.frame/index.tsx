@@ -6,7 +6,8 @@ import { AppShell } from '../shared/components/AppShell'
 import { Button, PageHeader, Panel } from '../shared/components/ui'
 import { Modal } from '../shared/components/Modal'
 import { Portal, Role, applications, portalMeta } from '../shared/data/mela'
-import { SIE_APPLICATION, isAsked, reviewQuestions, wordCount } from '../shared/forms/templates'
+import { applicationTemplateFor, isAsked, reviewQuestions, wordCount } from '../shared/forms/templates'
+import { sessions } from '../shared/data/mela'
 
 export const args = {
   role: 'reviewer',
@@ -179,8 +180,8 @@ const ScoreForm: React.FC<{ app: (typeof applications)[number]; existing: number
         </div>
       )}
       <div className={bare ? '' : 'px-5 py-4'}>
-        {app.answers ? (
-          <Answers answers={app.answers} />
+        {app.answers && templateOf(app.session) ? (
+          <Answers answers={app.answers} template={templateOf(app.session)!} />
         ) : (
           <>
             <h3 className="text-xs font-medium text-muted">Why do you want to join?</h3>
@@ -239,8 +240,14 @@ const ScoreForm: React.FC<{ app: (typeof applications)[number]; existing: number
  * email, year of birth, CV) and demographic answers (gender, nationality, funding, campus) are
  * left out by reviewQuestions().
  */
-function Answers({ answers }: { answers: Record<string, string | string[]> }) {
-  const qs = reviewQuestions(SIE_APPLICATION).filter((q) => isAsked(q, answers))
+/** The application form a cohort uses (e.g. SIE's, or SFH's for every SFH internship cohort). */
+function templateOf(session: string) {
+  const s = sessions.find((x) => x.name === session)
+  return s ? applicationTemplateFor(s.intervention, s.name) : null
+}
+
+function Answers({ answers, template }: { answers: Record<string, string | string[]>; template: import('../shared/forms/templates').FormTemplate }) {
+  const qs = reviewQuestions(template).filter((q) => isAsked(q, answers))
   return (
     <dl className="space-y-4">
       {qs.map((q) => {
@@ -273,7 +280,7 @@ function Answers({ answers }: { answers: Record<string, string | string[]> }) {
         )
       })}
       <p className="flex items-center gap-1.5 text-xs text-faint">
-        <EyeOff className="h-3.5 w-3.5" /> Name, email, year of birth, CV and demographic answers are hidden so you score blind.
+        <EyeOff className="h-3.5 w-3.5" /> Name, email, CV and other identity or demographic answers are hidden so you score blind.
       </p>
     </dl>
   )
