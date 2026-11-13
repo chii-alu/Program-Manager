@@ -10,7 +10,7 @@ import { QrMark } from '../shared/components/QrMark'
 import { Participant, Portal, Role, canSeeIdentity, feedbackRows, participants, sessions } from '../shared/data/mela'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { EmptyState } from '../shared/components/EmptyState'
-import { applicationTemplateFor } from '../shared/forms/templates'
+import { applicationTemplateFor, templateFor } from '../shared/forms/templates'
 import { notify, toast } from '../shared/lib/notify'
 import { CheckCheck, UserRound, Users, XCircle } from 'lucide-react'
 
@@ -118,7 +118,7 @@ function FormsTab({ kind, intervention, registered, attended, feedback, onPrevie
       preview: (kind === 'selective' && applicationTemplateFor(intervention) ? 'application' : 'registration') as 'application' | 'registration',
     },
     { id: 'b', name: 'Attendance check-in', code: 'SIE4-ATT', responses: attended, questions: 3, template: null, preview: 'attendance' as const },
-    { id: 'c', name: 'Feedback', code: 'SIE4-FBK', responses: feedback, questions: 11, template: null, preview: 'feedback' as const },
+    { id: 'c', name: 'Feedback', code: 'SIE4-FBK', responses: feedback, questions: templateFor(intervention, 'feedback')?.questions.length ?? 11, template: templateFor(intervention, 'feedback'), preview: 'feedback' as const },
   ]
   return (
     <Panel>

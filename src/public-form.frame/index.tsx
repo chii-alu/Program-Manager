@@ -10,7 +10,8 @@ export const args = {
   preview: false,
 }
 
-type Props = Partial<typeof args> & { onExitPreview?: () => void; template?: FormTemplate }
+/** `template`: the session's own form (e.g. SIE's application or feedback survey); otherwise the generic form for `kind`. */
+type Props = Partial<typeof args> & { onExitPreview?: () => void; template?: FormTemplate | null }
 
 const titles = {
   registration: { title: 'Register for SIE Cohort 4', sub: 'Student Immersion Experience · HEMP · 3 Nov – 15 Dec' },
@@ -20,12 +21,13 @@ const titles = {
 }
 
 export default function PublicForm(props: Props) {
-  const { kind, state: initialState, preview, onExitPreview, template = SIE_APPLICATION } = { ...args, ...props }
+  const { kind, state: initialState, preview, onExitPreview, template: given } = { ...args, ...props }
+  const template = given ?? (kind === 'application' ? SIE_APPLICATION : null)
   const [state, setState] = useState(initialState)
   const [sat, setSat] = useState<number | null>(null)
   const [nps, setNps] = useState<number | null>(null)
   const [consent, setConsent] = useState(false)
-  const t = kind === 'application' ? { title: template.title, sub: template.intro } : titles[kind as keyof typeof titles]
+  const t = template ? { title: template.title, sub: template.intro } : titles[kind as keyof typeof titles]
   const [answers, setAnswers] = useState<Answers>({})
   const [files, setFiles] = useState<Record<string, { name: string; size: number } | undefined>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -58,14 +60,17 @@ export default function PublicForm(props: Props) {
               <p className="mt-1.5 text-sm text-muted">
                 {kind === 'attendance' ? 'Enjoy the session. We’ve recorded your attendance for today.' : 'Your response was received. You can close this page.'}
               </p>
-              <p className="mt-4 inline-flex rounded-lg bg-canvas px-3 py-1.5 font-mono text-xs text-muted">Your CHII ID: CHII-000231</p>
+              {/* Anonymous surveys (no email or identity question) never show a CHII ID back. */}
+              {(!template || template.questions.some((q) => q.type === 'email')) && (
+                <p className="mt-4 inline-flex rounded-lg bg-canvas px-3 py-1.5 font-mono text-xs text-muted">Your CHII ID: CHII-000231</p>
+              )}
             </div>
           ) : (
             <form
               onSubmit={(e) => {
                 e.preventDefault()
                 if (!consent) return
-                if (kind === 'application') {
+                if (template) {
                   const problems = checkAnswers(template, answers, files)
                   setErrors(problems)
                   setTried(true)
@@ -82,7 +87,7 @@ export default function PublicForm(props: Props) {
                 <p className="mt-1 text-sm text-muted">{t.sub}</p>
               </div>
               <div className="space-y-5 px-5 py-5 sm:px-6">
-                {kind === 'application' && (
+                {template && (
                   <ApplicationFields
                     template={template}
                     answers={answers}
@@ -92,13 +97,13 @@ export default function PublicForm(props: Props) {
                     onFile={(id, f) => setFiles((x) => ({ ...x, [id]: f }))}
                   />
                 )}
-                {kind !== 'application' && (
+                {!template && (
                   <Q label="Email address" hint="We use it to match you to your CHII ID">
                     <input type="email" required defaultValue={preview ? 'w.kamau@alustudent.com' : ''} placeholder="you@alustudent.com" className={input} />
                   </Q>
                 )}
 
-                {kind === 'registration' && (
+                {!template && kind === 'registration' && (
                   <>
                     <Q label="Full name">
                       <input required className={input} />
@@ -124,7 +129,7 @@ export default function PublicForm(props: Props) {
                   </>
                 )}
 
-                {kind === 'feedback' && (
+                {!template && kind === 'feedback' && (
                   <>
                     <Q label="Overall, how satisfied were you?">
                       <div className="grid grid-cols-5 gap-1.5">
@@ -230,6 +235,9 @@ function ApplicationFields({
       </datalist>
       {asked.map((q, i) => (
         <div key={q.id} id={`q-${q.id}`} className="scroll-mt-20">
+          {q.section && (
+            <h2 className={`mb-3 border-b border-line pb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-brand-600 ${i > 0 ? 'mt-8' : ''}`}>{q.section}</h2>
+          )}
           <div className="mb-1.5 text-sm font-medium text-ink">
             <span className="mr-1 text-faint tabular-nums">{i + 1}.</span>
             {q.label}
@@ -270,7 +278,35 @@ function Field({
     case 'email':
       return <input type="email" autoComplete="email" value={str} onChange={(e) => onAnswer(e.target.value)} placeholder="you@alustudent.com" className={cls} aria-invalid={invalid} />
     case 'text':
-      return <input value={str} autoComplete={q.id === 'full_name' ? 'name' : undefined} onChange={(e) => onAnswer(e.target.value)} className={cls} aria-invalid={invalid} />
+      return (
+        <input
+          value={str}
+          autoComplete={q.id === 'full_name' ? 'name' : 'off'}
+          placeholder={q.pattern ? 'SIE26-AA' : undefined}
+          onChange={(e) => onAnswer(q.pattern ? e.target.value.toUpperCase() : e.target.value)}
+          className={`${cls} ${q.pattern ? 'max-w-[200px] font-mono tracking-wider' : ''}`}
+          aria-invalid={invalid}
+        />
+      )
+    case 'scale': {
+      const sc = q.scale!
+      const pts = Array.from({ length: sc.max - sc.min + 1 }, (_, k) => sc.min + k)
+      return (
+        <div>
+          <div role="radiogroup" aria-label={q.label} className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${pts.length}, minmax(0, 1fr))` }}>
+            {pts.map((n) => (
+              <button key={n} type="button" role="radio" aria-checked={str === String(n)} onClick={() => onAnswer(String(n))} className={scale(str === String(n))}>
+                {n}
+              </button>
+            ))}
+          </div>
+          <div className="mt-1.5 flex justify-between text-[11px] text-faint">
+            <span>{sc.minLabel}</span>
+            <span>{sc.maxLabel}</span>
+          </div>
+        </div>
+      )
+    }
     case 'year':
       return <input type="number" inputMode="numeric" min={q.range?.[0]} max={q.range?.[1]} placeholder="e.g. 2003" value={str} onChange={(e) => onAnswer(e.target.value)} className={`${cls} max-w-[160px]`} aria-invalid={invalid} />
     case 'country':
@@ -317,7 +353,7 @@ function Field({
       const ok = !q.words || (n >= q.words[0] && n <= q.words[1])
       return (
         <>
-          <textarea rows={q.words ? 7 : 3} value={str} onChange={(e) => onAnswer(e.target.value)} className={`${cls} h-auto py-2.5 leading-6`} aria-invalid={invalid} />
+          <textarea rows={q.rows ?? (q.words ? 7 : 3)} value={str} onChange={(e) => onAnswer(e.target.value)} className={`${cls} h-auto py-2.5 leading-6`} aria-invalid={invalid} />
           {q.words && (
             <div className={`mt-1 text-right text-xs tabular-nums ${!str ? 'text-faint' : ok ? 'text-good' : 'text-warn'}`}>
               {n} words · {q.words[0]}–{q.words[1]}

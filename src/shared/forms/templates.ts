@@ -5,9 +5,12 @@
  *
  * SIE (HEMP) application: the questions HEMP uses for the Health Skills Immersive Experience,
  * Kenya 2026. The timestamp is recorded automatically, so it isn't a question.
+ *
+ * SIE (HEMP) feedback: HEMP's end-of-programme survey for the Kenya immersion. It's anonymous:
+ * people give the participant code they were assigned, never their name or email.
  */
 
-export type QuestionType = 'email' | 'text' | 'year' | 'select' | 'radio' | 'checkboxes' | 'country' | 'textarea' | 'file'
+export type QuestionType = 'email' | 'text' | 'year' | 'select' | 'radio' | 'checkboxes' | 'country' | 'textarea' | 'file' | 'scale'
 
 export type Question = {
   id: string
@@ -38,6 +41,15 @@ export type Question = {
   demographic?: boolean
   /** Options not given by HEMP yet: provisional until confirmed. */
   provisional?: boolean
+  /** Starts a new section of the form, with this heading. */
+  section?: string
+  /** Rating scales: the points and what the two ends mean. */
+  scale?: { min: number; max: number; minLabel: string; maxLabel: string }
+  /** Text answers that must follow a format, e.g. a participant code. */
+  pattern?: string
+  patternMessage?: string
+  /** Long answers: how many lines the box shows. */
+  rows?: number
 }
 
 export type FormTemplate = {
@@ -128,16 +140,101 @@ export const SIE_APPLICATION: FormTemplate = {
   ],
 }
 
+const AGREE = { min: 1, max: 5, minLabel: 'Strongly disagree', maxLabel: 'Strongly agree' }
+
+export const SIE_FEEDBACK: FormTemplate = {
+  id: 'sie-feedback',
+  pillar: 'HEMP',
+  intervention: 'SIE',
+  kind: 'feedback',
+  title: 'SIE Kenya 2026 · Feedback survey',
+  intro: 'Your reflections on the field visits and on the whole 2-week SIE in Kenya. This survey is anonymous: use your participant code, not your name.',
+  version: 1,
+  questions: [
+    {
+      id: 'participant_code',
+      section: 'Participant code',
+      label: 'Enter your assigned participant code',
+      type: 'text',
+      required: true,
+      help: 'For example SIE26-AA. It links your answers across surveys without your name.',
+      pattern: '^SIE26-[A-Z]{2}$',
+      patternMessage: 'Use the code you were given, in the form SIE26-AA.',
+    },
+    {
+      id: 'discipline',
+      section: 'About you (non-identifying)',
+      label: 'What is your disciplinary background?',
+      type: 'select',
+      required: true,
+      provisional: true,
+      demographic: true,
+      options: ['Health and life sciences', 'Software engineering and computing', 'Business and entrepreneurship', 'Global challenges and social sciences', 'Other'],
+    },
+    { id: 'origin', label: 'What is your country of origin?', type: 'country', required: true, demographic: true },
+    {
+      id: 'valuable_visits',
+      section: 'Field visits this week',
+      label: 'Which of last week’s field visits and sessions were most valuable to you?',
+      type: 'textarea',
+      rows: 3,
+      required: true,
+      help: 'Name the visits or sessions.',
+    },
+    { id: 'week2_takeaway', label: 'In one or two sentences, what was your single biggest key takeaway from Week 2’s field visits?', type: 'textarea', rows: 3, required: true },
+    {
+      id: 'why_resonate',
+      section: 'Alignment with your personal and career mission',
+      label: 'Why did this particular organisation (or organisations) resonate so strongly with your mission?',
+      type: 'textarea',
+      rows: 4,
+      required: true,
+    },
+    { id: 'mission_orgs', label: 'Which organisation(s) across the 2-week experience spoke MOST directly to your personal mission or career goals?', type: 'textarea', rows: 2, required: true },
+    {
+      id: 'clarified_direction',
+      label: 'To what extent did the overall 2-week SIE help you clarify your future direction or mission in the health sector?',
+      type: 'scale',
+      required: true,
+      scale: { min: 1, max: 5, minLabel: 'Not at all', maxLabel: 'To a great extent' },
+    },
+    {
+      id: 'deepened_understanding',
+      section: 'Overall 2-week experience',
+      label: 'Looking back over the full 2 weeks, the SIE has deepened my practical understanding of health systems in Kenya.',
+      type: 'scale',
+      required: true,
+      scale: AGREE,
+    },
+    { id: 'site_diversity', label: 'The diversity of site visits across urban, rural and informal settlement settings added significant value to my learning.', type: 'scale', required: true, scale: AGREE },
+    { id: 'confidence', label: 'I feel more confident in my ability to identify and address healthcare delivery challenges.', type: 'scale', required: true, scale: AGREE },
+    { id: 'connections', label: 'The connections built with peers, host organisations and leaders over these 2 weeks will be valuable for my career.', type: 'scale', required: true, scale: AGREE },
+    {
+      id: 'overall_rating',
+      section: 'Final reflections and future improvements',
+      label: 'Overall, how would you rate your entire 2-week on-ground SIE experience in Kenya?',
+      type: 'scale',
+      required: true,
+      scale: { min: 1, max: 5, minLabel: 'Poor', maxLabel: 'Excellent' },
+    },
+    { id: 'most_impactful', label: 'What was the single most impactful part of the entire 2-week programme for you?', type: 'textarea', rows: 3, required: true },
+    { id: 'recommendations', label: 'What recommendations do you have for the SIE team to improve future on-ground cohorts?', type: 'textarea', rows: 4, required: true },
+  ],
+}
+
 function intakes() {
   const out: string[] = []
   for (let y = YEAR_NOW; y >= YEAR_NOW - 5; y--) for (const t of ['September', 'May', 'January']) out.push(`${t} ${y}`)
   return out
 }
 
-export const FORM_TEMPLATES: FormTemplate[] = [SIE_APPLICATION]
+export const FORM_TEMPLATES: FormTemplate[] = [SIE_APPLICATION, SIE_FEEDBACK]
+
+/** An intervention's own template for a kind of form (e.g. SIE's feedback survey), if it has one. */
+export const templateFor = (intervention: string, kind: FormTemplate['kind']) => FORM_TEMPLATES.find((t) => t.kind === kind && t.intervention === intervention) ?? null
 
 /** The application template for an intervention, if it has its own. */
-export const applicationTemplateFor = (intervention: string) => FORM_TEMPLATES.find((t) => t.kind === 'application' && t.intervention === intervention) ?? null
+export const applicationTemplateFor = (intervention: string) => templateFor(intervention, 'application')
 
 /* ---------- Answers ---------- */
 
@@ -158,6 +255,11 @@ export function checkAnswers(t: FormTemplate, a: Answers, files: Record<string, 
     if (empty) {
       if (q.required) out[q.id] = q.type === 'checkboxes' ? `Select at least ${q.minSelect ?? 1}.` : q.type === 'file' ? 'Attach your CV.' : 'Answer this question.'
       continue
+    }
+    if (q.pattern && !new RegExp(q.pattern, 'i').test(String(v).trim())) out[q.id] = q.patternMessage ?? 'Check the format of this answer.'
+    if (q.type === 'scale' && q.scale) {
+      const n = Number(v)
+      if (!Number.isInteger(n) || n < q.scale.min || n > q.scale.max) out[q.id] = `Choose ${q.scale.min} to ${q.scale.max}.`
     }
     if (q.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v).trim())) out[q.id] = 'Enter a valid email address.'
     if (q.type === 'year' && q.range) {

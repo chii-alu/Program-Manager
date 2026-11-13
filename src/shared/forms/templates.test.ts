@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { applications } from '../data/mela'
-import { SIE_APPLICATION, applicationTemplateFor, checkAnswers, isAsked, reviewQuestions, wordCount, type Answers } from './templates'
+import { SIE_APPLICATION, SIE_FEEDBACK, templateFor, applicationTemplateFor, checkAnswers, isAsked, reviewQuestions, wordCount, type Answers } from './templates'
 
 const words = (n: number) => Array.from({ length: n }, (_, i) => `w${i}`).join(' ')
 const good: Answers = {
@@ -66,5 +66,43 @@ describe('SIE application template (HEMP)', () => {
       expect(n, a.id).toBeLessThanOrEqual(200)
       expect((a.answers!.interests as string[]).length).toBeGreaterThanOrEqual(2)
     }
+  })
+})
+
+describe('SIE feedback survey (HEMP)', () => {
+  const answers: Answers = {
+    participant_code: 'SIE26-AB',
+    discipline: 'Health and life sciences',
+    origin: 'Kenya',
+    valuable_visits: 'Kibera clinic and the county health office.',
+    week2_takeaway: 'Community health workers hold the system together.',
+    why_resonate: 'They work on last-mile supply, my mission.',
+    mission_orgs: 'The county medical stores.',
+    clarified_direction: '4',
+    deepened_understanding: '5',
+    site_diversity: '5',
+    confidence: '4',
+    connections: '5',
+    overall_rating: '5',
+    most_impactful: 'The rural site visits.',
+    recommendations: 'More time for reflection each evening.',
+  }
+
+  it('asks HEMP’s 15 questions in 6 sections, and is the SIE feedback form', () => {
+    expect(templateFor('SIE', 'feedback')).toBe(SIE_FEEDBACK)
+    expect(SIE_FEEDBACK.questions).toHaveLength(15)
+    expect(SIE_FEEDBACK.questions.filter((q) => q.section).length).toBe(6)
+    expect(checkAnswers(SIE_FEEDBACK, answers)).toEqual({})
+  })
+
+  it('is anonymous: a participant code, never a name or email', () => {
+    expect(SIE_FEEDBACK.questions.some((q) => q.type === 'email' || q.identity)).toBe(false)
+    expect(checkAnswers(SIE_FEEDBACK, { ...answers, participant_code: 'wanjiku' }).participant_code).toMatch(/SIE26-AA/)
+    expect(checkAnswers(SIE_FEEDBACK, { ...answers, participant_code: 'sie26-ab' })).toEqual({})
+  })
+
+  it('rating questions take 1–5 only', () => {
+    expect(checkAnswers(SIE_FEEDBACK, { ...answers, overall_rating: '7' }).overall_rating).toBe('Choose 1 to 5.')
+    expect(checkAnswers(SIE_FEEDBACK, { ...answers, confidence: '' }).confidence).toBe('Answer this question.')
   })
 })
