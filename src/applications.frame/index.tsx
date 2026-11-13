@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { CheckCircle2, EyeOff, PartyPopper, Search } from 'lucide-react'
 import { EmptyState } from '../shared/components/EmptyState'
 import { notify } from '../shared/lib/notify'
+import { logAction } from '../shared/lib/interventionLog'
+import { userFor } from '../shared/lib/auth'
 import { AppShell } from '../shared/components/AppShell'
 import { Button, PageHeader, Panel } from '../shared/components/ui'
 import { Modal } from '../shared/components/Modal'
@@ -56,6 +58,8 @@ export default function Applications(props: Props) {
     const next = { ...scores, [app.id]: total }
     setScores(next)
     const remaining = applications.filter((a) => next[a.id] == null).length
+    const pillar = sessions.find((x) => x.name === app.session)?.pillar
+    if (pillar) logAction({ by: userFor(role, portal).user, pillar, action: 'application_scored', session: app.session, detail: `Scored ${app.id} · ${total}/20` })
     notify({ title: `Scored ${app.id} · ${total}/20`, body: remaining ? `${remaining} left in your queue` : 'Your queue is clear', tone: remaining ? 'info' : 'good', to: 'applications' })
     const upcoming = applications.find((a) => next[a.id] == null)
     if (upcoming) setActive(upcoming.id)

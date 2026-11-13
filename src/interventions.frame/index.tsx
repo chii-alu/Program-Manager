@@ -5,6 +5,7 @@ import { AppShell } from '../shared/components/AppShell'
 import { Button, PageHeader, Panel, StatusBadge } from '../shared/components/ui'
 import { NewSessionModal } from '../shared/components/NewSessionModal'
 import { Portal, Role, interventions, participants, pillarsFor, portalMeta, sessions } from '../shared/data/mela'
+import { userFor } from '../shared/lib/auth'
 import { EmptyState } from '../shared/components/EmptyState'
 import { inRange, useTimeRange } from '../shared/lib/time'
 
@@ -43,6 +44,7 @@ export default function Interventions(props: Props) {
       <NewSessionModal
         open={modal}
         pillars={pillars}
+        by={userFor(role, portal).user}
         onClose={() => {
           setModal(false)
           onCloseNew?.()

@@ -8,6 +8,7 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  History,
   ChevronsLeft,
   ChevronsUpDown,
   ClipboardCheck,
@@ -1044,6 +1045,8 @@ function navFor(role: Role, portal: Portal): NavGroup[] {
           children: [
             { key: 'interventions', label: 'All interventions', short: 'Sessions', icon: Layers },
             { key: 'import', label: 'Import a sheet', icon: Upload },
+            // Who did what to the pillar's sessions: HEMP and HECO.
+            ...(portal === 'hemp' || portal === 'heco' ? [{ key: 'interventions-log', label: 'Activity log', icon: History }] : []),
           ],
         },
         { key: 'participants', label: 'CHII Participants', short: 'People', icon: Users },

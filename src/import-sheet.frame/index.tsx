@@ -3,7 +3,9 @@ import { ArrowLeft, ArrowRight, Check, CheckCircle2, FileSpreadsheet, History, L
 import { AppShell } from '../shared/components/AppShell'
 import { Button, PageHeader, Panel } from '../shared/components/ui'
 import { Field, inputClass } from '../shared/components/NewSessionModal'
-import { Portal, Role, interventions, pillarsFor, portalMeta } from '../shared/data/mela'
+import { Pillar, Portal, Role, interventions, pillarsFor, portalMeta } from '../shared/data/mela'
+import { logAction } from '../shared/lib/interventionLog'
+import { userFor } from '../shared/lib/auth'
 import { notify } from '../shared/lib/notify'
 import { ExportModal } from '../shared/components/ExportModal'
 import { Download } from 'lucide-react'
@@ -75,6 +77,7 @@ export default function ImportSheet(props: Props) {
       setTimeout(() => {
         setBusy(false)
         setStep('done')
+        if (portal !== 'admin') logAction({ by: userFor(role, portal).user, pillar: portal.toUpperCase() as Pillar, action: 'sheet_imported', detail: `Imported ${options[0]?.name ?? 'registrations'}: 252 rows added, 3 rejected for consent` })
         notify({ title: 'Import finished · 252 rows added', body: `${options[0]?.name ?? 'Registrations'} · 3 rows rejected for consent`, tone: 'good', to: 'participants' })
       }, 800)
       return

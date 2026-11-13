@@ -19,6 +19,7 @@ import Reports from '../reports.frame'
 import Ventures, { type VentureView } from '../ventures.frame'
 import VentureForms from '../venture-forms.frame'
 import PublicForm from '../public-form.frame'
+import InterventionLog from '../intervention-log.frame'
 import { resolveAccount } from '../shared/lib/auth'
 import { roleMeta, sessions } from '../shared/data/mela'
 import { templateFor } from '../shared/forms/templates'
@@ -28,6 +29,7 @@ const RESET = 'reset-password'
 const OVERVIEW = 'overview'
 const ANALYTICS = 'analytics'
 const INTERVENTIONS = 'interventions'
+const INTERVENTION_LOG = 'intervention-log'
 const SESSION = 'session'
 const PARTICIPANTS = 'participants'
 const PERSON = 'person-journey'
@@ -51,6 +53,7 @@ const routes: Record<string, string> = {
   overview: OVERVIEW,
   analytics: ANALYTICS,
   interventions: INTERVENTIONS,
+  'interventions-log': INTERVENTION_LOG,
   participants: PARTICIPANTS,
   feedback: FEEDBACKS,
   'chii-db': CHII_DB,
@@ -178,6 +181,8 @@ export default function MelaManager(props: Props) {
       return <Overview {...shared} onOpenSession={openSession} />
     case ANALYTICS:
       return <Analytics {...shared} />
+    case INTERVENTION_LOG:
+      return <InterventionLog {...shared} onOpenSession={openSession} />
     case INTERVENTIONS:
       return <Interventions {...shared} newSession={newSession} onCloseNew={() => setNewSession(false)} onOpenSession={openSession} />
     case SESSION:

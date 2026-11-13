@@ -3,8 +3,10 @@ import { CalendarPlus, Plus, X } from 'lucide-react'
 import { Modal } from './Modal'
 import { Pillar, interventions } from '../data/mela'
 import { notify } from '../lib/notify'
+import { logAction } from '../lib/interventionLog'
 
-export function NewSessionModal({ open, onClose, pillars, onCreate }: { open: boolean; onClose: () => void; pillars: Pillar[]; onCreate?: () => void }) {
+/** `by`: the signed-in staff member, for the Interventions activity log. */
+export function NewSessionModal({ open, onClose, pillars, onCreate, by }: { open: boolean; onClose: () => void; pillars: Pillar[]; onCreate?: () => void; by?: string }) {
   const options = interventions.filter((i) => pillars.includes(i.pillar))
   const [intervention, setIntervention] = useState(options[0]?.id ?? '')
   const [dates, setDates] = useState(['2025-11-24'])
@@ -26,6 +28,7 @@ export function NewSessionModal({ open, onClose, pillars, onCreate }: { open: bo
             type="button"
             onClick={() => {
               onCreate?.()
+              if (chosen && by) logAction({ by, pillar: chosen.pillar, action: 'session_created', detail: `Created a ${chosen.name} session (${dates.length} date${dates.length === 1 ? '' : 's'}), forms saved as drafts` })
               notify({ title: `Session created · ${chosen?.name ?? 'New session'}`, body: `${dates.length} date${dates.length === 1 ? '' : 's'} · forms saved as drafts`, tone: 'good', to: 'interventions' })
               onClose()
             }}

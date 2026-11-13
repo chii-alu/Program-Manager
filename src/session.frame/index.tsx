@@ -12,6 +12,10 @@ import { Column, DataTable } from '../shared/components/DataTable'
 import { EmptyState } from '../shared/components/EmptyState'
 import { applicationTemplateFor, askedOnForm, templateFor } from '../shared/forms/templates'
 import { notify, toast } from '../shared/lib/notify'
+import { logAction, type LogAction } from '../shared/lib/interventionLog'
+import { userFor } from '../shared/lib/auth'
+
+type Log = (action: LogAction, detail: string) => void
 import { CheckCheck, UserRound, Users, XCircle } from 'lucide-react'
 
 export const args = {
@@ -38,6 +42,8 @@ export default function Session(props: Props) {
   const role = r as Role
   const portal = (role !== 'admin' && p === 'admin' ? 'hent' : p) as Portal
   const s = sessions.find((x) => x.id === sessionId) ?? sessions[1]
+  // Every change on this page goes in the pillar's Interventions activity log, as the signed-in person.
+  const log: Log = (action, detail) => logAction({ by: userFor(role, portal).user, pillar: s.pillar, action, session: s.name, detail })
   const [tab, setTab] = useState(initialTab)
   const [share, setShare] = useState<string | null>(null)
 
@@ -91,9 +97,9 @@ export default function Session(props: Props) {
         </nav>
 
         <div className="mt-5">
-          {tab === 'forms' && <FormsTab kind={s.kind} intervention={s.intervention} cohort={s.name} registered={s.registered} attended={s.attended} feedback={s.feedback} onPreview={onOpenForm} onShare={setShare} />}
-          {tab === 'people' && <PeopleTab role={role} selective={s.kind === 'selective'} intervention={s.intervention} session={s.name} onOpenPerson={onOpenPerson} />}
-          {tab === 'attendance' && <AttendanceTab role={role} intervention={s.intervention} onQr={() => setShare('Attendance check-in')} />}
+          {tab === 'forms' && <FormsTab log={log} kind={s.kind} intervention={s.intervention} cohort={s.name} registered={s.registered} attended={s.attended} feedback={s.feedback} onPreview={onOpenForm} onShare={setShare} />}
+          {tab === 'people' && <PeopleTab log={log} role={role} selective={s.kind === 'selective'} intervention={s.intervention} session={s.name} onOpenPerson={onOpenPerson} />}
+          {tab === 'attendance' && <AttendanceTab log={log} role={role} intervention={s.intervention} onQr={() => setShare('Attendance check-in')} />}
           {tab === 'feedback' && <FeedbackTab attended={s.attended} feedback={s.feedback} />}
           {tab === 'details' && <DetailsTab name={s.name} onDeleted={onBack} />}
         </div>
@@ -116,7 +122,7 @@ export const formCode = (cohort: string) => {
   return `${head.slice(0, 4)}${cohort.match(/(\d+)\s*$/)?.[1] ?? ''}`
 }
 
-function FormsTab({ kind, intervention, cohort, registered, attended, feedback, onPreview, onShare }: { kind: string; intervention: string; cohort: string; registered: number; attended: number; feedback: number; onPreview?: (k: 'application' | 'registration' | 'attendance' | 'feedback') => void; onShare: (f: string) => void }) {
+function FormsTab({ log, kind, intervention, cohort, registered, attended, feedback, onPreview, onShare }: { log: Log; kind: string; intervention: string; cohort: string; registered: number; attended: number; feedback: number; onPreview?: (k: 'application' | 'registration' | 'attendance' | 'feedback') => void; onShare: (f: string) => void }) {
   const [status, setStatus] = useState<Record<string, string>>({ a: 'open', b: 'open', c: 'draft' })
   const forms = [
     {
@@ -157,7 +163,11 @@ function FormsTab({ kind, intervention, cohort, registered, attended, feedback, 
                   <button
                     key={st}
                     type="button"
-                    onClick={() => setStatus({ ...status, [f.id]: st })}
+                    onClick={() => {
+                      if (status[f.id] === st) return
+                      setStatus({ ...status, [f.id]: st })
+                      log(st === 'open' ? 'form_opened' : st === 'closed' ? 'form_closed' : 'form_draft', `${st === 'open' ? 'Opened' : st === 'closed' ? 'Closed' : 'Set to draft'} the ${f.name} form (${f.code})${st === 'closed' ? `: ${f.responses.toLocaleString()} responses` : ''}`)
+                    }}
                     className={`h-7 rounded-md px-2.5 text-xs font-medium capitalize transition-colors duration-150 ease-out ${
                       status[f.id] === st
                         ? st === 'open'
@@ -220,7 +230,7 @@ function ShareModal({ form, code, onClose }: { form: string | null; code: string
 
 type Entry = Participant & { score: number | null; submitted: string; st: string }
 
-function PeopleTab({ role, selective, intervention, session, onOpenPerson }: { role: Role; selective: boolean; intervention: string; session: string; onOpenPerson?: (id: string) => void }) {
+function PeopleTab({ log, role, selective, intervention, session, onOpenPerson }: { log: Log; role: Role; selective: boolean; intervention: string; session: string; onOpenPerson?: (id: string) => void }) {
   const showId = canSeeIdentity(role)
   const statuses = selective ? ['Applied', 'Selected', 'Waitlisted', 'Not selected'] : ['Registered', 'Confirmed', 'Cancelled']
   const [state, setState] = useState<Record<string, string>>({})
@@ -235,6 +245,8 @@ function PeopleTab({ role, selective, intervention, session, onOpenPerson }: { r
   const setStatus = (ids: string[], st: string) => {
     setState((s) => ({ ...s, ...Object.fromEntries(ids.map((id) => [id, st])) }))
     toast({ title: `${ids.length === 1 ? (showId ? all.find((x) => x.id === ids[0])?.name : ids[0]) : `${ids.length} people`} → ${st}`, tone: st === 'Selected' || st === 'Confirmed' ? 'good' : 'info' })
+    // The log names applicants by CHII ID only, never by name.
+    log('applicants_decided', `${ids.length === 1 ? ids[0] : `${ids.length} ${selective ? 'applicants' : 'people'}`} → ${st}${st === 'Selected' ? ' · offer emails queued' : ''}`)
     if (st === 'Selected') notify({ title: `Selected for ${session}`, body: `${ids.length} applicant${ids.length === 1 ? '' : 's'} · offer emails queued`, tone: 'good' }, { toast: false })
   }
 
@@ -326,7 +338,7 @@ function PeopleTab({ role, selective, intervention, session, onOpenPerson }: { r
 
 /* ---------------- Attendance ---------------- */
 
-function AttendanceTab({ role, intervention, onQr }: { role: Role; intervention: string; onQr: () => void }) {
+function AttendanceTab({ log, role, intervention, onQr }: { log: Log; role: Role; intervention: string; onQr: () => void }) {
   const dates = ['3 Nov', '10 Nov', '17 Nov', '24 Nov', '1 Dec', '15 Dec']
   const [day, setDay] = useState(1)
   const showId = canSeeIdentity(role)
@@ -424,7 +436,7 @@ function AttendanceTab({ role, intervention, onQr }: { role: Role; intervention:
                 </button>
               ))}
             </div>
-            <Button className="h-9 shrink-0 px-3 text-xs" onClick={() => (setPresent(Object.fromEntries(everyone.map((x) => [x.id, true]))), toast({ title: `All ${everyone.length} marked present`, body: dates[day], tone: 'good' }))}>
+            <Button className="h-9 shrink-0 px-3 text-xs" onClick={() => (setPresent(Object.fromEntries(everyone.map((x) => [x.id, true]))), log('attendance_marked', `Marked all ${everyone.length} present · ${dates[day]}`), toast({ title: `All ${everyone.length} marked present`, body: dates[day], tone: 'good' }))}>
               <CheckCheck className="h-3.5 w-3.5" /> Mark all
             </Button>
           </div>

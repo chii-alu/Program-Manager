@@ -106,7 +106,7 @@ export default function Overview(props: Props) {
 
   return (
     <AppShell role={role} portal={portal} active="overview" onNavigate={nav} onPortalChange={onPortalChange} onSignOut={onSignOut}>
-      <NewSessionModal open={newOpen} onClose={() => setNewOpen(false)} pillars={pillars} />
+      <NewSessionModal open={newOpen} onClose={() => setNewOpen(false)} pillars={pillars} by={userFor(role, portal).user} />
       {role === 'reviewer' ? (
         <ReviewerHome name={firstName} onNavigate={onNavigate} />
       ) : (
