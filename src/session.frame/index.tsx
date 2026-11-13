@@ -10,7 +10,7 @@ import { QrMark } from '../shared/components/QrMark'
 import { Participant, Portal, Role, canSeeIdentity, feedbackRows, participants, sessions } from '../shared/data/mela'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { EmptyState } from '../shared/components/EmptyState'
-import { applicationTemplateFor, templateFor } from '../shared/forms/templates'
+import { applicationTemplateFor, askedOnForm, templateFor } from '../shared/forms/templates'
 import { notify, toast } from '../shared/lib/notify'
 import { CheckCheck, UserRound, Users, XCircle } from 'lucide-react'
 
@@ -104,8 +104,17 @@ export default function Session(props: Props) {
 
 /* ---------------- Forms ---------------- */
 
-/** Short form code from the cohort name: "SIE Cohort 4" → SIE4, "SFH Internship · Cohort 4" → SFH4. */
-export const formCode = (cohort: string) => `${cohort.split(/[\s·]+/)[0].toUpperCase().slice(0, 4)}${cohort.match(/(\d+)\s*$/)?.[1] ?? ''}`
+/**
+ * Short form code from the cohort name: an acronym it starts with ("SIE Cohort 4" → SIE4,
+ * "SFH Internship · Cohort 4" → SFH4), otherwise the initials of its main name
+ * ("Career Workshop · CV & interview skills" → CW), plus the cohort number if there is one.
+ */
+export const formCode = (cohort: string) => {
+  const main = cohort.split('·')[0].trim()
+  const first = main.split(/\s+/)[0]
+  const head = /^[A-Z]{2,}$/.test(first) ? first : main.split(/\s+/).filter((w) => /^[A-Za-z]/.test(w) && !/^cohort$/i.test(w)).map((w) => w[0].toUpperCase()).join('')
+  return `${head.slice(0, 4)}${cohort.match(/(\d+)\s*$/)?.[1] ?? ''}`
+}
 
 function FormsTab({ kind, intervention, cohort, registered, attended, feedback, onPreview, onShare }: { kind: string; intervention: string; cohort: string; registered: number; attended: number; feedback: number; onPreview?: (k: 'application' | 'registration' | 'attendance' | 'feedback') => void; onShare: (f: string) => void }) {
   const [status, setStatus] = useState<Record<string, string>>({ a: 'open', b: 'open', c: 'draft' })
@@ -116,12 +125,16 @@ function FormsTab({ kind, intervention, cohort, registered, attended, feedback, 
       code: `${formCode(cohort)}-REG`,
       responses: registered,
       // Selective interventions with their own application template (e.g. SIE) count its questions.
-      questions: (kind === 'selective' && applicationTemplateFor(intervention, cohort)?.questions.length) || 14,
-      template: kind === 'selective' ? applicationTemplateFor(intervention, cohort) : null,
+      // A cohort with its own template (SIE, SFH, Career Workshops…) counts the questions people answer.
+      questions: (() => {
+        const t = templateFor(intervention, kind === 'selective' ? 'application' : 'registration', cohort)
+        return t ? askedOnForm(t).length : 14
+      })(),
+      template: templateFor(intervention, kind === 'selective' ? 'application' : 'registration', cohort),
       preview: (kind === 'selective' && applicationTemplateFor(intervention, cohort) ? 'application' : 'registration') as 'application' | 'registration',
     },
     { id: 'b', name: 'Attendance check-in', code: `${formCode(cohort)}-ATT`, responses: attended, questions: 3, template: null, preview: 'attendance' as const },
-    { id: 'c', name: 'Feedback', code: `${formCode(cohort)}-FBK`, responses: feedback, questions: templateFor(intervention, 'feedback', cohort)?.questions.length ?? 11, template: templateFor(intervention, 'feedback', cohort), preview: 'feedback' as const },
+    { id: 'c', name: 'Feedback', code: `${formCode(cohort)}-FBK`, responses: feedback, questions: (() => { const t = templateFor(intervention, 'feedback', cohort); return t ? askedOnForm(t).length : 11 })(), template: templateFor(intervention, 'feedback', cohort), preview: 'feedback' as const },
   ]
   return (
     <Panel>

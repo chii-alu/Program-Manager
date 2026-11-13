@@ -50,6 +50,15 @@ export type Question = {
   patternMessage?: string
   /** Long answers: how many lines the box shows. */
   rows?: number
+  /** Sensitive personal data (disability, humanitarian status…): restricted, and hidden in Public reports. */
+  sensitive?: boolean
+  /**
+   * Not asked on the form: filled from ALU's student records, matched on Student ID
+   * (e.g. financial, academic and disciplinary standing). Restricted.
+   */
+  fromRecords?: boolean
+  /** Not asked on the form: filled in automatically, e.g. the session's period. */
+  auto?: 'period'
 }
 
 export type FormTemplate = {
@@ -187,6 +196,57 @@ export const SFH_APPLICATION: FormTemplate = {
   ],
 }
 
+/**
+ * Career Workshops (HEMP) registration. Open: anyone with the link can register for a workshop.
+ * Columns follow HEMP's registration sheet (it was titled HealthX). Standing fields come from
+ * student records and Period from the session, so neither is asked.
+ */
+export const CAREER_WORKSHOP_REGISTRATION: FormTemplate = {
+  id: 'career-workshop-registration',
+  pillar: 'HEMP',
+  intervention: 'Career Workshops',
+  kind: 'registration',
+  title: 'Career Workshop · Registration',
+  intro: 'Register for this Career Workshop. It takes about 3 minutes; answers marked optional can be skipped.',
+  version: 1,
+  questions: [
+    { id: 'email', label: 'Email', type: 'email', required: true, identity: true, help: 'We use it to match you to your CHII ID and send you the joining details.' },
+    { id: 'full_name', label: 'Full name', type: 'text', required: true, identity: true },
+    { id: 'enrollment', label: 'Enrollment status', type: 'radio', required: true, demographic: true, provisional: true, options: ['Currently enrolled', 'On leave', 'Alumni', 'Not an ALU student'] },
+    { id: 'gender_identity', label: 'Gender identity', type: 'radio', required: true, demographic: true, options: ['Woman', 'Man', 'Non-binary', 'Prefer to self-describe', 'Prefer not to say'] },
+    { id: 'year_group', label: 'Year group', type: 'select', required: true, demographic: true, provisional: true, options: ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Graduate'] },
+    {
+      id: 'program',
+      label: 'Primary academic programme',
+      type: 'select',
+      required: true,
+      provisional: true,
+      options: ['BSc (Hons) Software Engineering', 'BSc (Hons) Entrepreneurial Leadership', 'BSc (Hons) Global Challenges', 'BA (Hons) International Business & Trade', 'Other'],
+    },
+    { id: 'nationality', label: 'Nationality', type: 'country', required: true, demographic: true },
+    { id: 'institution', label: 'Primary educational institution', type: 'select', required: true, provisional: true, options: ['ALU Rwanda', 'ALU Mauritius', 'ALX', 'Other'] },
+    { id: 'residence', label: 'Country of residence', type: 'country', required: true, demographic: true },
+    { id: 'city', label: 'City of residence', type: 'text', required: true, demographic: true },
+    { id: 'student_id', label: 'Student ID', type: 'text', identity: true, help: 'If you’re an ALU student. Optional.' },
+    { id: 'gender', label: 'Gender', type: 'radio', required: true, demographic: true, options: ['Female', 'Male', 'Prefer not to say'] },
+    { id: 'financial_standing', label: 'Financial standing', type: 'text', fromRecords: true, sensitive: true },
+    { id: 'academic_standing', label: 'Academic standing', type: 'text', fromRecords: true, sensitive: true },
+    { id: 'disciplinary_standing', label: 'Disciplinary standing', type: 'text', fromRecords: true, sensitive: true },
+    { id: 'birth_country', label: 'Country of birth', type: 'country', required: true, demographic: true },
+    {
+      id: 'humanitarian',
+      label: 'Do you have humanitarian status?',
+      type: 'radio',
+      required: true,
+      sensitive: true,
+      help: 'For example refugee, asylum seeker or internally displaced. This helps CHII report on inclusion; it is kept confidential.',
+      options: ['Yes', 'No', 'Prefer not to say'],
+    },
+    { id: 'disability', label: 'Do you have a disability?', type: 'radio', required: true, sensitive: true, help: 'This helps CHII make sessions accessible and report on inclusion; it is kept confidential.', options: ['Yes', 'No', 'Prefer not to say'] },
+    { id: 'period', label: 'Period', type: 'text', auto: 'period' },
+  ],
+}
+
 const AGREE = { min: 1, max: 5, minLabel: 'Strongly disagree', maxLabel: 'Strongly agree' }
 
 export const SIE_FEEDBACK: FormTemplate = {
@@ -275,7 +335,10 @@ function intakes() {
   return out
 }
 
-export const FORM_TEMPLATES: FormTemplate[] = [SIE_APPLICATION, SIE_FEEDBACK, SFH_APPLICATION]
+export const FORM_TEMPLATES: FormTemplate[] = [SIE_APPLICATION, SIE_FEEDBACK, SFH_APPLICATION, CAREER_WORKSHOP_REGISTRATION]
+
+/** The questions people actually answer on the form (not filled from records or automatically). */
+export const askedOnForm = (t: FormTemplate) => t.questions.filter((q) => !q.fromRecords && !q.auto)
 
 /**
  * A cohort's own template for a kind of form, if it has one: a programme's template (matched on
@@ -295,8 +358,8 @@ export type Answers = Record<string, string | string[] | undefined>
 
 export const wordCount = (s: string) => s.trim().split(/\s+/).filter(Boolean).length
 
-/** Whether a question is asked, given the answers so far. */
-export const isAsked = (q: Question, a: Answers) => !q.showIf || a[q.showIf.id] === q.showIf.equals
+/** Whether a question is asked, given the answers so far. Record and automatic fields never are. */
+export const isAsked = (q: Question, a: Answers) => !q.fromRecords && !q.auto && (!q.showIf || a[q.showIf.id] === q.showIf.equals)
 
 /** Problems with a set of answers, keyed by question id. Empty when the form can be sent. */
 export function checkAnswers(t: FormTemplate, a: Answers, files: Record<string, { name: string; size: number } | undefined> = {}): Record<string, string> {
@@ -335,4 +398,4 @@ export function checkAnswers(t: FormTemplate, a: Answers, files: Record<string, 
 }
 
 /** The questions reviewers see: no identity or demographic data, so they score blind. */
-export const reviewQuestions = (t: FormTemplate) => t.questions.filter((q) => !q.identity && !q.demographic)
+export const reviewQuestions = (t: FormTemplate) => t.questions.filter((q) => !q.identity && !q.demographic && !q.sensitive && !q.fromRecords && !q.auto)

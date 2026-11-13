@@ -50,6 +50,7 @@ export const sessions: Session[] = [
   { id: 's5', name: 'HealthTech Hackathon', intervention: 'Hackathon', pillar: 'HENT', kind: 'open', dates: '18–20 Oct', status: 'completed', registered: 204, attended: 167, feedback: 88 },
   { id: 's6', name: 'SFH Internship · Cohort 4', intervention: 'Internships', pillar: 'HEMP', kind: 'selective', dates: '1 Oct – 20 Dec', status: 'open', registered: 64, attended: 61, feedback: 0 },
   { id: 's7', name: 'Exec Course · Health financing', intervention: 'Executive Courses', pillar: 'HECO', kind: 'open', dates: '2 Dec', status: 'draft', registered: 0, attended: 0, feedback: 0 },
+  { id: 's9', name: 'Career Workshop · CV & interview skills', intervention: 'Career Workshops', pillar: 'HEMP', kind: 'open', dates: '22 Oct', status: 'completed', registered: 74, attended: 58, feedback: 21 },
   { id: 's8', name: 'Mentorship Circle · Founders', intervention: 'Mentorship', pillar: 'HENT', kind: 'selective', dates: '6 Nov – 18 Dec', status: 'open', registered: 42, attended: 38, feedback: 12 },
 ]
 

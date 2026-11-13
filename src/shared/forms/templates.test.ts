@@ -132,3 +132,36 @@ describe('SFH internship application (HEMP · Internships)', () => {
     expect(reviewQuestions(SFH_APPLICATION).map((q) => q.id)).not.toContain('email')
   })
 })
+
+describe('Career Workshop registration (HEMP)', () => {
+  it('follows HEMP’s columns, titled Career Workshop (not HealthX)', async () => {
+    const { CAREER_WORKSHOP_REGISTRATION: t } = await import('./templates')
+    expect(templateFor('Career Workshops', 'registration', 'Career Workshop · CV & interview skills')).toBe(t)
+    expect(t.title).toMatch(/^Career Workshop/)
+    expect(JSON.stringify(t)).not.toMatch(/healthx/i)
+    expect(t.questions.map((q) => q.label)).toEqual([
+      'Email', 'Full name', 'Enrollment status', 'Gender identity', 'Year group', 'Primary academic programme', 'Nationality', 'Primary educational institution',
+      'Country of residence', 'City of residence', 'Student ID', 'Gender', 'Financial standing', 'Academic standing', 'Disciplinary standing',
+      'Country of birth', 'Do you have humanitarian status?', 'Do you have a disability?', 'Period',
+    ])
+  })
+
+  it('standing comes from student records and Period from the session: neither is asked', async () => {
+    const { CAREER_WORKSHOP_REGISTRATION: t, askedOnForm } = await import('./templates')
+    const asked = askedOnForm(t).map((q) => q.id)
+    for (const id of ['financial_standing', 'academic_standing', 'disciplinary_standing', 'period']) expect(asked).not.toContain(id)
+    expect(asked).toHaveLength(15)
+    const a: Answers = {
+      email: 'a@alustudent.com', full_name: 'A B', enrollment: 'Currently enrolled', gender_identity: 'Woman', year_group: 'Year 2', program: 'Other', nationality: 'Ghana',
+      institution: 'ALU Rwanda', residence: 'Rwanda', city: 'Kigali', gender: 'Female', birth_country: 'Ghana', humanitarian: 'No', disability: 'Prefer not to say',
+    }
+    expect(checkAnswers(t, a)).toEqual({}) // Student ID is optional; record fields aren't checked
+  })
+
+  it('disability and humanitarian status are sensitive; standing is restricted', async () => {
+    const { CAREER_WORKSHOP_REGISTRATION: t } = await import('./templates')
+    const by = (id: string) => t.questions.find((q) => q.id === id)!
+    expect(by('disability').sensitive && by('humanitarian').sensitive).toBe(true)
+    expect(by('disciplinary_standing').sensitive && by('disciplinary_standing').fromRecords).toBe(true)
+  })
+})
