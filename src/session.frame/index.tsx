@@ -998,16 +998,16 @@ function DetailsTab({ s, log, onDeleted }: { s: SessionRun; log: Log; onDeleted?
       </Panel>
       <Panel className="self-start border-bad/30 p-4 sm:p-5">
         <h3 className="text-sm font-semibold text-bad">Delete session</h3>
-        <p className="mt-1 text-sm leading-6 text-muted">{editable ? 'Removes its forms and check-ins. People keep their CHII IDs and other sessions.' : 'Sample sessions can’t be deleted in the prototype.'}</p>
-        <Button className={`mt-4 w-full text-bad ${editable ? '' : 'pointer-events-none opacity-50'}`} onClick={() => editable && setConfirm(true)}>
+        <p className="mt-1 text-sm leading-6 text-muted">Removes the session with its forms, check-ins and responses. People keep their CHII IDs and their other sessions.</p>
+        <Button className="mt-4 w-full text-bad" onClick={() => setConfirm(true)}>
           <Trash2 className="h-4 w-4" /> Delete session
         </Button>
       </Panel>
       <Modal
         open={confirm}
         onClose={() => setConfirm(false)}
-        title="Delete this session?"
-        description="This can't be undone."
+        title={`Delete ${s.name}?`}
+        description="Its forms, check-ins and responses go with it. This can’t be undone."
         size="sm"
         icon={<Trash2 className="h-4 w-4" />}
         footer={

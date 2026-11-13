@@ -49,11 +49,26 @@ describe('fixing a session created under the wrong intervention', () => {
     expect(sessionById(s.id)!.intervention).toBe('Career Workshops')
   })
 
-  it('deletes created sessions only', async () => {
+  it('deletes created sessions; unknown ones are refused', async () => {
     const { deleteSession } = await import('./sessionStore')
     const s = createSession({ interventionId: 'i8', name: 'Oops', dates: ['2025-12-01'], venue: '' })
     deleteSession(s.id)
     expect(sessionById(s.id)).toBeUndefined()
-    expect(() => deleteSession('s2')).toThrow()
+    expect(() => deleteSession('nope')).toThrow()
+  })
+})
+
+describe('deleting any session', () => {
+  it('sample sessions can be deleted (and restored in the prototype); created ones are removed', async () => {
+    const { deleteSession, restoreSampleSessions, deletedSampleCount } = await import('./sessionStore')
+    deleteSession('s9')
+    expect(sessionById('s9')).toBeUndefined()
+    expect(deletedSampleCount()).toBe(1)
+    restoreSampleSessions()
+    expect(sessionById('s9')).toBeDefined()
+    const s = createSession({ interventionId: 'i8', name: 'Temp', dates: ['2025-12-01'], venue: '' })
+    deleteSession(s.id)
+    expect(sessionById(s.id)).toBeUndefined()
+    expect(deletedSampleCount()).toBe(0)
   })
 })

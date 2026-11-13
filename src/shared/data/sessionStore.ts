@@ -23,7 +23,13 @@ export type Lifecycle = {
 
 export type SessionRun = Session & { created?: boolean; startDate?: string; endDate?: string; venue?: string; /** Every session date (ISO), for attendance. */ dateList?: string[] }
 
-type State = { created: SessionRun[]; life: Record<string, Lifecycle>; counts: Record<string, Partial<Pick<Session, 'registered' | 'attended' | 'feedback' | 'status'>>> }
+type State = {
+  created: SessionRun[]
+  life: Record<string, Lifecycle>
+  counts: Record<string, Partial<Pick<Session, 'registered' | 'attended' | 'feedback' | 'status'>>>
+  /** Sample sessions staff deleted (created ones are removed outright). */
+  deleted?: string[]
+}
 
 const KEY = 'mela-sessions-v1'
 let cache: State | null = null
@@ -58,7 +64,8 @@ let listCache: { state: State | null; list: SessionRun[] } = { state: null, list
 export function getSessions(): SessionRun[] {
   const s = load()
   if (listCache.state === s) return listCache.list
-  const list = [...seedSessions.map((x) => ({ ...x, ...s.counts[x.id] })), ...s.created.map((x) => ({ ...x, ...s.counts[x.id] }))]
+  const gone = new Set(s.deleted ?? [])
+  const list = [...seedSessions.filter((x) => !gone.has(x.id)).map((x) => ({ ...x, ...s.counts[x.id] })), ...s.created.map((x) => ({ ...x, ...s.counts[x.id] }))]
   listCache = { state: s, list }
   return list
 }
@@ -165,17 +172,30 @@ export function updateSession(id: string, patch: { name?: string; interventionId
   return next
 }
 
-/** Delete a session staff created, with its progress. Sample sessions can't be deleted. */
+/**
+ * Delete a session with its forms, check-ins and progress. Any session can be deleted: ones
+ * created here are removed, sample ones are hidden (restoreSampleSessions brings them back).
+ * People keep their CHII IDs and their other sessions.
+ */
 export function deleteSession(id: string) {
   const s = load()
-  if (!s.created.some((x) => x.id === id)) throw new Error('Only sessions created here can be deleted.')
+  if (!getSessions().some((x) => x.id === id)) throw new Error('This session doesn’t exist any more.')
   const { [id]: _l, ...life } = s.life
   const { [id]: _c, ...counts } = s.counts
   void _l
   void _c
-  persist({ created: s.created.filter((x) => x.id !== id), life, counts })
+  const created = s.created.some((x) => x.id === id)
+  persist({ ...s, created: s.created.filter((x) => x.id !== id), life, counts, deleted: created ? s.deleted : [...(s.deleted ?? []), id] })
 }
 
+/** Bring back deleted sample sessions (prototype convenience). */
+export function restoreSampleSessions() {
+  const s = load()
+  persist({ ...s, deleted: [] })
+}
+
+export const deletedSampleCount = () => (load().deleted ?? []).length
+
 export function resetSessions() {
-  persist({ created: [], life: {}, counts: {} })
+  persist({ created: [], life: {}, counts: {}, deleted: [] })
 }

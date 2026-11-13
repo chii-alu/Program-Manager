@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronDown, Plus, Search } from 'lucide-react'
+import { ChevronDown, Plus, Search, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { AppShell } from '../shared/components/AppShell'
 import { Button, PageHeader, Panel, StatusBadge } from '../shared/components/ui'
@@ -8,7 +8,10 @@ import { Portal, Role, interventions, participants, pillarsFor, portalMeta, sess
 import { userFor } from '../shared/lib/auth'
 import { EmptyState } from '../shared/components/EmptyState'
 import { inRange, useTimeRange } from '../shared/lib/time'
-import { useSessions } from '../shared/data/sessionStore'
+import { deleteSession, deletedSampleCount, restoreSampleSessions, useSessions, type SessionRun } from '../shared/data/sessionStore'
+import { Modal } from '../shared/components/Modal'
+import { toast } from '../shared/lib/notify'
+import { logAction } from '../shared/lib/interventionLog'
 
 export const args = {
   role: 'admin',
@@ -35,6 +38,17 @@ export default function Interventions(props: Props) {
   const [modal, setModal] = useState(newSession)
   // Which intervention "Add a session to …" was clicked under, so the form starts on it.
   const [modalFor, setModalFor] = useState<string | undefined>(undefined)
+  // Deleting a session from the list (same confirmation as its Details tab).
+  const [deleting, setDeleting] = useState<SessionRun | null>(null)
+  const [typed, setTyped] = useState('')
+  const confirmDelete = () => {
+    if (!deleting) return
+    deleteSession(deleting.id)
+    logAction({ by: userFor(role, portal).user, pillar: deleting.pillar, action: 'session_deleted', session: deleting.name, detail: `Deleted ${deleting.name}` })
+    toast({ title: 'Session deleted', body: deleting.name, tone: 'info' })
+    setDeleting(null)
+  }
+  const hiddenSamples = deletedSampleCount()
   const reduce = useReducedMotion()
   const allSessions = useSessions()
   const { range, label } = useTimeRange()
@@ -57,6 +71,27 @@ export default function Interventions(props: Props) {
           onCloseNew?.()
         }}
       />
+      <Modal
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        title={`Delete ${deleting?.name ?? 'session'}?`}
+        description="Its forms, check-ins and responses go with it. This can’t be undone. People keep their CHII IDs and their other sessions."
+        size="sm"
+        icon={<Trash2 className="h-4 w-4" />}
+        footer={
+          <>
+            <Button onClick={() => setDeleting(null)}>Cancel</Button>
+            <button type="button" disabled={typed !== 'DELETE'} onClick={confirmDelete} className="h-9 rounded-lg bg-bad px-4 text-sm font-semibold text-white disabled:opacity-40">
+              Delete session
+            </button>
+          </>
+        }
+      >
+        <label className="block">
+          <span className="mb-1.5 block text-[13px] font-medium text-body">Type DELETE to confirm</span>
+          <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="DELETE" className="h-10 w-full rounded-lg border border-line-strong bg-surface px-3 text-sm outline-none focus:border-bad focus:ring-3 focus:ring-bad-bg" />
+        </label>
+      </Modal>
       <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-5">
         <PageHeader
           crumbs={[portalMeta[portal].label, 'Interventions']}
@@ -159,16 +194,25 @@ export default function Interventions(props: Props) {
                                 {runs.length ? (
                                   <ul className="space-y-1.5">
                                     {runs.map((s) => (
-                                      <li key={s.id}>
+                                      <li key={s.id} className="flex items-stretch gap-1.5">
                                         <button
                                           type="button"
                                           onClick={() => onOpenSession?.(s.id)}
-                                          className="flex w-full flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-line bg-surface px-3 py-2.5 text-left transition-colors duration-150 ease-out hover:border-line-strong"
+                                          className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-line bg-surface px-3 py-2.5 text-left transition-colors duration-150 ease-out hover:border-line-strong"
                                         >
                                           <span className="min-w-0 flex-1 truncate text-sm font-medium">{s.name}</span>
                                           <span className="text-xs text-muted">{s.dates}</span>
                                           <span className="text-xs tabular-nums text-muted">{s.registered} reg.</span>
                                           <StatusBadge status={s.status} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          aria-label={`Delete ${s.name}`}
+                                          title="Delete session"
+                                          onClick={() => (setDeleting(s), setTyped(''))}
+                                          className="grid w-10 shrink-0 place-items-center rounded-lg border border-line bg-surface text-muted transition-colors hover:border-bad/40 hover:bg-bad-bg hover:text-bad"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
                                         </button>
                                       </li>
                                     ))}
@@ -195,6 +239,15 @@ export default function Interventions(props: Props) {
           <Panel>
             <EmptyState icon={Search} title={q ? `No interventions match “${q}”` : `No ${kind} interventions here`} body="Clear the search or switch the type filter." action={{ label: 'Clear filters', onClick: () => (setQ(''), setKind('all')) }} />
           </Panel>
+        )}
+        {hiddenSamples > 0 && (
+          <p className="text-xs text-faint">
+            {hiddenSamples} sample session{hiddenSamples === 1 ? '' : 's'} deleted.{' '}
+            <button type="button" onClick={() => (restoreSampleSessions(), toast({ title: 'Sample sessions restored', tone: 'info' }))} className="font-semibold text-brand-600 hover:underline">
+              Restore {hiddenSamples === 1 ? 'it' : 'them'}
+            </button>{' '}
+            (prototype only)
+          </p>
         )}
       </div>
     </AppShell>
