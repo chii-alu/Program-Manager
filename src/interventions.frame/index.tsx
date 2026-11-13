@@ -8,6 +8,7 @@ import { Portal, Role, interventions, participants, pillarsFor, portalMeta, sess
 import { userFor } from '../shared/lib/auth'
 import { EmptyState } from '../shared/components/EmptyState'
 import { inRange, useTimeRange } from '../shared/lib/time'
+import { useSessions } from '../shared/data/sessionStore'
 
 export const args = {
   role: 'admin',
@@ -33,6 +34,7 @@ export default function Interventions(props: Props) {
   const [q, setQ] = useState('')
   const [modal, setModal] = useState(newSession)
   const reduce = useReducedMotion()
+  const allSessions = useSessions()
   const { range, label } = useTimeRange()
   const activeBy = (name: string) => participants.filter((x) => x.interventions.includes(name) && inRange(range, x.lastActive)).length
 
@@ -45,6 +47,7 @@ export default function Interventions(props: Props) {
         open={modal}
         pillars={pillars}
         by={userFor(role, portal).user}
+        onCreate={(id) => onOpenSession?.(id)}
         onClose={() => {
           setModal(false)
           onCloseNew?.()
@@ -110,7 +113,7 @@ export default function Interventions(props: Props) {
                 <ul className="divide-y divide-line">
                   {rows.map((i) => {
                     const isOpen = open === i.id
-                    const runs = sessions.filter((s) => s.intervention === i.name)
+                    const runs = allSessions.filter((s) => s.intervention === i.name)
                     return (
                       <li key={i.id}>
                         <button

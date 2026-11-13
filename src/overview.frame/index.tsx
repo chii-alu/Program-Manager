@@ -13,6 +13,7 @@ import { Popover } from '../shared/components/Popover'
 import { Column, ColFilter, HeaderMenu } from '../shared/components/DataTable'
 import { ChartTooltip, Legend, axisProps, gridProps, valueAxisProps, categoryAxisProps, valueLabelProps } from '../shared/components/charts'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { useSessions } from '../shared/data/sessionStore'
 
 export const args = {
   role: 'admin',
@@ -48,7 +49,8 @@ export default function Overview(props: Props) {
   const [filter, setFilter] = useState<'all' | SessionStatus>('all')
   const [pillarFilter, setPillarFilter] = useState<'all' | Pillar>('all')
   const pillars = pillarsFor(portal)
-  const mine = sessions.filter((s) => pillars.includes(s.pillar))
+  const allSessions = useSessions()
+  const mine = allSessions.filter((s) => pillars.includes(s.pillar))
   // The Pillar column and filter only matter in the MELA view, where all three pillars show.
   const multiPillar = pillars.length > 1
   const sessionCols = multiPillar ? allSessionCols : allSessionCols.filter((c) => c.key !== 'pillar')
@@ -106,7 +108,7 @@ export default function Overview(props: Props) {
 
   return (
     <AppShell role={role} portal={portal} active="overview" onNavigate={nav} onPortalChange={onPortalChange} onSignOut={onSignOut}>
-      <NewSessionModal open={newOpen} onClose={() => setNewOpen(false)} pillars={pillars} by={userFor(role, portal).user} />
+      <NewSessionModal open={newOpen} onClose={() => setNewOpen(false)} pillars={pillars} by={userFor(role, portal).user} onCreate={(id) => onOpenSession?.(id)} />
       {role === 'reviewer' ? (
         <ReviewerHome name={firstName} onNavigate={onNavigate} />
       ) : (

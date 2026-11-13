@@ -10,6 +10,7 @@ import { EmptyState } from '../shared/components/EmptyState'
 import { PageHeader, Panel } from '../shared/components/ui'
 import { Pillar, Portal, Role, portalMeta, sessions } from '../shared/data/mela'
 import { ACTION_LABEL, entriesFor, useLog, type LogAction } from '../shared/lib/interventionLog'
+import { getSessions } from '../shared/data/sessionStore'
 
 export const args = { role: 'pillar_staff', portal: 'hemp' }
 
@@ -124,7 +125,7 @@ export default function InterventionLog(props: Props) {
                   {visible.map((x, i) => {
                     const { icon: Icon, tone } = ICON[x.action]
                     const newDay = i === 0 || dayOf(visible[i - 1].at) !== dayOf(x.at)
-                    const s = sessions.find((se) => se.name === x.session)
+                    const s = getSessions().find((se) => se.name === x.session)
                     return (
                       <React.Fragment key={x.id}>
                         {newDay && <li className="border-b border-line bg-canvas px-4 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-muted">{dayOf(x.at)}</li>}

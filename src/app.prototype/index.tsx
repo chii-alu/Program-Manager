@@ -23,6 +23,7 @@ import InterventionLog from '../intervention-log.frame'
 import { resolveAccount } from '../shared/lib/auth'
 import { roleMeta, sessions } from '../shared/data/mela'
 import { templateFor } from '../shared/forms/templates'
+import { getSessions } from '../shared/data/sessionStore'
 
 const SIGN_IN = 'sign-in'
 const RESET = 'reset-password'
@@ -214,7 +215,7 @@ export default function MelaManager(props: Props) {
     case 'venture-update':
       return <VentureForms kind="update" />
     case FORM:
-      return <PublicForm preview kind={formKind} template={(() => { const se = sessions.find((x) => x.id === sessionId); return se ? templateFor(se.intervention, formKind, se.name) : null })()} onExitPreview={() => setStep(SESSION)} />
+      return <PublicForm preview kind={formKind} template={(() => { const se = getSessions().find((x) => x.id === sessionId); return se ? templateFor(se.intervention, formKind, se.name) : null })()} onExitPreview={() => setStep(SESSION)} />
     default:
       return (
         <SignIn

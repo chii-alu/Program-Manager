@@ -4,13 +4,17 @@ import { Modal } from './Modal'
 import { Pillar, interventions } from '../data/mela'
 import { notify } from '../lib/notify'
 import { logAction } from '../lib/interventionLog'
+import { createSession } from '../data/sessionStore'
 
 /** `by`: the signed-in staff member, for the Interventions activity log. */
-export function NewSessionModal({ open, onClose, pillars, onCreate, by }: { open: boolean; onClose: () => void; pillars: Pillar[]; onCreate?: () => void; by?: string }) {
+export function NewSessionModal({ open, onClose, pillars, onCreate, by }: { open: boolean; onClose: () => void; pillars: Pillar[]; onCreate?: (id: string) => void; by?: string }) {
   const options = interventions.filter((i) => pillars.includes(i.pillar))
   const [intervention, setIntervention] = useState(options[0]?.id ?? '')
   const [dates, setDates] = useState(['2025-11-24'])
   const chosen = options.find((o) => o.id === intervention)
+  const [name, setName] = useState('')
+  const [venue, setVenue] = useState('ALU Kigali campus')
+  const suggested = chosen ? `${chosen.name} · Cohort ${chosen.sessions + 1}` : ''
 
   return (
     <Modal
@@ -27,10 +31,15 @@ export function NewSessionModal({ open, onClose, pillars, onCreate, by }: { open
           <button
             type="button"
             onClick={() => {
-              onCreate?.()
-              if (chosen && by) logAction({ by, pillar: chosen.pillar, action: 'session_created', detail: `Created a ${chosen.name} session (${dates.length} date${dates.length === 1 ? '' : 's'}), forms saved as drafts` })
-              notify({ title: `Session created · ${chosen?.name ?? 'New session'}`, body: `${dates.length} date${dates.length === 1 ? '' : 's'} · forms saved as drafts`, tone: 'good', to: 'interventions' })
+              if (!chosen) return
+              // The session is created with its forms as drafts (from the intervention's templates),
+              // then opens on its process so staff can take it from registration to feedback.
+              const run = createSession({ interventionId: chosen.id, name: name || suggested, dates, venue })
+              if (by) logAction({ by, pillar: chosen.pillar, action: 'session_created', session: run.name, detail: `Created ${run.name} (${run.dates}), forms saved as drafts` })
+              notify({ title: `Session created · ${run.name}`, body: `${dates.length} date${dates.length === 1 ? '' : 's'} · forms saved as drafts`, tone: 'good', to: 'interventions' })
+              setName('')
               onClose()
+              onCreate?.(run.id)
             }}
             className="h-10 rounded-lg bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-hover"
           >
@@ -55,7 +64,7 @@ export function NewSessionModal({ open, onClose, pillars, onCreate, by }: { open
           )}
         </Field>
         <Field label="Session name">
-          <input defaultValue={chosen ? `${chosen.name} · Cohort ${chosen.sessions + 1}` : ''} className={input} />
+          <input value={name} placeholder={suggested} onChange={(e) => setName(e.target.value)} className={input} />
         </Field>
         <Field label="Dates">
           <div className="space-y-2">
@@ -76,7 +85,7 @@ export function NewSessionModal({ open, onClose, pillars, onCreate, by }: { open
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Venue">
-            <input defaultValue="ALU Kigali campus" className={input} />
+            <input value={venue} onChange={(e) => setVenue(e.target.value)} className={input} />
           </Field>
           <Field label="Completion threshold">
             <select defaultValue="75" className={input}>

@@ -18,6 +18,7 @@ import { userFor } from '../shared/lib/auth'
 
 type Log = (action: LogAction, detail: string) => void
 import { CheckCheck, UserRound, Users, XCircle } from 'lucide-react'
+import { addSampleResponses, recordAttendance, recordSelected, setFormStatus, useLifecycle, useSessions, type FormStatus, type SessionRun } from '../shared/data/sessionStore'
 
 export const args = {
   role: 'admin',
@@ -42,7 +43,8 @@ export default function Session(props: Props) {
   const { role: r, portal: p, sessionId, tab: initialTab, onNavigate, onPortalChange, onSignOut, onBack, onOpenPerson, onOpenForm } = { ...args, ...props }
   const role = r as Role
   const portal = (role !== 'admin' && p === 'admin' ? 'hent' : p) as Portal
-  const s = sessions.find((x) => x.id === sessionId) ?? sessions[1]
+  const all = useSessions()
+  const s = all.find((x) => x.id === sessionId) ?? all[1]
   // Every change on this page goes in the pillar's Interventions activity log, as the signed-in person.
   const log: Log = (action, detail) => logAction({ by: userFor(role, portal).user, pillar: s.pillar, action, session: s.name, detail })
   const [tab, setTab] = useState(initialTab)
@@ -80,6 +82,8 @@ export default function Session(props: Props) {
           </div>
         </div>
 
+        <SessionProcess s={s} log={log} onTab={setTab} onNavigate={onNavigate} />
+
         <nav className="no-scrollbar -mx-4 mt-5 overflow-x-auto border-b border-line px-4 sm:mx-0 sm:px-0">
           <ul className="flex w-max gap-5">
             {tabs.map((t) => (
@@ -98,9 +102,9 @@ export default function Session(props: Props) {
         </nav>
 
         <div className="mt-5">
-          {tab === 'forms' && <FormsTab log={log} kind={s.kind} intervention={s.intervention} cohort={s.name} registered={s.registered} attended={s.attended} feedback={s.feedback} onPreview={onOpenForm} onShare={setShare} />}
-          {tab === 'people' && <PeopleTab log={log} role={role} selective={s.kind === 'selective'} intervention={s.intervention} session={s.name} onOpenPerson={onOpenPerson} />}
-          {tab === 'attendance' && <AttendanceTab log={log} role={role} intervention={s.intervention} onQr={() => setShare('Attendance check-in')} />}
+          {tab === 'forms' && <FormsTab sessionId={s.id} log={log} kind={s.kind} intervention={s.intervention} cohort={s.name} registered={s.registered} attended={s.attended} feedback={s.feedback} onPreview={onOpenForm} onShare={setShare} />}
+          {tab === 'people' && <PeopleTab sessionId={s.id} limit={s.created ? s.registered : undefined} log={log} role={role} selective={s.kind === 'selective'} intervention={s.intervention} session={s.name} onOpenPerson={onOpenPerson} />}
+          {tab === 'attendance' && <AttendanceTab sessionDates={s.dateList} sessionId={s.id} limit={s.created ? s.registered : undefined} log={log} role={role} intervention={s.intervention} onQr={() => setShare('Attendance check-in')} />}
           {tab === 'feedback' &&
             (templateFor(s.intervention, 'feedback', s.name) ? (
               <TemplateFeedbackTab template={templateFor(s.intervention, 'feedback', s.name)!} attended={s.attended} feedback={s.feedback} cohort={s.name} intervention={s.intervention} />
@@ -111,6 +115,160 @@ export default function Session(props: Props) {
         </div>
       </div>
     </AppShell>
+  )
+}
+
+/* ---------------- The session's process ---------------- */
+
+type Step = { key: string; title: string; done: boolean; body: string; action?: { label: string; run: () => void }; extra?: { label: string; run: () => void } }
+
+/**
+ * The whole process, from registration forms to feedback, as one tracker: what's done, what's
+ * next and the button that does it. Every action goes through the same store and activity log
+ * as the tabs below, so the tracker and the tabs always agree.
+ */
+function SessionProcess({ s, log, onTab, onNavigate }: { s: SessionRun; log: Log; onTab: (t: (typeof tabs)[number]) => void; onNavigate?: (to: string) => void }) {
+  const life = useLifecycle(s.id)
+  const selective = s.kind === 'selective'
+  const regName = selective ? 'Application' : 'Registration'
+  const code = formCode(s.name)
+  const regT = templateFor(s.intervention, selective ? 'application' : 'registration', s.name)
+  const fbkT = templateFor(s.intervention, 'feedback', s.name)
+  const form = (k: 'reg' | 'att' | 'fbk', st: FormStatus, name: string, suffix: string, extra = '') => {
+    setFormStatus(s.id, k, st)
+    log(st === 'open' ? 'form_opened' : st === 'closed' ? 'form_closed' : 'form_draft', `${st === 'open' ? 'Opened' : 'Closed'} the ${name} form (${code}-${suffix})${extra}`)
+  }
+  const rate = s.attended ? Math.round((s.feedback / s.attended) * 100) : 0
+
+  const steps: Step[] = [
+    {
+      key: 'forms',
+      title: 'Forms ready',
+      done: true,
+      body: `${regName}${regT ? ` (${regT.title})` : ''}, attendance check-in and feedback${fbkT ? ` (${fbkT.title})` : ''}, created as drafts.`,
+    },
+    {
+      key: 'open',
+      title: `Open ${selective ? 'applications' : 'registration'}`,
+      done: life.forms.reg !== 'draft',
+      body: life.forms.reg === 'draft' ? `Open the ${regName.toLowerCase()} form, then share its link (/f/${code}-REG).` : `${s.registered.toLocaleString()} ${selective ? 'applications' : 'registrations'} so far.`,
+      action: { label: `Open the ${regName.toLowerCase()} form`, run: () => form('reg', 'open', regName, 'REG') },
+    },
+    ...(selective
+      ? [
+          {
+            key: 'select',
+            title: 'Review and select',
+            done: life.selected > 0,
+            body: life.selected ? `${life.selected} selected.` : 'Reviewers score the applications; then select who joins.',
+            action: { label: 'Go to applications', run: () => onTab('people') },
+          },
+        ]
+      : []),
+    {
+      key: 'close',
+      title: `Close ${selective ? 'applications' : 'registration'}`,
+      done: life.forms.reg === 'closed',
+      body: `Stop new ${selective ? 'applications' : 'registrations'} before the session starts.`,
+      action: { label: `Close the ${regName.toLowerCase()} form`, run: () => form('reg', 'closed', regName, 'REG', `: ${s.registered.toLocaleString()} responses`) },
+    },
+    {
+      key: 'attendance',
+      title: 'Take attendance',
+      done: life.attendanceDays > 0,
+      body: life.attendanceDays ? `${s.attended.toLocaleString()} attended · ${life.attendanceDays} date${life.attendanceDays === 1 ? '' : 's'} marked.` : 'Open the check-in on the day, or mark attendance by hand.',
+      action: {
+        label: life.forms.att === 'open' ? 'Go to attendance' : 'Open check-in',
+        run: () => {
+          if (life.forms.att !== 'open') form('att', 'open', 'Attendance check-in', 'ATT')
+          onTab('attendance')
+        },
+      },
+    },
+    {
+      key: 'feedback',
+      title: 'Collect feedback',
+      done: life.forms.fbk !== 'draft',
+      body: life.forms.fbk === 'draft' ? 'Open the feedback form after the last session date.' : `${s.feedback.toLocaleString()} responses · ${rate}% of those who attended.`,
+      action: { label: 'Open the feedback form', run: () => form('fbk', 'open', 'Feedback', 'FBK') },
+    },
+    {
+      key: 'wrap',
+      title: 'Wrap up',
+      done: life.forms.fbk === 'closed',
+      body: life.forms.fbk === 'closed' ? `${s.attended.toLocaleString()} attended · ${s.feedback.toLocaleString()} feedback responses (${rate}%). Every step is in the Activity log.` : 'Close the feedback form once responses stop coming in. The session is then completed.',
+      action: {
+        label: 'Close feedback and finish',
+        run: () => {
+          if (life.forms.att === 'open') form('att', 'closed', 'Attendance check-in', 'ATT')
+          form('fbk', 'closed', 'Feedback', 'FBK', `: ${s.feedback.toLocaleString()} responses`)
+        },
+      },
+    },
+  ]
+
+  // Prototype only: a new session can't get real responses, so it can be filled with sample ones.
+  const cur = steps.find((x) => !x.done)
+  if (s.created && cur?.key === (selective ? 'select' : 'close') && s.registered === 0)
+    cur.extra = { label: 'Add sample responses', run: () => addSampleResponses(s.id, 'registered', 24) }
+  if (s.created && cur?.key === 'wrap' && s.feedback === 0 && s.attended > 0)
+    cur.extra = { label: 'Add sample feedback', run: () => addSampleResponses(s.id, 'feedback', Math.max(1, Math.round(s.attended * 0.45))) }
+
+  const doneCount = steps.filter((x) => x.done).length
+  return (
+    <section aria-label="Session process" className="mt-5 overflow-hidden rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-surface shadow-[var(--shadow-soft)]">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line px-4 py-2.5 sm:px-5">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.08em] text-brand-600">Session process</h2>
+        <span className="text-xs text-muted">
+          {doneCount} of {steps.length} steps done
+        </span>
+      </div>
+      <ol className="no-scrollbar flex overflow-x-auto px-2 py-3 sm:px-3">
+        {steps.map((x, i) => {
+          const now = x === cur
+          return (
+            <li key={x.key} className="flex min-w-[124px] flex-1 items-start gap-2 px-2">
+              <span
+                className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold ${x.done ? 'bg-good text-white' : now ? 'bg-brand text-white ring-4 ring-brand-100' : 'bg-canvas text-muted'}`}
+              >
+                {x.done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+              </span>
+              <span className={`text-[12.5px] leading-snug ${now ? 'font-semibold text-ink' : x.done ? 'text-body' : 'text-muted'}`}>{x.title}</span>
+            </li>
+          )
+        })}
+      </ol>
+      <div className="flex flex-col gap-3 border-t border-line bg-canvas/60 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+        {cur ? (
+          <>
+            <p className="min-w-0 flex-1 text-sm text-body">
+              <span className="font-semibold text-ink">Next: {cur.title}.</span> {cur.body}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {cur.extra && (
+                <Button className="h-9 text-xs" onClick={cur.extra.run}>
+                  {cur.extra.label} <span className="font-normal text-muted">(prototype)</span>
+                </Button>
+              )}
+              {cur.action && (
+                <Button variant="primary" className="h-9 text-xs" onClick={cur.action.run}>
+                  {cur.action.label}
+                </Button>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="min-w-0 flex-1 text-sm text-body">
+              <span className="font-semibold text-good">Completed.</span> {steps[steps.length - 1].body}
+            </p>
+            <Button variant="primary" className="h-9 text-xs" onClick={() => onNavigate?.('reports')}>
+              Write the report
+            </Button>
+          </>
+        )}
+      </div>
+    </section>
   )
 }
 
@@ -128,8 +286,14 @@ export const formCode = (cohort: string) => {
   return `${head.slice(0, 4)}${cohort.match(/(\d+)\s*$/)?.[1] ?? ''}`
 }
 
-function FormsTab({ log, kind, intervention, cohort, registered, attended, feedback, onPreview, onShare }: { log: Log; kind: string; intervention: string; cohort: string; registered: number; attended: number; feedback: number; onPreview?: (k: 'application' | 'registration' | 'attendance' | 'feedback') => void; onShare: (f: string) => void }) {
-  const [status, setStatus] = useState<Record<string, string>>({ a: 'open', b: 'open', c: 'draft' })
+function FormsTab({ sessionId, log, kind, intervention, cohort, registered, attended, feedback, onPreview, onShare }: { sessionId: string; log: Log; kind: string; intervention: string; cohort: string; registered: number; attended: number; feedback: number; onPreview?: (k: 'application' | 'registration' | 'attendance' | 'feedback') => void; onShare: (f: string) => void }) {
+  // Form statuses are part of the session's process, so they're kept (and drive the tracker above).
+  const life = useLifecycle(sessionId)
+  const KEYS = { a: 'reg', b: 'att', c: 'fbk' } as const
+  const status: Record<string, string> = { a: life.forms.reg, b: life.forms.att, c: life.forms.fbk }
+  const setStatus = (next: Record<string, string>) => {
+    for (const k of ['a', 'b', 'c'] as const) if (next[k] !== status[k]) setFormStatus(sessionId, KEYS[k], next[k] as FormStatus)
+  }
   const forms = [
     {
       id: 'a',
@@ -262,13 +426,14 @@ const SHORT_VALUE: Record<string, string> = {
   'BA (Hons) International Business & Trade': 'International Business & Trade',
 }
 
-function PeopleTab({ log, role, selective, intervention, session, onOpenPerson }: { log: Log; role: Role; selective: boolean; intervention: string; session: string; onOpenPerson?: (id: string) => void }) {
+function PeopleTab({ sessionId, limit, log, role, selective, intervention, session, onOpenPerson }: { sessionId: string; limit?: number; log: Log; role: Role; selective: boolean; intervention: string; session: string; onOpenPerson?: (id: string) => void }) {
   const showId = canSeeIdentity(role)
   const statuses = selective ? ['Applied', 'Selected', 'Waitlisted', 'Not selected'] : ['Registered', 'Confirmed', 'Cancelled']
   const [state, setState] = useState<Record<string, string>>({})
   const [only, setOnly] = useState<string | null>(null)
   const pool = participants.filter((x) => x.interventions.includes(intervention))
-  const base = (pool.length >= 8 ? pool : participants.slice(0, 24)).map((x, i) => {
+  // A new session only lists the responses it has (none until its form is open).
+  const base = (pool.length >= 8 ? pool : participants.slice(0, 24)).slice(0, limit ?? undefined).map((x, i) => {
     const score = selective ? ((i * 7) % 5 === 0 ? null : 9 + ((i * 13) % 12)) : null
     return { ...x, score, submitted: x.joined, def: selective ? (score != null && score >= 16 ? 'Selected' : 'Applied') : i % 9 === 4 ? 'Cancelled' : i % 3 === 0 ? 'Confirmed' : 'Registered' }
   })
@@ -285,6 +450,9 @@ function PeopleTab({ log, role, selective, intervention, session, onOpenPerson }
   const all: Entry[] = base.map((x) => ({ ...x, st: state[x.id] ?? x.def, answers: tpl ? (applications.find((a) => a.id === x.id)?.answers ?? sampleAnswers(tpl, x.id)) : undefined }))
   const rows = only ? all.filter((x) => x.st === only) : all
   const setStatus = (ids: string[], st: string) => {
+    const wasSelected = ids.filter((id) => all.find((x) => x.id === id)?.st === 'Selected').length
+    const nowSelected = st === 'Selected' ? ids.length : 0
+    if (nowSelected !== wasSelected) recordSelected(sessionId, nowSelected - wasSelected)
     setState((s) => ({ ...s, ...Object.fromEntries(ids.map((id) => [id, st])) }))
     toast({ title: `${ids.length === 1 ? (showId ? all.find((x) => x.id === ids[0])?.name : ids[0]) : `${ids.length} people`} → ${st}`, tone: st === 'Selected' || st === 'Confirmed' ? 'good' : 'info' })
     // The log names applicants by CHII ID only, never by name.
@@ -393,16 +561,22 @@ function PeopleTab({ log, role, selective, intervention, session, onOpenPerson }
 
 /* ---------------- Attendance ---------------- */
 
-function AttendanceTab({ log, role, intervention, onQr }: { log: Log; role: Role; intervention: string; onQr: () => void }) {
-  const dates = ['3 Nov', '10 Nov', '17 Nov', '24 Nov', '1 Dec', '15 Dec']
-  const [day, setDay] = useState(1)
+function AttendanceTab({ sessionDates, sessionId, limit, log, role, intervention, onQr }: { sessionDates?: string[]; sessionId: string; limit?: number; log: Log; role: Role; intervention: string; onQr: () => void }) {
+  // A created session takes attendance on its own dates; the sample sessions keep theirs.
+  const dates = sessionDates?.length ? sessionDates.map((d) => new Date(`${d}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })) : ['3 Nov', '10 Nov', '17 Nov', '24 Nov', '1 Dec', '15 Dec']
+  const [day, setDay] = useState(sessionDates?.length ? 0 : 1)
   const showId = canSeeIdentity(role)
   const pool = participants.filter((x) => x.interventions.includes(intervention))
-  const everyone = pool.length >= 8 ? pool : participants.slice(0, 24)
-  const [byDay, setByDay] = useState<Record<number, Record<string, boolean>>>(() => ({
-    0: Object.fromEntries(everyone.map((x, i) => [x.id, i % 6 !== 2])),
-    1: Object.fromEntries(everyone.map((x, i) => [x.id, i % 4 !== 1])),
-  }))
+  const everyone = (pool.length >= 8 ? pool : participants.slice(0, 24)).slice(0, limit ?? undefined)
+  // A new session starts with nobody marked; the sample sessions have earlier check-ins.
+  const [byDay, setByDay] = useState<Record<number, Record<string, boolean>>>((): Record<number, Record<string, boolean>> =>
+    sessionDates?.length
+      ? {}
+      : {
+          0: Object.fromEntries(everyone.map((x, i) => [x.id, i % 6 !== 2])),
+          1: Object.fromEntries(everyone.map((x, i) => [x.id, i % 4 !== 1])),
+        },
+  )
   const present = byDay[day] ?? {}
   const setPresent = (next: Record<string, boolean>) => setByDay((b) => ({ ...b, [day]: next }))
   const [walkIn, setWalkIn] = useState(false)
@@ -491,7 +665,7 @@ function AttendanceTab({ log, role, intervention, onQr }: { log: Log; role: Role
                 </button>
               ))}
             </div>
-            <Button className="h-9 shrink-0 px-3 text-xs" onClick={() => (setPresent(Object.fromEntries(everyone.map((x) => [x.id, true]))), log('attendance_marked', `Marked all ${everyone.length} present · ${dates[day]}`), toast({ title: `All ${everyone.length} marked present`, body: dates[day], tone: 'good' }))}>
+            <Button className="h-9 shrink-0 px-3 text-xs" onClick={() => (setPresent(Object.fromEntries(everyone.map((x) => [x.id, true]))), log('attendance_marked', `Marked all ${everyone.length} present · ${dates[day]}`), recordAttendance(sessionId, everyone.length), toast({ title: `All ${everyone.length} marked present`, body: dates[day], tone: 'good' }))}>
               <CheckCheck className="h-3.5 w-3.5" /> Mark all
             </Button>
           </div>

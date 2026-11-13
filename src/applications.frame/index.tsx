@@ -10,6 +10,7 @@ import { Modal } from '../shared/components/Modal'
 import { Portal, Role, applications, portalMeta } from '../shared/data/mela'
 import { applicationTemplateFor, isAsked, reviewQuestions, wordCount } from '../shared/forms/templates'
 import { sessions } from '../shared/data/mela'
+import { getSessions } from '../shared/data/sessionStore'
 
 export const args = {
   role: 'reviewer',
@@ -58,7 +59,7 @@ export default function Applications(props: Props) {
     const next = { ...scores, [app.id]: total }
     setScores(next)
     const remaining = applications.filter((a) => next[a.id] == null).length
-    const pillar = sessions.find((x) => x.name === app.session)?.pillar
+    const pillar = getSessions().find((x) => x.name === app.session)?.pillar
     if (pillar) logAction({ by: userFor(role, portal).user, pillar, action: 'application_scored', session: app.session, detail: `Scored ${app.id} · ${total}/20` })
     notify({ title: `Scored ${app.id} · ${total}/20`, body: remaining ? `${remaining} left in your queue` : 'Your queue is clear', tone: remaining ? 'info' : 'good', to: 'applications' })
     const upcoming = applications.find((a) => next[a.id] == null)
@@ -246,7 +247,7 @@ const ScoreForm: React.FC<{ app: (typeof applications)[number]; existing: number
  */
 /** The application form a cohort uses (e.g. SIE's, or SFH's for every SFH internship cohort). */
 function templateOf(session: string) {
-  const s = sessions.find((x) => x.name === session)
+  const s = getSessions().find((x) => x.name === session)
   return s ? applicationTemplateFor(s.intervention, s.name) : null
 }
 
