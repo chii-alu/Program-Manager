@@ -16,6 +16,8 @@ import { logAction } from '../shared/lib/interventionLog'
 import { templateFor } from '../shared/forms/templates'
 import { formCode } from '../session.frame'
 import { WorksheetView, WorksheetsPanel } from './Worksheets'
+import { PreCourseSummary } from '../session.frame/PreCourse'
+import { hasPreCourse } from '../shared/data/preCourse'
 
 export const args = {
   role: 'admin',
@@ -362,6 +364,9 @@ function InterventionPage({
 
       {/* Selective interventions work from selection worksheets: master, per cohort, imported. */}
       {selective && <WorksheetsPanel intervention={iv.name} runs={runs} me={me} onOpen={onOpenWorksheet} />}
+
+      {/* SIE: the pre-internship course on Canvas, per cohort. */}
+      {hasPreCourse(iv.name) && <PreCourseSummary runs={runs} onOpenSession={onOpenSession} />}
 
       <section>
         <h2 className="mb-3 font-display text-xl font-semibold text-ink">Sessions</h2>

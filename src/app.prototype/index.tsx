@@ -104,6 +104,7 @@ export default function MelaManager(props: Props) {
   const [resetState, setResetState] = useState<'default' | 'sending' | 'sent'>('default')
   const [personId, setPersonId] = useState('CHII-000214')
   const [sessionId, setSessionId] = useState('s2')
+  const [sessionTab, setSessionTab] = useState('forms')
   const [sheet, setSheet] = useState<'participants' | 'feedback' | 'ventures'>('participants')
   const [newSession, setNewSession] = useState(false)
   const [focusIntervention, setFocusIntervention] = useState<string | null>(null)
@@ -149,7 +150,9 @@ export default function MelaManager(props: Props) {
       return setStep(PERSON)
     }
     if (to.startsWith('session:')) {
-      setSessionId(to.slice(8))
+      const [sid, tab] = to.slice(8).split('#')
+      setSessionId(sid)
+      setSessionTab(tab || 'forms')
       return setStep(SESSION)
     }
     // One intervention's page (pillar portals list each intervention in the sidebar).
@@ -186,8 +189,11 @@ export default function MelaManager(props: Props) {
     setPersonId(id)
     setStep(PERSON)
   }
+  // "id#tab" opens a session on one of its tabs (e.g. the SIE pre-internship course).
   const openSession = (id: string) => {
-    setSessionId(id)
+    const [sid, tab] = id.split('#')
+    setSessionId(sid)
+    setSessionTab(tab || 'forms')
     setStep(SESSION)
   }
 
@@ -215,7 +221,7 @@ export default function MelaManager(props: Props) {
     case INTERVENTIONS:
       return <Interventions {...shared} focus={focusIntervention ?? undefined} newSession={newSession} onCloseNew={() => setNewSession(false)} onOpenSession={openSession} />
     case SESSION:
-      return <Session {...shared} sessionId={sessionId} onBack={() => setStep(INTERVENTIONS)} onOpenPerson={openPerson} onOpenForm={(k) => (setFormKind(k), setStep(FORM))} />
+      return <Session key={`${sessionId}#${sessionTab}`} {...shared} sessionId={sessionId} tab={sessionTab} onBack={() => setStep(INTERVENTIONS)} onOpenPerson={openPerson} onOpenForm={(k) => (setFormKind(k), setStep(FORM))} />
     case PARTICIPANTS:
       return <Participants {...shared} onOpenPerson={openPerson} />
     case PERSON:

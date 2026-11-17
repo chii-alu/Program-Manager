@@ -20,6 +20,7 @@ export type LogAction =
   | 'application_scored'
   | 'attendance_marked'
   | 'sheet_imported'
+  | 'course_synced'
 
 export type LogEntry = {
   id: string
@@ -43,6 +44,7 @@ export const ACTION_LABEL: Record<LogAction, string> = {
   application_scored: 'Application scored',
   attendance_marked: 'Attendance',
   sheet_imported: 'Sheet imported',
+  course_synced: 'Canvas course synced',
 }
 
 const KEY = 'mela-intervention-log-v1'

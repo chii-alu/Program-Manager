@@ -35,6 +35,7 @@ const ICON: Record<LogAction, { icon: React.ComponentType<{ className?: string }
   application_scored: { icon: ClipboardCheck, tone: 'text-good bg-good-bg' },
   attendance_marked: { icon: CalendarCheck, tone: 'text-good bg-good-bg' },
   sheet_imported: { icon: FileInput, tone: 'text-brand-600 bg-brand-50' },
+  course_synced: { icon: FileInput, tone: 'text-brand-600 bg-brand-50' },
 }
 
 const FILTERS: { key: string; label: string; actions: LogAction[] }[] = [
@@ -42,7 +43,7 @@ const FILTERS: { key: string; label: string; actions: LogAction[] }[] = [
   { key: 'forms', label: 'Forms', actions: ['form_opened', 'form_closed', 'form_draft'] },
   { key: 'applicants', label: 'Applicants', actions: ['applicants_decided', 'application_scored'] },
   { key: 'attendance', label: 'Attendance', actions: ['attendance_marked'] },
-  { key: 'imports', label: 'Imports', actions: ['sheet_imported'] },
+  { key: 'imports', label: 'Imports', actions: ['sheet_imported', 'course_synced'] },
 ]
 
 const PAGE = 15

@@ -15,6 +15,8 @@ import { sampleAnswers, sampleResponses } from '../shared/forms/samples'
 import { notify, toast } from '../shared/lib/notify'
 import { logAction, type LogAction } from '../shared/lib/interventionLog'
 import { userFor } from '../shared/lib/auth'
+import { hasPreCourse } from '../shared/data/preCourse'
+import { PreCourseTab } from './PreCourse'
 
 type Log = (action: LogAction, detail: string) => void
 import { CheckCheck, UserRound, Users, XCircle } from 'lucide-react'
@@ -37,7 +39,7 @@ type Props = Partial<typeof args> & {
   onOpenForm?: (kind: 'application' | 'registration' | 'attendance' | 'feedback') => void
 }
 
-const tabs = ['forms', 'people', 'attendance', 'feedback', 'details'] as const
+const tabs = ['forms', 'people', 'course', 'attendance', 'feedback', 'details'] as const
 
 export default function Session(props: Props) {
   const { role: r, portal: p, sessionId, tab: initialTab, onNavigate, onPortalChange, onSignOut, onBack, onOpenPerson, onOpenForm } = { ...args, ...props }
@@ -89,14 +91,14 @@ export default function Session(props: Props) {
 
         <nav className="no-scrollbar -mx-4 mt-5 overflow-x-auto border-b border-line px-4 sm:mx-0 sm:px-0">
           <ul className="flex w-max gap-5">
-            {tabs.map((t) => (
+            {tabs.filter((t) => t !== 'course' || hasPreCourse(s.intervention)).map((t) => (
               <li key={t}>
                 <button
                   type="button"
                   onClick={() => setTab(t)}
                   className={`relative h-10 text-sm font-medium capitalize transition-colors duration-150 ease-out ${tab === t ? 'text-ink' : 'text-muted hover:text-ink'}`}
                 >
-                  {t === 'people' ? (s.kind === 'selective' ? 'Applications' : 'Registrations') : t}
+                  {t === 'people' ? (s.kind === 'selective' ? 'Applications' : 'Registrations') : t === 'course' ? 'Pre-internship course' : t}
                   {tab === t && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand-600" />}
                 </button>
               </li>
@@ -107,6 +109,7 @@ export default function Session(props: Props) {
         <div className="mt-5">
           {tab === 'forms' && <FormsTab sessionId={s.id} log={log} kind={s.kind} intervention={s.intervention} cohort={s.name} registered={s.registered} attended={s.attended} feedback={s.feedback} onPreview={onOpenForm} onShare={setShare} />}
           {tab === 'people' && <PeopleTab sessionId={s.id} limit={s.created ? s.registered : undefined} log={log} role={role} selective={s.kind === 'selective'} intervention={s.intervention} session={s.name} onOpenPerson={onOpenPerson} />}
+          {tab === 'course' && hasPreCourse(s.intervention) && <PreCourseTab s={s} me={userFor(role, portal).user} showId={canSeeIdentity(role)} log={log} onOpenPerson={onOpenPerson} />}
           {tab === 'attendance' && <AttendanceTab sessionDates={s.dateList} sessionId={s.id} limit={s.created ? s.registered : undefined} log={log} role={role} intervention={s.intervention} onQr={() => setShare('Attendance check-in')} />}
           {tab === 'feedback' &&
             (templateFor(s.intervention, 'feedback', s.name) ? (
