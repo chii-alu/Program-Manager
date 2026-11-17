@@ -438,7 +438,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
         </dl>
       </Modal>
       <Toaster onAction={go} />
-      {role !== 'none' && <HelpWidget onGo={go} />}
+      {role !== 'none' && <HelpWidget onGo={go} context={{ page: active, role, portal, user: me.user }} />}
     </div>
   )
 }
