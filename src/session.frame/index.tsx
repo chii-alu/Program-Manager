@@ -47,15 +47,18 @@ export default function Session(props: Props) {
   const s = all.find((x) => x.id === sessionId) ?? all[1]
   // Every change on this page goes in the pillar's Interventions activity log, as the signed-in person.
   const log: Log = (action, detail) => logAction({ by: userFor(role, portal).user, pillar: s.pillar, action, session: s.name, detail })
+  // In a pillar portal a session belongs to its intervention's page (and sidebar entry).
+  const ivId = interventions.find((i) => i.name === s.intervention)?.id
+  const toIntervention = portal !== 'admin' && ivId ? () => onNavigate?.(`intervention:${ivId}`) : onBack
   const [tab, setTab] = useState(initialTab)
   const [share, setShare] = useState<string | null>(null)
 
   return (
-    <AppShell role={role} portal={portal} active="interventions" onNavigate={onNavigate} onPortalChange={onPortalChange} onSignOut={onSignOut}>
+    <AppShell role={role} portal={portal} active={portal !== 'admin' && ivId ? `intervention:${ivId}` : 'interventions'} onNavigate={onNavigate} onPortalChange={onPortalChange} onSignOut={onSignOut}>
       <ShareModal form={share} code={formCode(s.name)} onClose={() => setShare(null)} />
       <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-5">
-        <button type="button" onClick={onBack} className="-ml-1 flex items-center gap-1.5 rounded-md px-1 py-1 text-sm font-medium text-muted hover:text-ink">
-          <ArrowLeft className="h-4 w-4" /> Interventions
+        <button type="button" onClick={toIntervention} className="-ml-1 flex items-center gap-1.5 rounded-md px-1 py-1 text-sm font-medium text-muted hover:text-ink">
+          <ArrowLeft className="h-4 w-4" /> {portal !== 'admin' && ivId ? s.intervention : 'Interventions'}
         </button>
         <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -111,7 +114,7 @@ export default function Session(props: Props) {
             ) : (
               <FeedbackTab attended={s.attended} feedback={s.feedback} />
             ))}
-          {tab === 'details' && <DetailsTab key={s.id} s={s} log={log} onDeleted={onBack} />}
+          {tab === 'details' && <DetailsTab key={s.id} s={s} log={log} onDeleted={toIntervention} />}
         </div>
       </div>
     </AppShell>

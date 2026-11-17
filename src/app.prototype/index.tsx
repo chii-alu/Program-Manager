@@ -89,6 +89,7 @@ export default function MelaManager(props: Props) {
   const [sessionId, setSessionId] = useState('s2')
   const [sheet, setSheet] = useState<'participants' | 'feedback' | 'ventures'>('participants')
   const [newSession, setNewSession] = useState(false)
+  const [focusIntervention, setFocusIntervention] = useState<string | null>(null)
   const [formKind, setFormKind] = useState<'application' | 'registration' | 'attendance' | 'feedback'>('feedback')
   const [ventureView, setVentureView] = useState<VentureView>('registry')
 
@@ -133,6 +134,12 @@ export default function MelaManager(props: Props) {
       setSessionId(to.slice(8))
       return setStep(SESSION)
     }
+    // One intervention's page (pillar portals list each intervention in the sidebar).
+    if (to.startsWith('intervention:')) {
+      setFocusIntervention(to.slice(13))
+      return setStep(INTERVENTIONS)
+    }
+    if (to === 'interventions') setFocusIntervention(null)
     if (to === 'new-session') {
       setNewSession(true)
       return setStep(INTERVENTIONS)
@@ -185,7 +192,7 @@ export default function MelaManager(props: Props) {
     case INTERVENTION_LOG:
       return <InterventionLog {...shared} onOpenSession={openSession} />
     case INTERVENTIONS:
-      return <Interventions {...shared} newSession={newSession} onCloseNew={() => setNewSession(false)} onOpenSession={openSession} />
+      return <Interventions {...shared} focus={focusIntervention ?? undefined} newSession={newSession} onCloseNew={() => setNewSession(false)} onOpenSession={openSession} />
     case SESSION:
       return <Session {...shared} sessionId={sessionId} onBack={() => setStep(INTERVENTIONS)} onOpenPerson={openPerson} onOpenForm={(k) => (setFormKind(k), setStep(FORM))} />
     case PARTICIPANTS:

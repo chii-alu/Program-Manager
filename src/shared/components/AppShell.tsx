@@ -8,6 +8,7 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  CircleDot,
   History,
   ChevronsLeft,
   ChevronsUpDown,
@@ -54,7 +55,8 @@ import { startRealtime, timeAgo, toast, useNotifications } from '../lib/notify'
 import { bounds, totals, useTimeRange } from '../lib/time'
 import { useInstall } from '../lib/pwa'
 import { canUseVentures } from '../ventures/store'
-import { Portal, Role, applications, participants, pillarStats, pillarsFor, portalMeta, sessions } from '../data/mela'
+import { Portal, Role, applications, interventions, participants, pillarStats, pillarsFor, portalMeta, sessions } from '../data/mela'
+import { useSessions } from '../data/sessionStore'
 import { userFor } from '../lib/auth'
 
 export type ShellProps = {
@@ -118,7 +120,9 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
   const [loading, setLoading] = useState(true)
   const { theme, toggle } = useTheme()
   const { range } = useTimeRange()
-  const groups = navFor(role, portal)
+  const runs = useSessions()
+  const runCounts = useMemo(() => runs.reduce<Record<string, number>>((m, s) => ((m[s.intervention] = (m[s.intervention] ?? 0) + 1), m), {}), [runs])
+  const groups = navFor(role, portal, runCounts)
   const primary = bottomFor(role)
   const me = userFor(role, portal)
   const collapsed = sb.collapsed
@@ -523,7 +527,12 @@ function SideLink({ item, active, wide, onClick, sub, expanded }: { item: NavIte
         className={`flex min-h-8 w-full items-center gap-2.5 rounded-md px-2 py-1 text-left text-[12.5px] transition-colors duration-150 ease-out ${active ? 'bg-white/12 font-bold text-white' : 'font-medium text-white/70 hover:bg-white/8 hover:text-white'}`}
       >
         <Icon className={`h-3.5 w-3.5 shrink-0 ${active ? 'text-white' : 'text-white/60'}`} />
-        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+        <span className="min-w-0 flex-1 leading-snug">
+          <span className="line-clamp-2 break-words">{item.label}</span>
+        </span>
+        {item.count != null && (
+          <span className={`grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[10.5px] font-bold tabular-nums ${active ? 'bg-white text-brand' : 'bg-white/12 text-white/80'}`}>{item.count}</span>
+        )}
       </button>
     )
   return (
@@ -1001,7 +1010,7 @@ function IconButton({ label, children, className = '', onClick }: { label: strin
 /** Pillar portals name each sheet after the pillar ("HEMP Participants Sheet"); the MELA view keeps the plain names. */
 const sheetName = (portal: Portal, sheet: string) => (portal === 'admin' ? `${sheet} sheet` : `${portalMeta[portal].label} ${sheet} Sheet`)
 
-function navFor(role: Role, portal: Portal): NavGroup[] {
+function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = {}): NavGroup[] {
   if (role === 'none') return []
   if (role === 'reviewer') {
     return [
@@ -1020,6 +1029,8 @@ function navFor(role: Role, portal: Portal): NavGroup[] {
       title: 'Workspace',
       items: [
         { key: 'overview', label: 'Overview', icon: LayoutGrid },
+        // Analytics sits right after Overview in every portal's sidebar.
+        { key: 'analytics', label: 'Analytics', icon: BarChart3 },
         // In the HENT portal only. The MELA view keeps the Ventures sheet (below) but not this menu;
         // MELA admins still reach the registry by switching to the HENT portal.
         ...(canUseVentures({ role, pillars: pillarsFor(portal) }) && portal === 'hent'
@@ -1037,13 +1048,17 @@ function navFor(role: Role, portal: Portal): NavGroup[] {
               },
             ]
           : []),
-        { key: 'analytics', label: 'Analytics', icon: BarChart3 },
         {
           key: 'interventions-group',
           label: 'Interventions',
           icon: Layers,
           children: [
-            { key: 'interventions', label: 'All interventions', short: 'Sessions', icon: Layers },
+            // Pillar portals list each intervention (with its number of sessions); MELA keeps one list of all.
+            ...(portal === 'admin'
+              ? [{ key: 'interventions', label: 'All interventions', short: 'Sessions', icon: Layers }]
+              : interventions
+                  .filter((iv) => iv.pillar === portalMeta[portal].label)
+                  .map((iv) => ({ key: `intervention:${iv.id}`, label: iv.name, icon: CircleDot, count: runCounts[iv.name] ?? 0 }))),
             { key: 'import', label: 'Import a sheet', icon: Upload },
             // Who did what to the pillar's sessions: HEMP and HECO.
             ...(portal === 'hemp' || portal === 'heco' ? [{ key: 'interventions-log', label: 'Activity log', icon: History }] : []),

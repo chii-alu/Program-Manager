@@ -12,6 +12,8 @@ import { deleteSession, deletedSampleCount, restoreSampleSessions, useSessions, 
 import { Modal } from '../shared/components/Modal'
 import { toast } from '../shared/lib/notify'
 import { logAction } from '../shared/lib/interventionLog'
+import { templateFor } from '../shared/forms/templates'
+import { formCode } from '../session.frame'
 
 export const args = {
   role: 'admin',
@@ -25,10 +27,12 @@ type Props = Partial<typeof args> & {
   onSignOut?: () => void
   onOpenSession?: (id: string) => void
   onCloseNew?: () => void
+  /** One intervention's page (from the sidebar in pillar portals), by intervention id. */
+  focus?: string
 }
 
 export default function Interventions(props: Props) {
-  const { role: r, portal: p, newSession, onNavigate, onPortalChange, onSignOut, onOpenSession, onCloseNew } = { ...args, ...props }
+  const { role: r, portal: p, newSession, onNavigate, onPortalChange, onSignOut, onOpenSession, onCloseNew, focus } = { ...args, ...props }
   const role = r as Role
   const portal = (role !== 'admin' && p === 'admin' ? 'hent' : p) as Portal
   const pillars = pillarsFor(portal)
@@ -56,9 +60,10 @@ export default function Interventions(props: Props) {
 
   const list = interventions.filter((i) => pillars.includes(i.pillar) && (kind === 'all' || i.kind === kind) && i.name.toLowerCase().includes(q.toLowerCase()))
   const nav = (to: string) => (to === 'new-session' ? setModal(true) : onNavigate?.(to))
+  const focused = focus ? interventions.find((i) => i.id === focus && pillars.includes(i.pillar)) : undefined
 
   return (
-    <AppShell role={role} portal={portal} active="interventions" onNavigate={nav} onPortalChange={onPortalChange} onSignOut={onSignOut}>
+    <AppShell role={role} portal={portal} active={focused ? `intervention:${focused.id}` : 'interventions'} onNavigate={nav} onPortalChange={onPortalChange} onSignOut={onSignOut}>
       <NewSessionModal
         open={modal}
         pillars={pillars}
@@ -92,6 +97,16 @@ export default function Interventions(props: Props) {
           <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="DELETE" className="h-10 w-full rounded-lg border border-line-strong bg-surface px-3 text-sm outline-none focus:border-bad focus:ring-3 focus:ring-bad-bg" />
         </label>
       </Modal>
+      {focused ? (
+        <InterventionPage
+          iv={focused}
+          runs={allSessions.filter((x) => x.intervention === focused.name)}
+          portal={portal}
+          onOpenSession={onOpenSession}
+          onNew={() => (setModalFor(focused.id), setModal(true))}
+          onDelete={(x) => (setDeleting(x), setTyped(''))}
+        />
+      ) : (
       <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-5">
         <PageHeader
           crumbs={[portalMeta[portal].label, 'Interventions']}
@@ -250,6 +265,7 @@ export default function Interventions(props: Props) {
           </p>
         )}
       </div>
+      )}
     </AppShell>
   )
 }
@@ -262,3 +278,125 @@ function KindTag({ kind }: { kind: 'open' | 'selective' }) {
   )
 }
 
+
+/**
+ * One intervention: what its sessions go through, its numbers, and every session it has run,
+ * with New session preset to it. Pillar portals open this from the sidebar.
+ */
+function InterventionPage({
+  iv,
+  runs,
+  portal,
+  onOpenSession,
+  onNew,
+  onDelete,
+}: {
+  iv: (typeof interventions)[number]
+  runs: SessionRun[]
+  portal: Portal
+  onOpenSession?: (id: string) => void
+  onNew: () => void
+  onDelete: (s: SessionRun) => void
+}) {
+  const selective = iv.kind === 'selective'
+  const regT = templateFor(iv.name, selective ? 'application' : 'registration')
+  const fbkT = templateFor(iv.name, 'feedback')
+  const people = participants.filter((x) => x.interventions.includes(iv.name)).length
+  const upcoming = runs.filter((x) => x.status === 'upcoming' || x.status === 'draft').length
+  const feedback = runs.reduce((n, x) => n + x.feedback, 0)
+  const sorted = [...runs].sort((a, b) => (b.startDate ?? '').localeCompare(a.startDate ?? '') || b.id.localeCompare(a.id))
+  const flow = selective ? 'Application → Review and selection → Attendance → Feedback' : 'Registration → Attendance → Feedback'
+
+  return (
+    <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-5">
+      <PageHeader
+        crumbs={[portalMeta[portal].label, 'Interventions', iv.name]}
+        title={iv.name}
+        description={
+          <>
+            {flow}. Each new session gets its own {selective ? 'application' : 'registration'}, check-in and feedback forms{regT || fbkT ? ` from the ${iv.name} templates` : ''}, which you can then edit for that session.
+          </>
+        }
+        actions={
+          <Button variant="primary" className="w-full sm:w-auto" onClick={onNew}>
+            <Plus className="h-4 w-4" /> New session
+          </Button>
+        }
+      />
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <span className="rounded bg-brand-50 px-2 py-0.5 font-bold text-brand-600">{iv.pillar}</span>
+        <span className="rounded bg-canvas px-2 py-0.5 font-semibold capitalize text-muted">{iv.kind}</span>
+      </div>
+
+      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {(
+          [
+            [runs.length, runs.length === 1 ? 'session' : 'sessions'],
+            [people, 'unique participants'],
+            [upcoming, 'upcoming or in draft'],
+            [feedback, 'feedback responses'],
+          ] as [number, string][]
+        ).map(([n, l]) => (
+          <div key={l} className="rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-surface px-4 py-3.5 shadow-[var(--shadow-soft)]">
+            <dd className="font-display text-[28px] font-semibold leading-none tabular-nums text-brand-deep">{n.toLocaleString()}</dd>
+            <dt className="mt-1.5 text-sm text-muted">{l}</dt>
+          </div>
+        ))}
+      </dl>
+
+      <section>
+        <h2 className="mb-3 font-display text-xl font-semibold text-ink">Sessions</h2>
+        {sorted.length === 0 ? (
+          <Panel>
+            <EmptyState icon={Plus} title={`No ${iv.name} sessions yet`} body="Create one: its forms are set up from this intervention’s templates." action={{ label: 'New session', onClick: onNew }} />
+          </Panel>
+        ) : (
+          <Panel className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead>
+                  <tr className="bg-brand text-left text-[12px] font-semibold text-white">
+                    <th className="px-4 py-2.5">Session</th>
+                    <th className="px-4 py-2.5">Dates</th>
+                    <th className="px-4 py-2.5">Status</th>
+                    <th className="px-4 py-2.5 text-right">{selective ? 'Applications' : 'Registrations'}</th>
+                    <th className="px-4 py-2.5 text-right">Attended</th>
+                    <th className="px-4 py-2.5 text-right">Feedback</th>
+                    <th className="w-12 px-2 py-2.5" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {sorted.map((x) => (
+                    <tr key={x.id} className="cursor-pointer hover:bg-canvas" onClick={() => onOpenSession?.(x.id)}>
+                      <td className="px-4 py-3">
+                        <span className="block font-semibold text-brand-600">{x.name}</span>
+                        <span className="block font-mono text-[11.5px] text-muted">
+                          {iv.pillar}-{formCode(x.name)}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-body">
+                        {x.dates}
+                        {x.dateList && x.dateList.length > 1 && <span className="text-muted"> · {x.dateList.length} dates</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={x.status} />
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums">{x.registered.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{x.attended.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{x.feedback.toLocaleString()}</td>
+                      <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
+                        <button type="button" aria-label={`Delete ${x.name}`} title="Delete session" onClick={() => onDelete(x)} className="grid h-8 w-8 place-items-center rounded-md text-muted hover:bg-bad-bg hover:text-bad">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+        )}
+      </section>
+    </div>
+  )
+}
