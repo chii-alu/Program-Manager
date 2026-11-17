@@ -6,7 +6,7 @@ import { PageFilters, type FilterGroup } from '../shared/components/PageFilters'
 import { AdminOnly, Button, PageHeader, PillarTag } from '../shared/components/ui'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { CountUp } from '../shared/components/StatStrip'
-import { FeedbackRow, Participant, Pillar, Portal, Role, feedbackRows, participants, portalMeta } from '../shared/data/mela'
+import { FeedbackRow, Participant, Pillar, Portal, Role, canSeeIdentity, feedbackRows, participants, portalMeta } from '../shared/data/mela'
 import { inRange, parseDay, useTimeRange } from '../shared/lib/time'
 import { toast } from '../shared/lib/notify'
 
@@ -47,7 +47,8 @@ export default function ChiiDatabase(props: Props) {
 
   return (
     <AppShell role={role} portal={portal} active="chii-db" onNavigate={onNavigate} onPortalChange={onPortalChange} onSignOut={onSignOut}>
-      {role !== 'admin' ? (
+      {/* The CHII database is the same in every portal: MELA and pillar staff can open it. */}
+      {!canSeeIdentity(role) ? (
         <AdminOnly />
       ) : (
         <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-5">

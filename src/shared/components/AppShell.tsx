@@ -1083,8 +1083,6 @@ function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = 
             ...(portal === 'hemp' || portal === 'heco' ? [{ key: 'interventions-log', label: 'Activity log', icon: History }] : []),
           ],
         },
-        // Pillar portals: one database item. Participants, Feedback and Ventures are switched in the page header.
-        ...(portal === 'admin' ? [] : [{ key: 'db-participants', label: `${portalMeta[portal].label} Database`, short: 'Database', icon: Database, also: ['db-feedback', 'db-ventures'] }]),
         // CHII Feedbacks is in the MELA view only; pillars use their own Feedback sheet.
         ...(portal === 'admin'
           ? [
@@ -1092,19 +1090,18 @@ function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = 
               { key: 'feedback', label: 'CHII Feedbacks', short: 'Feedback', icon: MessageSquareText },
             ]
           : []),
-        ...(role === 'admin' ? [{ key: 'chii-db', label: 'CHII database', icon: Database }] : []),
       ],
     },
-    // MELA keeps its Consolidated databases section; pillars have one Database item under Workspace.
-    ...(portal !== 'admin' ? [] : [{
-      title: 'Consolidated databases',
+    // Databases: CHII-wide first, then the pillar's own (MELA: the consolidated one). One item per database;
+    // its Participants / Feedback / Ventures sheets are switched in the page header.
+    {
+      title: 'Databases',
       items: [
-        { key: 'db-participants', label: sheetName(portal, 'Participants'), icon: Table2 },
-        { key: 'db-feedback', label: sheetName(portal, 'Feedback'), icon: Sheet },
-        // The Ventures sheet (VENTURE-REGISTRY-SPEC §8 step 7): same audience as the registry.
-        ...(canUseVentures({ role, pillars: pillarsFor(portal) }) ? [{ key: 'db-ventures', label: 'Ventures sheet', icon: Rocket }] : []),
+        // The CHII database is the same in every portal.
+        { key: 'chii-db', label: 'CHII Database', icon: Database },
+        { key: 'db-participants', label: portal === 'admin' ? 'Consolidated Database' : `${portalMeta[portal].label} Database`, short: 'Database', icon: Table2, also: ['db-feedback', 'db-ventures'] },
       ],
-    }]),
+    },
     {
       title: 'Tools',
       items: [
