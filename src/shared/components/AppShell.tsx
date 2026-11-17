@@ -6,6 +6,11 @@ import {
   Bell,
   BellOff,
   BookOpen,
+  BookOpenCheck,
+  DoorOpen,
+  GraduationCap,
+  RefreshCcw,
+  Sprout,
   Check,
   ChevronDown,
   Handshake,
@@ -57,6 +62,7 @@ import { startRealtime, timeAgo, toast, useNotifications } from '../lib/notify'
 import { bounds, totals, useTimeRange } from '../lib/time'
 import { useInstall } from '../lib/pwa'
 import { canUseVentures } from '../ventures/store'
+import { canUseIncubation } from '../incubation/store'
 import { Portal, Role, applications, interventions, participants, pillarStats, pillarsFor, portalMeta, sessions } from '../data/mela'
 import { useSessions } from '../data/sessionStore'
 import { TopBarSlotContext } from './TopBarSlot'
@@ -1044,6 +1050,23 @@ function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = 
               },
             ]
           : []),
+        // HENT Incubation (Expose → Build → Scale): its own group, in the HENT portal only.
+        ...(canUseIncubation({ role, pillars: pillarsFor(portal) }) && portal === 'hent'
+          ? [
+              {
+                key: 'incubation-group',
+                label: 'Incubation',
+                icon: Sprout,
+                children: [
+                  { key: 'incubation', label: 'Cohorts', icon: GraduationCap },
+                  { key: 'incubation-curriculum', label: 'Curriculum', icon: BookOpenCheck },
+                  { key: 'incubation-gate', label: 'Gate', icon: DoorOpen },
+                  { key: 'incubation-canvas', label: 'Canvas sync', icon: RefreshCcw },
+                  { key: 'incubation-analytics', label: 'Analytics', icon: PieChart },
+                ],
+              },
+            ]
+          : []),
         {
           key: 'interventions-group',
           label: 'Interventions',
@@ -1053,7 +1076,7 @@ function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = 
             ...(portal === 'admin'
               ? [{ key: 'interventions', label: 'All interventions', short: 'Sessions', icon: Layers }]
               : interventions
-                  .filter((iv) => iv.pillar === portalMeta[portal].label)
+                  .filter((iv) => iv.pillar === portalMeta[portal].label && !iv.ownPage)
                   .map((iv) => ({ key: `intervention:${iv.id}`, label: iv.name, icon: CircleDot, count: runCounts[iv.name] ?? 0 }))),
             { key: 'import', label: 'Import a sheet', icon: Upload },
             // Who did what to the pillar's sessions: HEMP and HECO.

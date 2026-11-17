@@ -26,7 +26,7 @@ export const HEALTH_SECTORS = [
 /** Provisional (spec §9). */
 export const SOURCES = ['Hackathon', 'Masterclass', 'Venture Funding', 'Mentorship', 'Referral', 'Open call', 'Other']
 /** Provisional: MELA to confirm the CHII programme tracks. */
-export const TRACKS = ['Incubation', 'Acceleration', 'Venture Funding', 'Alumni']
+export const TRACKS = ['Incubation', 'Incubation – Expose', 'Incubation – Build', 'Incubation – Scale', 'Acceleration', 'Venture Funding', 'Alumni']
 export const FUNDING_TYPES: { key: FundingType; label: string }[] = [
   { key: 'grant', label: 'Grant' },
   { key: 'equity', label: 'Equity' },

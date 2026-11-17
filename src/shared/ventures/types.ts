@@ -17,7 +17,7 @@ export type VentureStatus = 'Active' | 'Paused' | 'Pivoted' | 'Acquired' | 'Clos
 export type LegalStatus = 'Registered' | 'Informal' | 'In progress'
 export type MemberRole = 'lead_founder' | 'co_founder' | 'team'
 export type UpdateType = 'baseline' | 'update'
-export type UpdateSource = 'import' | 'staff' | 'founder_form' | 'survey'
+export type UpdateSource = 'import' | 'staff' | 'founder_form' | 'survey' | 'incubation_snapshot'
 export type FundingType = 'grant' | 'equity' | 'debt' | 'prize' | 'revenue_based' | 'other'
 export type AuRegion = 'Central Africa' | 'East Africa' | 'North Africa' | 'Southern Africa' | 'West Africa' | 'Outside Africa'
 

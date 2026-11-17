@@ -17,6 +17,7 @@ import DataExports from '../data-exports.frame'
 import Applications from '../applications.frame'
 import Reports from '../reports.frame'
 import Ventures, { type VentureView } from '../ventures.frame'
+import Incubation, { type IncubationView } from '../incubation.frame'
 import VentureForms from '../venture-forms.frame'
 import PublicForm from '../public-form.frame'
 import Resources from '../resources.frame'
@@ -47,6 +48,7 @@ const RESOURCES = 'resources'
 const SOPS = 'sops'
 const PARTNERS = 'partners'
 const VENTURES = 'ventures'
+const INCUBATION = 'incubation'
 const DATA = 'data-exports'
 const APPLICATIONS = 'applications'
 const FORM = 'public-form'
@@ -80,6 +82,11 @@ const routes: Record<string, string> = {
   'ventures-updates': VENTURES,
   'ventures-activity': VENTURES,
   'ventures-import': VENTURES,
+  incubation: INCUBATION,
+  'incubation-curriculum': INCUBATION,
+  'incubation-gate': INCUBATION,
+  'incubation-canvas': INCUBATION,
+  'incubation-analytics': INCUBATION,
 }
 
 const defaultPortal = (role: string) => (role === 'admin' ? 'admin' : role === 'pillar_lead' ? 'hent' : 'hemp')
@@ -102,6 +109,7 @@ export default function MelaManager(props: Props) {
   const [focusIntervention, setFocusIntervention] = useState<string | null>(null)
   const [formKind, setFormKind] = useState<'application' | 'registration' | 'attendance' | 'feedback'>('feedback')
   const [ventureView, setVentureView] = useState<VentureView>('registry')
+  const [incView, setIncView] = useState<IncubationView>('cohorts')
 
   // The role control re-renders in place: adopt it and its home portal.
   useEffect(() => {
@@ -156,6 +164,7 @@ export default function MelaManager(props: Props) {
     }
     // CHII Feedbacks is in the MELA view only; a pillar portal goes to its own Feedback sheet.
     if (to === 'feedback' && effectivePortal !== 'admin') to = 'db-feedback'
+    if (to.startsWith('incubation')) setIncView((to.split('-')[1] as IncubationView) ?? 'cohorts')
     if (to.startsWith('ventures')) setVentureView((to.split('-')[1] as VentureView) ?? 'registry')
     if (to === 'db-participants') setSheet('participants')
     if (to === 'db-feedback') setSheet('feedback')
@@ -233,6 +242,8 @@ export default function MelaManager(props: Props) {
       return <Partners {...shared} />
     case VENTURES:
       return <Ventures {...shared} view={ventureView} />
+    case INCUBATION:
+      return <Incubation {...shared} view={incView} onOpenPerson={openPerson} />
     case APPLICATIONS:
       return <Applications {...shared} />
     case 'venture-register':
