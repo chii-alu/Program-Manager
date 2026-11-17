@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ChevronDown, Plus, Search, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { AppShell } from '../shared/components/AppShell'
@@ -15,6 +15,7 @@ import { toast } from '../shared/lib/notify'
 import { logAction } from '../shared/lib/interventionLog'
 import { templateFor } from '../shared/forms/templates'
 import { formCode } from '../session.frame'
+import { WorksheetView, WorksheetsPanel } from './Worksheets'
 
 export const args = {
   role: 'admin',
@@ -62,6 +63,9 @@ export default function Interventions(props: Props) {
   const list = interventions.filter((i) => pillars.includes(i.pillar) && (kind === 'all' || i.kind === kind) && i.name.toLowerCase().includes(q.toLowerCase()))
   const nav = (to: string) => (to === 'new-session' ? setModal(true) : onNavigate?.(to))
   const focused = focus ? interventions.find((i) => i.id === focus && pillars.includes(i.pillar)) : undefined
+  // A worksheet opened from a selective intervention's page.
+  const [openWs, setOpenWs] = useState<string | null>(null)
+  useEffect(() => setOpenWs(null), [focus])
 
   return (
     <AppShell role={role} portal={portal} active={focused ? `intervention:${focused.id}` : 'interventions'} onNavigate={nav} onPortalChange={onPortalChange} onSignOut={onSignOut}>
@@ -98,8 +102,12 @@ export default function Interventions(props: Props) {
           <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="DELETE" className="h-10 w-full rounded-lg border border-line-strong bg-surface px-3 text-sm outline-none focus:border-bad focus:ring-3 focus:ring-bad-bg" />
         </label>
       </Modal>
-      {focused ? (
+      {focused && openWs ? (
+        <WorksheetView id={openWs} runs={allSessions.filter((x) => x.intervention === focused.name)} crumbs={[portalMeta[portal].label, focused.name, 'Worksheet']} onBack={() => setOpenWs(null)} />
+      ) : focused ? (
         <InterventionPage
+          me={userFor(role, portal).user}
+          onOpenWorksheet={setOpenWs}
           iv={focused}
           runs={allSessions.filter((x) => x.intervention === focused.name)}
           portal={portal}
@@ -288,6 +296,8 @@ function KindTag({ kind }: { kind: 'open' | 'selective' }) {
  * with New session preset to it. Pillar portals open this from the sidebar.
  */
 function InterventionPage({
+  me,
+  onOpenWorksheet,
   iv,
   runs,
   portal,
@@ -295,6 +305,8 @@ function InterventionPage({
   onNew,
   onDelete,
 }: {
+  me: string
+  onOpenWorksheet: (id: string) => void
   iv: (typeof interventions)[number]
   runs: SessionRun[]
   portal: Portal
@@ -347,6 +359,9 @@ function InterventionPage({
           </div>
         ))}
       </dl>
+
+      {/* Selective interventions work from selection worksheets: master, per cohort, imported. */}
+      {selective && <WorksheetsPanel intervention={iv.name} runs={runs} me={me} onOpen={onOpenWorksheet} />}
 
       <section>
         <h2 className="mb-3 font-display text-xl font-semibold text-ink">Sessions</h2>
