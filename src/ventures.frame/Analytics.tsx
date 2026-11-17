@@ -6,7 +6,7 @@
  */
 import React, { useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend as RLegend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { BookOpen, Briefcase, Banknote, Coins, HandCoins, Wallet, Download, Filter, Target, TrendingUp, Users, X } from 'lucide-react'
+import { BookOpen, CalendarDays, Check, ChevronDown, RotateCcw, Briefcase, Banknote, Coins, HandCoins, Wallet, Download, Filter, Target, TrendingUp, Users, X } from 'lucide-react'
 import { CHART, ChartTooltip, categoryAxisProps, gridProps, lineProps, valueAxisProps } from '../shared/components/charts'
 import { Modal } from '../shared/components/Modal'
 import { Popover } from '../shared/components/Popover'
@@ -46,6 +46,9 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
     const f = FILTER_FIELDS.find((x) => x.key === key)!
     const used = [...new Set(all.map(f.value).filter((x) => x != null && x !== ''))].sort() as (string | number | boolean)[]
     // Intake year offers the reporting years 2025–2030, plus any earlier year that has ventures.
+    // Stages and statuses in their natural order, not A → Z.
+    const ORDER: Partial<Record<keyof VFilters, string[]>> = { stage: ['Expose', 'Build', 'Scale'], status: ['Active', 'Paused', 'Pivoted', 'Acquired', 'Closed'] }
+    if (ORDER[key]) return ORDER[key]!.filter((x) => (used as string[]).includes(x))
     if (key === 'intakeYear') return [...new Set([...(used as number[]).filter((y) => y < PERIOD_YEARS[0]), ...PERIOD_YEARS])].sort((a, b) => a - b)
     return used
   }
@@ -59,6 +62,28 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
     })
   const label = (key: keyof VFilters, val: unknown) => (key === 'country' ? countryName(String(val)) : typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val))
 
+  // How many filters are set, counting a period other than "To date".
+  const setCount = active.length + (periodKey === 'to_date' ? 0 : 1)
+  const fieldGroup = (k: keyof VFilters) => {
+    const f = FILTER_FIELDS.find((x) => x.key === k)!
+    const cur = filters[k]
+    const n = cur == null ? 0 : Array.isArray(cur) ? cur.length : 1
+    return (
+      <FilterGroup key={k} title={k === 'sector' ? 'Health sector' : f.label} count={n}>
+        <div className="flex flex-wrap gap-1.5">
+          {options(k).map((o) => {
+            const on = Array.isArray(cur) ? (cur as unknown[]).includes(o) : cur === o
+            return (
+              <Chip key={String(o)} on={on} onClick={() => toggle(k, o)} disabled={!on && !hasVentures(k, o)} title={hasVentures(k, o) ? undefined : `No ventures with intake in ${String(o)} yet`}>
+                {label(k, o)}
+              </Chip>
+            )
+          })}
+        </div>
+      </FilterGroup>
+    )
+  }
+
   const target = (code: string, value: number | null) => {
     const t = VENTURE_TARGETS[code]
     return t && value != null ? `${Math.round((value / t) * 100)}% of ${code === 'venture.funding_deployed' ? money(t) : t.toLocaleString()} target` : undefined
@@ -69,9 +94,100 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
       <PageHeader
         crumbs={['HENT', 'Ventures', 'Analytics']}
         title="Venture Analytics"
-        description={`Live from the Venture Registry, with the same definitions as the CHII dashboard’s Ventures Portfolio. As of ${new Date(a.asOf).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.`}
+        description={`Live from the Venture Registry, with the same definitions as the CHII dashboard’s Ventures Portfolio. As of ${new Date(a.asOf).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · ${v['venture.supported']} ventures · compared with ${previousPeriod(period).key === 'to_date_prev' ? '12 months earlier' : previousPeriod(period).label}.`}
         actions={
           <>
+            <Popover
+              align="right"
+              width="w-[min(94vw,680px)]"
+              trigger={({ toggle: t, open }) => (
+                <button
+                  type="button"
+                  onClick={t}
+                  className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors ${open || setCount ? 'border-white bg-white text-brand' : 'border-white/25 bg-white/10 text-white hover:bg-white/15'}`}
+                >
+                  <Filter className="h-4 w-4" /> Filters
+                  <span className={`text-xs font-normal ${open || setCount ? 'text-brand/70' : 'text-white/70'}`}>· {period.label}</span>
+                  {setCount > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1.5 text-[11px] font-bold text-white">{setCount}</span>}
+                  <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                </button>
+              )}
+            >
+              {(close) => (
+                <div>
+                  <div className="grid max-h-[64vh] gap-x-6 overflow-y-auto p-4 sm:grid-cols-2">
+                    {/* Left: short choices, starting with the period. Right: the longer lists. */}
+                    <div className="space-y-4">
+                      <FilterGroup title="Period" count={periodKey === 'to_date' ? 0 : 1}>
+                        <div className="flex flex-wrap gap-1.5">
+                          <Chip on={periodKey === 'to_date'} onClick={() => setPeriodKey('to_date')}>
+                            To date
+                          </Chip>
+                          {PERIOD_YEARS.map((y) => {
+                            const started = periodStarted(yearPeriod(y))
+                            return (
+                              <Chip key={y} on={selYear === y} onClick={() => setPeriodKey(`y${y}`)} disabled={!started} title={started ? undefined : `No data yet: ${y} starts on 1 Jan ${y}`}>
+                                {y}
+                              </Chip>
+                            )
+                          })}
+                        </div>
+                        {selYear != null && (
+                          <div className="mt-2 inline-flex rounded-lg bg-canvas p-0.5" role="group" aria-label={`Part of ${selYear}`}>
+                            {([
+                              [`y${selYear}`, 'Full year'],
+                              [`h1-${selYear}`, 'H1 · Jan–Jun'],
+                              [`h2-${selYear}`, 'H2 · Jul–Dec'],
+                            ] as const).map(([k, l]) => {
+                              const pp = PERIODS.find((x) => x.key === k)!
+                              const ok = periodStarted(pp)
+                              return (
+                                <button
+                                  key={k}
+                                  type="button"
+                                  aria-pressed={periodKey === k}
+                                  disabled={!ok}
+                                  title={ok ? pp.label : `No data yet: starts ${pp.start}`}
+                                  onClick={() => setPeriodKey(k)}
+                                  className={`h-7 rounded-md px-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${periodKey === k ? 'bg-surface text-brand-600 shadow-sm' : 'text-muted hover:text-ink'}`}
+                                >
+                                  {l}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </FilterGroup>
+                      {(['stage', 'status', 'intakeYear'] as const).map((k) => fieldGroup(k))}
+                      <FilterGroup title="Led by" count={(filters.womenLed != null ? 1 : 0) + (filters.youthLed != null ? 1 : 0)}>
+                        <div className="flex flex-wrap gap-1.5">
+                          <Chip on={filters.womenLed === true} onClick={() => toggle('womenLed', true)}>
+                            Women-led
+                          </Chip>
+                          <Chip on={filters.youthLed === true} onClick={() => toggle('youthLed', true)}>
+                            Youth-led
+                          </Chip>
+                        </div>
+                      </FilterGroup>
+                    </div>
+                    <div className="mt-4 space-y-4 border-t border-line pt-4 sm:mt-0 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+                      {(['region', 'country', 'sector', 'track', 'source'] as const).map((k) => fieldGroup(k))}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 border-t border-line px-4 py-2.5">
+                    <button type="button" onClick={() => (setFilters({}), setPeriodKey('to_date'))} disabled={!setCount} className="text-xs font-semibold text-muted hover:text-ink disabled:opacity-40">
+                      Clear all
+                    </button>
+                    <span className="ml-auto mr-2 text-xs text-muted">
+                      <b className="font-semibold text-ink">{v['venture.supported']}</b> ventures match
+                    </span>
+                    <button type="button" onClick={close} className="h-8 rounded-lg bg-brand px-4 text-xs font-semibold text-white hover:bg-brand-hover">
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
+            </Popover>
             <Button onClick={() => setDefs(true)}>
               <BookOpen className="h-4 w-4" /> Definitions
             </Button>
@@ -82,91 +198,26 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
         }
       />
 
-      {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-card)] border border-[color:var(--card-border)] bg-surface px-3 py-2.5 shadow-[var(--shadow-soft)]">
-        <span className="px-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">Period</span>
-        <Chip on={periodKey === 'to_date'} onClick={() => setPeriodKey('to_date')}>
-          To date
-        </Chip>
-        {PERIOD_YEARS.map((y) => {
-          const started = periodStarted(yearPeriod(y))
-          return (
-            <Chip key={y} on={selYear === y} onClick={() => setPeriodKey(`y${y}`)} disabled={!started} title={started ? undefined : `No data yet: ${y} starts on 1 Jan ${y}`}>
-              {y}
-            </Chip>
-          )
-        })}
-        {selYear != null && (
-          // Full year or one half of the chosen year. A half that hasn't started is greyed out.
-          <span className="inline-flex rounded-lg bg-canvas p-0.5" role="group" aria-label={`Part of ${selYear}`}>
-            {([
-              [`y${selYear}`, 'Full year'],
-              [`h1-${selYear}`, 'H1'],
-              [`h2-${selYear}`, 'H2'],
-            ] as const).map(([k, l]) => {
-              const p = PERIODS.find((x) => x.key === k)!
-              return (
-                <button
-                  key={k}
-                  type="button"
-                  aria-pressed={periodKey === k}
-                  disabled={!periodStarted(p)}
-                  title={periodStarted(p) ? p.label : `No data yet: starts ${p.start}`}
-                  onClick={() => setPeriodKey(k)}
-                  className={`h-7 rounded-md px-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${periodKey === k ? 'bg-surface text-brand-600 shadow-sm' : 'text-muted hover:text-ink'}`}
-                >
-                  {l}
-                </button>
-              )
-            })}
-          </span>
-        )}
-        <span className="mx-1 hidden h-6 w-px bg-line sm:block" />
-        <Popover
-          width="w-[min(92vw,560px)]"
-          trigger={({ toggle: t }) => (
-            <Button onClick={t}>
-              <Filter className="h-4 w-4" /> Filters{active.length ? ` · ${active.length}` : ''}
-            </Button>
-          )}
-        >
-          {() => (
-            <div className="max-h-[70vh] space-y-3 overflow-y-auto p-3">
-              {FILTER_FIELDS.map((f) => (
-                <div key={f.key}>
-                  <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-muted">{f.label}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {options(f.key).map((o) => {
-                      const cur = filters[f.key]
-                      const on = Array.isArray(cur) ? (cur as unknown[]).includes(o) : cur === o
-                      return (
-                        <Chip key={String(o)} on={on} onClick={() => toggle(f.key, o)} disabled={!on && !hasVentures(f.key, o)} title={hasVentures(f.key, o) ? undefined : `No ventures with intake in ${String(o)} yet`}>
-                          {label(f.key, o)}
-                        </Chip>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Popover>
-        {active.flatMap(([k, val]) =>
-          (Array.isArray(val) ? val : [val]).map((x) => (
-            <button key={`${k}-${String(x)}`} type="button" onClick={() => toggle(k, x as string)} className="inline-flex h-7 items-center gap-1 rounded-full bg-brand-50 px-2.5 text-xs font-semibold text-brand-600">
-              {FILTER_FIELDS.find((f) => f.key === k)!.label}: {label(k, x)} <X className="h-3 w-3" />
+      {/* Active filters, removable one by one (the menus are in the header). */}
+      {(active.length > 0 || periodKey !== 'to_date') && (
+        <div className="flex flex-wrap items-center gap-2">
+          {periodKey !== 'to_date' && (
+            <button type="button" onClick={() => setPeriodKey('to_date')} className="inline-flex h-7 items-center gap-1 rounded-full bg-brand-50 px-2.5 text-xs font-semibold text-brand-600 hover:bg-brand-100" aria-label={`Remove period ${period.label}`}>
+              Period: {period.label} <X className="h-3 w-3" />
             </button>
-          )),
-        )}
-        {active.length > 0 && (
-          <button type="button" onClick={() => setFilters({})} className="text-xs font-semibold text-muted hover:text-ink">
-            Reset
+          )}
+          {active.flatMap(([k, val]) =>
+            (Array.isArray(val) ? val : [val]).map((x) => (
+              <button key={`${k}-${String(x)}`} type="button" onClick={() => toggle(k, x as string)} className="inline-flex h-7 items-center gap-1 rounded-full bg-brand-50 px-2.5 text-xs font-semibold text-brand-600 hover:bg-brand-100" aria-label={`Remove ${FILTER_FIELDS.find((f) => f.key === k)!.label}: ${label(k, x)}`}>
+                {FILTER_FIELDS.find((f) => f.key === k)!.label}: {label(k, x)} <X className="h-3 w-3" />
+              </button>
+            )),
+          )}
+          <button type="button" onClick={() => (setFilters({}), setPeriodKey('to_date'))} className="inline-flex h-7 items-center gap-1 px-1 text-xs font-semibold text-muted hover:text-ink">
+            <RotateCcw className="h-3 w-3" /> Reset
           </button>
-        )}
-        <span className="ml-auto text-xs text-muted">
-          {v['venture.supported']} ventures · compared with {previousPeriod(period).key === 'to_date_prev' ? '12 months earlier' : previousPeriod(period).label}
-        </span>
-      </div>
+        </div>
+      )}
 
       {/* Headline numbers: the dashboard's "Portfolio Overview" cards */}
       <StatCards
@@ -505,4 +556,16 @@ function exportCsv(a: ReturnType<typeof analyse>, periodLabel: string) {
   link.download = `venture-analytics-${periodLabel.toLowerCase().replace(/\s+/g, '-')}.csv`
   link.click()
   URL.revokeObjectURL(link.href)
+}
+
+function FilterGroup({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
+  return (
+    <section>
+      <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-muted">
+        {title}
+        {count > 0 && <span className="rounded-full bg-brand-50 px-1.5 text-[10px] text-brand-600">{count}</span>}
+      </h3>
+      {children}
+    </section>
+  )
 }
