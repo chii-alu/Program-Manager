@@ -21,6 +21,7 @@ import VentureForms from '../venture-forms.frame'
 import PublicForm from '../public-form.frame'
 import Resources from '../resources.frame'
 import Sops from '../sops.frame'
+import Partners from '../partners.frame'
 import InterventionLog from '../intervention-log.frame'
 import { resolveAccount } from '../shared/lib/auth'
 import { roleMeta, sessions } from '../shared/data/mela'
@@ -44,6 +45,7 @@ const STAFF = 'staff-access'
 const REPORTS = 'reports'
 const RESOURCES = 'resources'
 const SOPS = 'sops'
+const PARTNERS = 'partners'
 const VENTURES = 'ventures'
 const DATA = 'data-exports'
 const APPLICATIONS = 'applications'
@@ -72,6 +74,7 @@ const routes: Record<string, string> = {
   reports: REPORTS,
   resources: RESOURCES,
   sops: SOPS,
+  partners: PARTNERS,
   ventures: VENTURES,
   'ventures-analytics': VENTURES,
   'ventures-updates': VENTURES,
@@ -224,6 +227,8 @@ export default function MelaManager(props: Props) {
       return <Resources {...shared} />
     case SOPS:
       return <Sops {...shared} />
+    case PARTNERS:
+      return <Partners {...shared} />
     case VENTURES:
       return <Ventures {...shared} view={ventureView} />
     case APPLICATIONS:

@@ -1,6 +1,7 @@
 /**
  * Standard operating procedures (SOPs): how each pillar runs its work, step by step, with each
- * step pointing to where it's done in the app. CHII-wide SOPs apply to every pillar.
+ * step pointing to where it's done in the app. Each pillar sees only its own SOPs; MELA's own
+ * (data, consent and reporting) are seen in the MELA view, which also sees every pillar's.
  *
  * These are drafts written from the processes the platform supports. Each pillar lead reviews
  * and approves their own; until then they show as drafts.
@@ -13,8 +14,8 @@ export type SopStep = { title: string; detail: string; /** App page where the st
 export type Sop = {
   id: string
   title: string
-  /** Pillar it belongs to, or CHII for every pillar. */
-  pillar: Pillar | 'CHII'
+  /** The pillar it belongs to, or MELA for MELA's own data and reporting SOPs. */
+  pillar: Pillar | 'MELA'
   owner: string
   purpose: string
   appliesTo: string[]
@@ -23,16 +24,43 @@ export type Sop = {
   status: 'Draft' | 'Approved'
   reviewedBy?: string
   reviewedAt?: string
+  /** An uploaded SOP document (PDF or Word). Small files are kept so they can be opened again. */
+  document?: SopDocument
+  createdBy?: string
+  updatedBy?: string
+  updatedAt?: string
 }
+
+export type SopDocument = { name: string; size: number; type: string; /** Kept for files up to MAX_KEEP_MB. */ dataUrl?: string }
+
+/** Pages a step can link to, for the SOP editor. */
+export const SOP_PAGES: { to: string; label: string }[] = [
+  { to: 'interventions', label: 'Interventions' },
+  { to: 'applications', label: 'Applications' },
+  { to: 'participants', label: 'CHII Participants' },
+  { to: 'feedback', label: 'CHII Feedbacks' },
+  { to: 'db-participants', label: 'Participants sheet' },
+  { to: 'db-feedback', label: 'Feedback sheet' },
+  { to: 'import', label: 'Import a sheet' },
+  { to: 'reports', label: 'Reports' },
+  { to: 'resources', label: 'Resources' },
+  { to: 'ventures', label: 'Venture Registry' },
+  { to: 'ventures-updates', label: 'Venture updates' },
+  { to: 'ventures-import', label: 'Venture import' },
+]
+
+/** Uploads are stored in the browser in this prototype, so only small files are kept for download. */
+export const MAX_KEEP_MB = 1.5
+export const SOP_FILE_TYPES = '.pdf,.doc,.docx'
 
 const S = (id: string, x: Omit<Sop, 'id' | 'version' | 'status'>): Sop => ({ id, version: 1, status: 'Draft', ...x })
 
 export function seedSops(): Sop[] {
   return [
-    // CHII-wide
+    // MELA's own: data, consent and reporting (MELA view only)
     S('sop-consent', {
       title: 'Consent and personal data',
-      pillar: 'CHII',
+      pillar: 'MELA',
       owner: 'MELA',
       purpose: 'Collect only what we need, with consent, and keep names and contacts out of reports and shared files.',
       appliesTo: ['Every form', 'Every export', 'Every report'],
@@ -46,7 +74,7 @@ export function seedSops(): Sop[] {
     }),
     S('sop-attendance', {
       title: 'Taking attendance',
-      pillar: 'CHII',
+      pillar: 'MELA',
       owner: 'Pillar staff',
       purpose: 'Every session date has attendance taken, so completion, reach and reports are right.',
       appliesTo: ['Every session'],
@@ -59,7 +87,7 @@ export function seedSops(): Sop[] {
     }),
     S('sop-feedback', {
       title: 'Collecting feedback',
-      pillar: 'CHII',
+      pillar: 'MELA',
       owner: 'Pillar staff',
       purpose: 'Get feedback from at least 40% of attendees, while the session is fresh.',
       appliesTo: ['Every session'],
@@ -72,7 +100,7 @@ export function seedSops(): Sop[] {
     }),
     S('sop-report', {
       title: 'Writing a quarterly report',
-      pillar: 'CHII',
+      pillar: 'MELA',
       owner: 'Pillar lead',
       purpose: 'Quarterly reports use the same numbers as the dashboard and pass the data check before they’re final.',
       appliesTo: ['Pillar quarterly report', 'Donor reports'],
@@ -96,7 +124,7 @@ export function seedSops(): Sop[] {
         { title: 'Assign reviewers and score blind', detail: 'Reviewers see programme answers only; at least two scores per application.', to: 'applications', toLabel: 'Applications' },
         { title: 'Select, waitlist and notify', detail: 'Only students available for the full programme can be selected.' },
         { title: 'Close applications', detail: 'Before the virtual phase starts.' },
-        { title: 'Run the programme and take attendance', detail: 'Follow the Taking attendance SOP for each date.' },
+        { title: 'Run the programme and take attendance', detail: 'Open the check-in on each date (QR at the door, walk-ins added by hand) and close it after the last date.' },
         { title: 'Collect anonymous feedback with participant codes', detail: 'Give each participant their SIE26-XX code at the start.' },
         { title: 'Wrap up and report', detail: 'Close feedback; the session shows Completed and offers Write the report.' },
       ],
@@ -180,7 +208,8 @@ function load(): Sop[] {
   if (cache) return cache
   try {
     const raw = localStorage.getItem(KEY)
-    cache = raw ? (JSON.parse(raw) as Sop[]) : seedSops()
+    // SOPs saved before they were split by pillar called MELA's own "CHII"; carry them over.
+    cache = raw ? (JSON.parse(raw) as (Omit<Sop, 'pillar'> & { pillar: string })[]).map((x) => ({ ...x, pillar: (x.pillar === 'CHII' ? 'MELA' : x.pillar) as Sop['pillar'] })) : seedSops()
   } catch {
     cache = seedSops()
   }
@@ -198,12 +227,53 @@ function persist(next: Sop[]) {
 export const useSops = () => useSyncExternalStore((l) => (listeners.add(l), () => listeners.delete(l)), load, load)
 export const getSops = load
 
-/** SOPs a portal sees: its own pillar's and the CHII-wide ones (MELA sees all). */
-export const sopsFor = (all: Sop[], pillars: Pillar[]) => all.filter((x) => x.pillar === 'CHII' || pillars.includes(x.pillar))
+/** SOPs a portal sees: a pillar sees only its own; MELA sees every pillar's and its own. */
+export const sopsFor = (all: Sop[], pillars: Pillar[], mela = false) => all.filter((x) => (x.pillar === 'MELA' ? mela : pillars.includes(x.pillar)))
 
 /** A pillar lead (or MELA) approves an SOP after reviewing it; the version goes up. */
 export function approveSop(id: string, by: string) {
   persist(load().map((x) => (x.id === id ? { ...x, status: 'Approved', reviewedBy: by, reviewedAt: new Date().toISOString().slice(0, 10), version: x.status === 'Approved' ? x.version + 1 : x.version } : x)))
+}
+
+export class SopError extends Error {}
+
+export type SopInput = Pick<Sop, 'title' | 'pillar' | 'owner' | 'purpose' | 'appliesTo' | 'steps'> & { document?: SopDocument }
+
+function check(x: SopInput) {
+  if (!x.title.trim()) throw new SopError('Give the SOP a title.')
+  if (!x.document && !x.steps.some((st) => st.title.trim())) throw new SopError('Add at least one step, or upload the SOP document.')
+}
+
+const clean = (x: SopInput): SopInput => ({
+  ...x,
+  title: x.title.trim(),
+  owner: x.owner.trim() || 'Not set',
+  purpose: x.purpose.trim(),
+  appliesTo: x.appliesTo.map((a) => a.trim()).filter(Boolean),
+  steps: x.steps.filter((st) => st.title.trim()).map((st) => ({ ...st, title: st.title.trim(), detail: st.detail.trim(), toLabel: st.to ? SOP_PAGES.find((p) => p.to === st.to)?.label : undefined })),
+})
+
+/** A new SOP (written here or uploaded). It starts as a draft for the pillar lead to approve. */
+export function createSop(x: SopInput, by: string): Sop {
+  check(x)
+  const sop: Sop = { ...clean(x), id: `sop-${Date.now().toString(36)}`, version: 1, status: 'Draft', createdBy: by, updatedBy: by, updatedAt: new Date().toISOString().slice(0, 10) }
+  persist([...load(), sop])
+  return sop
+}
+
+/** Change an SOP. A changed approved SOP goes back to draft until it's approved again (as the next version). */
+export function updateSop(id: string, x: SopInput, by: string): Sop {
+  check(x)
+  const cur = load().find((s) => s.id === id)
+  if (!cur) throw new SopError('This SOP doesn’t exist any more.')
+  // Editing an approved SOP starts its next version, which needs approving again.
+  const next: Sop = { ...cur, ...clean(x), status: 'Draft', version: cur.status === 'Approved' ? cur.version + 1 : cur.version, updatedBy: by, updatedAt: new Date().toISOString().slice(0, 10) }
+  persist(load().map((s) => (s.id === id ? next : s)))
+  return next
+}
+
+export function deleteSop(id: string) {
+  persist(load().filter((s) => s.id !== id))
 }
 
 export function resetSops() {

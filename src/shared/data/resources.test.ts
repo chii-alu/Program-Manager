@@ -27,12 +27,17 @@ describe('resource bank', () => {
 })
 
 describe('SOPs', () => {
-  it('each pillar sees its own SOPs and the CHII-wide ones; MELA sees all', () => {
-    const hemp = sopsFor(getSops(), ['HEMP'])
-    expect(hemp.every((x) => x.pillar === 'HEMP' || x.pillar === 'CHII')).toBe(true)
-    expect(hemp.some((x) => x.pillar === 'HEMP') && hemp.some((x) => x.pillar === 'CHII')).toBe(true)
-    for (const pl of ['HENT', 'HECO'] as const) expect(sopsFor(getSops(), [pl]).some((x) => x.pillar === pl)).toBe(true)
-    expect(sopsFor(getSops(), ['HENT', 'HEMP', 'HECO'])).toHaveLength(getSops().length)
+  it('each pillar sees only its own SOPs; MELA sees every pillar’s and its own', () => {
+    for (const pl of ['HENT', 'HEMP', 'HECO'] as const) {
+      const mine = sopsFor(getSops(), [pl])
+      expect(mine.length).toBeGreaterThan(0)
+      expect(mine.every((x) => x.pillar === pl)).toBe(true)
+    }
+    expect(sopsFor(getSops(), ['HENT', 'HEMP', 'HECO'], true)).toHaveLength(getSops().length)
+    expect(sopsFor(getSops(), ['HENT', 'HEMP', 'HECO']).some((x) => x.pillar === 'MELA')).toBe(false)
+  })
+  it('no pillar SOP points to another pillar’s or MELA’s SOP', () => {
+    for (const x of getSops().filter((s) => s.pillar !== 'MELA')) expect(JSON.stringify(x.steps)).not.toMatch(/ SOP\b/)
   })
   it('start as drafts; approving records who and when, and re-approving bumps the version', () => {
     expect(getSops().every((x) => x.status === 'Draft')).toBe(true)
@@ -41,5 +46,31 @@ describe('SOPs', () => {
     expect(a).toMatchObject({ status: 'Approved', reviewedBy: 'Yusuf Abdi', version: 1 })
     approveSop('sop-hemp-selective', 'Yusuf Abdi')
     expect(getSops().find((x) => x.id === 'sop-hemp-selective')!.version).toBe(2)
+  })
+})
+
+describe('uploading and editing SOPs', () => {
+  it('an uploaded document becomes a draft SOP for the pillar, with no steps needed', async () => {
+    const { createSop, SopError } = await import('./sops')
+    const s = createSop({ title: 'Intern placement SOP', pillar: 'HEMP', owner: '', purpose: '', appliesTo: [], steps: [], document: { name: 'placement.pdf', size: 2000, type: 'application/pdf' } }, 'Grace Wanjiru')
+    expect(s).toMatchObject({ status: 'Draft', version: 1, pillar: 'HEMP', createdBy: 'Grace Wanjiru', owner: 'Not set' })
+    expect(() => createSop({ title: 'Empty', pillar: 'HEMP', owner: '', purpose: '', appliesTo: [], steps: [] }, 'x')).toThrow(SopError)
+    expect(() => createSop({ title: ' ', pillar: 'HEMP', owner: '', purpose: '', appliesTo: [], steps: [{ title: 'a', detail: '' }] }, 'x')).toThrow(SopError)
+  })
+
+  it('editing an approved SOP makes its next version a draft; blank steps are dropped and links labelled', async () => {
+    const { updateSop } = await import('./sops')
+    approveSop('sop-hemp-workshops', 'Yusuf Abdi')
+    const cur = getSops().find((x) => x.id === 'sop-hemp-workshops')!
+    const next = updateSop(cur.id, { ...cur, steps: [...cur.steps, { title: ' ', detail: '' }, { title: 'Send the room booking', detail: '', to: 'interventions' }] }, 'Grace Wanjiru')
+    expect(next).toMatchObject({ status: 'Draft', version: cur.version + 1, updatedBy: 'Grace Wanjiru' })
+    expect(next.steps).toHaveLength(cur.steps.length + 1)
+    expect(next.steps.slice(-1)[0].toLabel).toBe('Interventions')
+  })
+
+  it('deletes an SOP', async () => {
+    const { deleteSop } = await import('./sops')
+    deleteSop('sop-hent-hackathon')
+    expect(getSops().some((x) => x.id === 'sop-hent-hackathon')).toBe(false)
   })
 })
