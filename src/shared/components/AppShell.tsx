@@ -1099,7 +1099,13 @@ function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = 
       items: [
         // The CHII database is the same in every portal.
         { key: 'chii-db', label: 'CHII Database', icon: Database },
-        { key: 'db-participants', label: portal === 'admin' ? 'Consolidated Database' : `${portalMeta[portal].label} Database`, short: 'Database', icon: Table2, also: ['db-feedback', 'db-ventures'] },
+        // MELA: one item per consolidated sheet (the Ventures sheet is reached from the header switch).
+        ...(portal === 'admin'
+          ? [
+              { key: 'db-participants', label: 'Consolidated Participant Database', short: 'Participants', icon: Table2, also: ['db-ventures'] },
+              { key: 'db-feedback', label: 'Consolidated Feedback Database', short: 'Feedback', icon: Sheet },
+            ]
+          : [{ key: 'db-participants', label: `${portalMeta[portal].label} Database`, short: 'Database', icon: Table2, also: ['db-feedback', 'db-ventures'] }]),
       ],
     },
     {
