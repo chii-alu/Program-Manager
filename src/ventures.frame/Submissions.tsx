@@ -4,7 +4,7 @@
  * (or given) CHII IDs.
  */
 import React, { useMemo, useState } from 'react'
-import { AlertTriangle, Check, Inbox, Link2, UserPlus, X } from 'lucide-react'
+import { AlertTriangle, Check, History, Inbox, Link2, UserPlus, X } from 'lucide-react'
 import { Modal } from '../shared/components/Modal'
 import { Button, Panel } from '../shared/components/ui'
 import { toast } from '../shared/lib/notify'
@@ -14,21 +14,21 @@ import { similar } from '../shared/ventures/quality'
 import { VentureValidationError, acceptSubmission, rejectSubmission } from '../shared/ventures/store'
 import type { RegistryData, VentureSubmission } from '../shared/ventures/types'
 import { Field, fmtDate, inputCls, money, StagePill } from './parts'
-import { ActivityLog } from './ActivityLog'
 import { toUsd } from '../shared/ventures/lists'
 
-type Tab = 'waiting' | 'accepted' | 'declined' | 'log'
+type Tab = 'waiting' | 'accepted' | 'declined'
 
 /**
  * Registrations through the public form: the ones waiting for review, the ones accepted (with
  * the Venture ID they became) and declined (with the reason), and the log of who did what.
  */
-export function SubmissionsPanel({ data, me, showIdentity, onOpen }: { data: RegistryData; me: string; showIdentity: boolean; onOpen: (id: string) => void }) {
+/** `onViewLog`: opens Ventures → Activity log (who received, accepted or declined each registration). */
+export function SubmissionsPanel({ data, me, showIdentity, onOpen, onViewLog }: { data: RegistryData; me: string; showIdentity: boolean; onOpen: (id: string) => void; onViewLog?: () => void }) {
   const all = [...(data.submissions ?? [])].sort((a, b) => (b.reviewedAt ?? b.receivedAt).localeCompare(a.reviewedAt ?? a.receivedAt))
   const pending = all.filter((s) => s.status === 'pending')
   const accepted = all.filter((s) => s.status === 'accepted')
   const declined = all.filter((s) => s.status === 'rejected')
-  const [tab, setTab] = useState<Tab>(pending.length ? 'waiting' : 'log')
+  const [tab, setTab] = useState<Tab>(pending.length ? 'waiting' : 'accepted')
   const [review, setReview] = useState<VentureSubmission | null>(null)
   const code = (id?: string) => data.ventures.find((v) => v.id === id)?.code
   const day = (iso?: string) => (iso ? fmtDate(iso) : '—')
@@ -37,7 +37,6 @@ export function SubmissionsPanel({ data, me, showIdentity, onOpen }: { data: Reg
     ['waiting', 'Waiting for review', pending.length],
     ['accepted', 'Accepted', accepted.length],
     ['declined', 'Declined', declined.length],
-    ['log', 'Activity log', null],
   ]
 
   return (
@@ -61,6 +60,11 @@ export function SubmissionsPanel({ data, me, showIdentity, onOpen }: { data: Reg
             {tab === k && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-brand-600" />}
           </button>
         ))}
+        {onViewLog && (
+          <button type="button" onClick={onViewLog} className="ml-auto inline-flex shrink-0 items-center gap-1 self-center whitespace-nowrap px-2 text-xs font-semibold text-brand-600 hover:underline">
+            <History className="h-3.5 w-3.5" /> Activity log
+          </button>
+        )}
       </div>
 
       {tab === 'waiting' &&
@@ -135,19 +139,6 @@ export function SubmissionsPanel({ data, me, showIdentity, onOpen }: { data: Reg
           <Empty>No registrations declined.</Empty>
         ))}
 
-      {tab === 'log' && (
-        <ActivityLog
-          data={data}
-          area="registrations"
-          onOpen={onOpen}
-          filters={[
-            { key: 'received', label: 'Received', actions: ['registration_received'] },
-            { key: 'accepted', label: 'Accepted', actions: ['registration_accepted'] },
-            { key: 'declined', label: 'Declined', actions: ['registration_declined'] },
-            { key: 'form', label: 'Form opened / closed', actions: ['form_opened', 'form_closed'] },
-          ]}
-        />
-      )}
 
       {review && <ReviewModal data={data} s={review} me={me} showIdentity={showIdentity} onClose={() => setReview(null)} onOpen={onOpen} />}
     </Panel>

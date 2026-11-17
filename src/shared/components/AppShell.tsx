@@ -1043,6 +1043,7 @@ function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = 
                   { key: 'ventures', label: 'Registry', icon: BookOpen },
                   { key: 'ventures-analytics', label: 'Analytics', icon: PieChart },
                   { key: 'ventures-updates', label: 'Updates', icon: RefreshCw },
+                  { key: 'ventures-activity', label: 'Activity log', icon: History },
                   { key: 'ventures-import', label: 'Import', icon: Upload },
                 ],
               },

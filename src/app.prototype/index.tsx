@@ -69,6 +69,7 @@ const routes: Record<string, string> = {
   ventures: VENTURES,
   'ventures-analytics': VENTURES,
   'ventures-updates': VENTURES,
+  'ventures-activity': VENTURES,
   'ventures-import': VENTURES,
 }
 

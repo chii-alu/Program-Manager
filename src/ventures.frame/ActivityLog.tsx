@@ -36,14 +36,15 @@ export function ActivityLog({
   pageSize = 12,
 }: {
   data: RegistryData
-  area: ActivityEntry['area']
+  /** Which workflow's entries to show; 'all' shows registrations and update rounds together. */
+  area: ActivityEntry['area'] | 'all'
   filters: LogFilter[]
   onOpen: (ventureId: string) => void
   pageSize?: number
 }) {
   const [filter, setFilter] = useState('all')
   const [shown, setShown] = useState(pageSize)
-  const all = (data.activity ?? []).filter((e) => e.area === area).sort((a, b) => b.at.localeCompare(a.at))
+  const all = (data.activity ?? []).filter((e) => area === 'all' || e.area === area).sort((a, b) => b.at.localeCompare(a.at))
   const f = filters.find((x) => x.key === filter)
   const list = f ? all.filter((e) => f.actions.includes(e.action)) : all
   const code = (id?: string) => (id ? data.ventures.find((v) => v.id === id)?.code : undefined)

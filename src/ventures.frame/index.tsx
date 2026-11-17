@@ -18,10 +18,11 @@ import { ShareLink, formUrl } from './ShareLink'
 import { SubmissionsPanel } from './Submissions'
 import { UpdatesPage } from './Updates'
 import { VentureAnalytics } from './Analytics'
+import { VentureActivity } from './VentureActivity'
 
 export const args = { role: 'admin', portal: 'hent', view: 'registry' }
 
-export type VentureView = 'registry' | 'analytics' | 'updates' | 'import'
+export type VentureView = 'registry' | 'analytics' | 'updates' | 'activity' | 'import'
 
 type Props = Partial<typeof args> & {
   view?: VentureView
@@ -89,6 +90,7 @@ export default function Ventures(props: Props) {
 
   if (view === 'analytics') return shell(<VentureAnalytics data={data} onOpen={(id) => (onNavigate?.('ventures'), setPage({ kind: 'venture', id }))} />)
   if (view === 'import') return shell(<ImportVentures data={data} me={me} onOpen={(id) => (onNavigate?.('ventures'), setPage({ kind: 'venture', id }))} />)
+  if (view === 'activity') return shell(<VentureActivity data={data} onOpen={(id) => (onNavigate?.('ventures'), setPage({ kind: 'venture', id }))} />)
   if (view === 'updates') return shell(<UpdatesPage data={data} me={me} showIdentity={showIdentity} onOpen={(id) => (onNavigate?.('ventures'), setPage({ kind: 'venture', id }))} />)
 
   if (page.kind === 'new' || page.kind === 'edit')
@@ -143,7 +145,7 @@ export default function Ventures(props: Props) {
         showIdentity={showIdentity}
         onOpen={(id) => setPage({ kind: 'venture', id })}
         onEdit={(id) => setPage({ kind: 'edit', id })}
-        afterStats={<SubmissionsPanel data={data} me={me} showIdentity={showIdentity} onOpen={(id) => setPage({ kind: 'venture', id })} />}
+        afterStats={<SubmissionsPanel data={data} me={me} showIdentity={showIdentity} onOpen={(id) => setPage({ kind: 'venture', id })} onViewLog={() => onNavigate?.('ventures-activity')} />}
       />
     </>,
   )
