@@ -8,6 +8,8 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  ClipboardList,
+  Library,
   CircleDot,
   History,
   ChevronsLeft,
@@ -1074,6 +1076,9 @@ function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = 
       title: 'Tools',
       items: [
         { key: 'reports', label: 'Reports', icon: FileBarChart2 },
+        // Shared know-how: the resource bank and each pillar's SOPs.
+        { key: 'resources', label: 'Resources', icon: Library },
+        { key: 'sops', label: 'SOPs', icon: ClipboardList },
         ...(role === 'admin'
           ? [
               { key: 'staff', label: 'Staff access', icon: ShieldCheck },

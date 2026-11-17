@@ -19,6 +19,8 @@ import Reports from '../reports.frame'
 import Ventures, { type VentureView } from '../ventures.frame'
 import VentureForms from '../venture-forms.frame'
 import PublicForm from '../public-form.frame'
+import Resources from '../resources.frame'
+import Sops from '../sops.frame'
 import InterventionLog from '../intervention-log.frame'
 import { resolveAccount } from '../shared/lib/auth'
 import { roleMeta, sessions } from '../shared/data/mela'
@@ -40,6 +42,8 @@ const SHEET = 'consolidated-sheet'
 const IMPORT = 'import-sheet'
 const STAFF = 'staff-access'
 const REPORTS = 'reports'
+const RESOURCES = 'resources'
+const SOPS = 'sops'
 const VENTURES = 'ventures'
 const DATA = 'data-exports'
 const APPLICATIONS = 'applications'
@@ -66,6 +70,8 @@ const routes: Record<string, string> = {
   data: DATA,
   applications: APPLICATIONS,
   reports: REPORTS,
+  resources: RESOURCES,
+  sops: SOPS,
   ventures: VENTURES,
   'ventures-analytics': VENTURES,
   'ventures-updates': VENTURES,
@@ -214,6 +220,10 @@ export default function MelaManager(props: Props) {
       return <DataExports {...shared} />
     case REPORTS:
       return <Reports {...shared} />
+    case RESOURCES:
+      return <Resources {...shared} />
+    case SOPS:
+      return <Sops {...shared} />
     case VENTURES:
       return <Ventures {...shared} view={ventureView} />
     case APPLICATIONS:

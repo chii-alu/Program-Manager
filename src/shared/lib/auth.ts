@@ -48,6 +48,11 @@ export const portalName: Record<Portal, string> = { admin: 'MELA admin view', he
  * whichever pillar they're viewing.
  */
 export function userFor(role: Role, portal: Portal): { label: string; user: string; initials: string; email: string } {
-  const acct = role === 'admin' ? undefined : demoAccounts.find((d) => d.role === role && d.portal === portal)
-  return acct ? { label: roleMeta[role].label, user: acct.name, initials: acct.initials, email: acct.email } : roleMeta[role]
+  if (role === 'admin') return roleMeta[role]
+  const acct = demoAccounts.find((d) => d.role === role && d.portal === portal)
+  if (acct) return { label: roleMeta[role].label, user: acct.name, initials: acct.initials, email: acct.email }
+  // Staff who aren't demo accounts (e.g. Yusuf Abdi, HEMP lead) come from the staff list.
+  const row = staff.find((x) => x.role === role && x.pillars[0]?.toLowerCase() === portal)
+  if (row) return { label: roleMeta[role].label, user: row.name, initials: row.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase(), email: row.email }
+  return roleMeta[role]
 }
