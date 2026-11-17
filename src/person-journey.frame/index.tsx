@@ -1,10 +1,17 @@
 import React, { useState } from 'react'
 import { Modal } from '../shared/components/Modal'
 import { ExportModal } from '../shared/components/ExportModal'
-import { ArrowLeft, Check, Copy, Download, EyeOff, Lock, MessageSquareText, UserX } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Copy, Download, EyeOff, Lock, MessageSquareText, Rocket, UserX } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
 import { Button, Panel, PillarTag } from '../shared/components/ui'
-import { JourneyStep, Portal, Role, canSeeIdentity, feedbackGiven, journey, participants, portalMeta } from '../shared/data/mela'
+import { JourneyStep, Portal, Role, canSeeIdentity, feedbackGiven, journey, participants, pillarsFor, portalMeta } from '../shared/data/mela'
+import { canUseVentures, useRegistry } from '../shared/ventures/store'
+import type { MemberRole } from '../shared/ventures/types'
+import { StagePill, VentureStatusPill, fmtDate } from '../ventures.frame/parts'
+import { useIncubation } from '../shared/incubation/store'
+
+const ROLE_LABEL: Record<MemberRole, string> = { lead_founder: 'Founder', co_founder: 'Co-founder', team: 'Team member' }
+const ROLE_CLS: Record<MemberRole, string> = { lead_founder: 'bg-brand text-white', co_founder: 'bg-brand-50 text-brand-600', team: 'bg-canvas text-body' }
 
 export const args = {
   role: 'admin',
@@ -30,6 +37,29 @@ export default function Person(props: Props) {
   const [exporting, setExporting] = useState(false)
   const [anon, setAnon] = useState(false)
   const [anonymised, setAnonymised] = useState(false)
+  // Founder roles (from the Venture Registry) show to everyone; only HENT staff and MELA can open the venture itself.
+  const seesVentures = true
+  const canOpenVenture = canUseVentures({ role, pillars: pillarsFor(portal) })
+  const registry = useRegistry()
+  const incubator = useIncubation()
+  const roles = seesVentures
+    ? registry.members
+        .filter((m) => m.chiiId === person.id)
+        .map((m) => ({ m, v: registry.ventures.find((v) => v.id === m.ventureId)! }))
+        .filter((x) => x.v)
+        .sort((a, b) => (a.m.leftOn ? 1 : 0) - (b.m.leftOn ? 1 : 0) || a.m.joinedOn.localeCompare(b.m.joinedOn))
+    : []
+  const current = roles.filter((x) => !x.m.leftOn)
+  const openVenture = (code: string) => {
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.set('venture', code)
+      window.history.replaceState(null, '', url)
+    } catch {
+      /* no history API */
+    }
+    onNavigate?.('ventures')
+  }
 
   return (
     <AppShell role={role} portal={portal} active="participants" onNavigate={onNavigate} onPortalChange={onPortalChange} onSignOut={onSignOut}>
@@ -99,6 +129,11 @@ export default function Person(props: Props) {
                     <PillarTag key={pl} pillar={pl} />
                   ))}
                 </span>
+                {current.map(({ m, v }) => (
+                  <span key={m.id} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${ROLE_CLS[m.role]}`}>
+                    <Rocket className="h-3 w-3" /> {ROLE_LABEL[m.role]} · {v.name}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
@@ -144,6 +179,7 @@ export default function Person(props: Props) {
               <Field label="Gender" value={person.gender === 'F' ? 'Female' : 'Male'} />
               <Field label="Age" value={String(person.age)} />
               <Field label="Country" value={person.country} />
+              {seesVentures && <Field label="Venture role" value={current.length ? current.map(({ m, v }) => `${ROLE_LABEL[m.role]}, ${v.name}`).join('; ') : 'Not a founder'} />}
               <Field label="First seen" value="14 Aug 2025 · Masterclass" />
               <Field label="Consent" value="Given · 14 Aug 2025" />
             </dl>
@@ -155,6 +191,46 @@ export default function Person(props: Props) {
           </Panel>
 
           <div className="min-w-0 space-y-5">
+            {/* Ventures: founder, co-founder or team member, from the Venture Registry */}
+            {seesVentures && roles.length > 0 && (
+              <Panel>
+                <div className="flex items-center justify-between border-b border-line px-4 py-3 sm:px-5">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold">
+                    <Rocket className="h-4 w-4 text-muted" /> Ventures
+                  </h2>
+                  <span className="text-xs text-muted">From the Venture Registry</span>
+                </div>
+                <ul className="divide-y divide-line">
+                  {roles.map(({ m, v }) => {
+                    const cohorts = incubator.founders.filter((f) => f.chiiId === person.id && f.ventureId === v.id).map((f) => incubator.cohorts.find((c) => c.id === f.cohortId)?.name).filter(Boolean)
+                    return (
+                      <li key={m.id} className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:px-5">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="truncate text-sm font-semibold text-ink">{v.name}</span>
+                            <span className="font-mono text-[11px] text-muted">{v.code}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${ROLE_CLS[m.role]}`}>{ROLE_LABEL[m.role]}</span>
+                            {m.leftOn && <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-muted">Former</span>}
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                            <StagePill stage={v.stage} />
+                            <VentureStatusPill status={v.currentStatus} />
+                            <span>
+                              {m.leftOn ? `${fmtDate(m.joinedOn)} – ${fmtDate(m.leftOn)}` : `Since ${fmtDate(m.joinedOn)}`} · {v.healthSector} · track: {v.track}
+                            </span>
+                          </div>
+                          {cohorts.length > 0 && <div className="mt-1 text-xs text-body">Incubator: {cohorts.join(', ')}</div>}
+                        </div>
+                        {canOpenVenture && <button type="button" onClick={() => openVenture(v.code)} className="inline-flex h-8 shrink-0 items-center gap-1 self-start rounded-md border border-line-strong px-3 text-xs font-semibold text-brand-600 hover:bg-brand-50 sm:self-center">
+                          Open venture <ArrowRight className="h-3 w-3" />
+                        </button>}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </Panel>
+            )}
+
             {/* Journey */}
             <Panel>
               <div className="flex items-center justify-between border-b border-line px-4 py-3 sm:px-5">
