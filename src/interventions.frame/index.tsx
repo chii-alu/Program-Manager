@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { ChevronDown, Plus, Search, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { AppShell } from '../shared/components/AppShell'
+import { PageFilters, type FilterGroup } from '../shared/components/PageFilters'
 import { Button, PageHeader, Panel, StatusBadge } from '../shared/components/ui'
 import { NewSessionModal } from '../shared/components/NewSessionModal'
 import { Portal, Role, interventions, participants, pillarsFor, portalMeta, sessions } from '../shared/data/mela'
@@ -113,9 +114,12 @@ export default function Interventions(props: Props) {
           title="Interventions"
           description={`${list.length} interventions · people active in ${label.toLowerCase()} · open ones take registrations, selective ones take applications.`}
           actions={
-            <Button variant="primary" className="w-full sm:w-auto" onClick={() => setModal(true)}>
-              <Plus className="h-4 w-4" /> New session
-            </Button>
+            <>
+              <PageFilters />
+              <Button variant="primary" className="w-full sm:w-auto" onClick={() => setModal(true)}>
+                <Plus className="h-4 w-4" /> New session
+              </Button>
+            </>
           }
         />
 

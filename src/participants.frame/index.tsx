@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { CalendarCheck, ExternalLink, Layers, Mail, UserPlus, UserRound, Users } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
+import { PageFilters, type FilterGroup } from '../shared/components/PageFilters'
 import { PageHeader, PillarTag } from '../shared/components/ui'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { StatCards } from '../shared/components/StatStrip'
@@ -29,7 +30,24 @@ export default function Participants(props: Props) {
 
   // CHII Participants is the same list in every portal: everyone, across all pillars, as MELA
   // sees it. Pillar-only lists are the pillar's own Participants sheet (consolidated-sheet.frame).
-  const inScope = participants
+  // Page filters (in the header's Filters, under the period): pillar, gender and country.
+  const [pick, setPick] = useState<Record<'pillar' | 'gender' | 'country', string[]>>({ pillar: [], gender: [], country: [] })
+  const flip = (k: keyof typeof pick, v: string) => setPick((p) => ({ ...p, [k]: p[k].includes(v) ? p[k].filter((x) => x !== v) : [...p[k], v] }))
+  const inScope = useMemo(
+    () =>
+      participants.filter(
+        (x) =>
+          (!pick.pillar.length || x.pillars.some((pl) => pick.pillar.includes(pl))) &&
+          (!pick.gender.length || pick.gender.includes(x.gender)) &&
+          (!pick.country.length || pick.country.includes(x.country)),
+      ),
+    [pick],
+  )
+  const groups: FilterGroup[] = [
+    { key: 'pillar', label: 'Pillar', options: ['HENT', 'HEMP', 'HECO'].map((v) => ({ value: v })), selected: pick.pillar, onToggle: (v) => flip('pillar', v) },
+    { key: 'gender', label: 'Gender', options: [{ value: 'F', label: 'Female' }, { value: 'M', label: 'Male' }], selected: pick.gender, onToggle: (v) => flip('gender', v) },
+    { key: 'country', label: 'Country', options: [...new Set(participants.map((x) => x.country))].sort().map((v) => ({ value: v })), selected: pick.country, onToggle: (v) => flip('country', v) },
+  ]
   const rows = useMemo(() => inScope.filter((x) => inRange(range, x.lastActive)), [inScope, range])
   const prevRows = useMemo(() => inScope.filter((x) => inRange(previous(range), x.lastActive)), [inScope, range])
   const fresh = rows.filter((x) => inRange(range, x.joined)).length
@@ -79,6 +97,7 @@ export default function Participants(props: Props) {
         <PageHeader
           crumbs={[portalMeta[portal].label, 'CHII Participants']}
           title="CHII Participants"
+          actions={<PageFilters groups={groups} onClear={() => setPick({ pillar: [], gender: [], country: [] })} />}
           description={
             <>
               People active in <span className="font-medium text-ink">{label.toLowerCase()}</span>

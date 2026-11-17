@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { AlertTriangle, ArrowRight, CalendarDays, Check, ChevronDown, ChevronRight, CircleAlert, DoorOpen, Plus, QrCode, EyeOff, RotateCcw, UserCheck, Users } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
+import { PageFilters, type FilterGroup } from '../shared/components/PageFilters'
 import { Button, PageHeader, Panel, PillarTag, StatusBadge } from '../shared/components/ui'
 import { Pillar, Portal, Role, Session, SessionStatus,attention, pillarStats, pillarsFor, portalMeta, sessions } from '../shared/data/mela'
 import { userFor } from '../shared/lib/auth'
@@ -123,6 +124,7 @@ export default function Overview(props: Props) {
             }
             actions={
               <>
+                <PageFilters />
                 <Button className="hidden sm:inline-flex" onClick={() => onNavigate?.('analytics')}>
                   View analytics
                 </Button>

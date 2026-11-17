@@ -14,6 +14,7 @@ import { StatCards } from '../shared/components/StatStrip'
 import { Button, PageHeader, Panel } from '../shared/components/ui'
 import { countryName } from '../shared/ventures/lists'
 import { DefinitionsModal, type Definition } from '../shared/components/DefinitionsModal'
+import { TopBar } from '../shared/components/TopBarSlot'
 import { FILTER_FIELDS, PERIODS, PERIOD_YEARS, VENTURE_INDICATORS, periodStarted, yearPeriod, VENTURE_TARGETS, analyse, previousPeriod, suppressCount, type Slice, type VFilters } from '../shared/ventures/metrics'
 import type { RegistryData } from '../shared/ventures/types'
 import { Chip, StagePill, VentureStatusPill, money } from './parts'
@@ -97,6 +98,8 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
         description={`Live from the Venture Registry, with the same definitions as the CHII dashboard’s Ventures Portfolio. As of ${new Date(a.asOf).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · ${v['venture.supported']} ventures · compared with ${previousPeriod(period).key === 'to_date_prev' ? '12 months earlier' : previousPeriod(period).label}.`}
         actions={
           <>
+            {/* Shown in the top bar, beside Create. */}
+            <TopBar>
             <Popover
               align="right"
               width="w-[min(94vw,680px)]"
@@ -104,10 +107,10 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
                 <button
                   type="button"
                   onClick={t}
-                  className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors ${open || setCount ? 'border-white bg-white text-brand' : 'border-white/25 bg-white/10 text-white hover:bg-white/15'}`}
+                  className={`inline-flex h-9 items-center gap-2 rounded-lg border px-2.5 text-sm font-medium transition-colors sm:px-3 ${open || setCount ? 'border-brand-600 bg-brand-50 text-brand-600' : 'border-line bg-surface text-body hover:bg-canvas'}`}
                 >
-                  <Filter className="h-4 w-4" /> Filters
-                  <span className={`text-xs font-normal ${open || setCount ? 'text-brand/70' : 'text-white/70'}`}>· {period.label}</span>
+                  <Filter className="h-4 w-4" /> <span className="hidden sm:inline">Filters</span>
+                  <span className="hidden text-xs font-normal text-muted md:inline">· {period.label}</span>
                   {setCount > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1.5 text-[11px] font-bold text-white">{setCount}</span>}
                   <ChevronDown className="h-3.5 w-3.5 opacity-70" />
                 </button>
@@ -188,6 +191,7 @@ export function VentureAnalytics({ data, onOpen }: { data: RegistryData; onOpen:
                 </div>
               )}
             </Popover>
+            </TopBar>
             <Button onClick={() => setDefs(true)}>
               <BookOpen className="h-4 w-4" /> Definitions
             </Button>

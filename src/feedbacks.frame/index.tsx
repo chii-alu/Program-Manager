@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Copy, MessageSquareText, Star, Target, TrendingUp, UserRound } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
+import { PageFilters, type FilterGroup } from '../shared/components/PageFilters'
 import { PageHeader, PillarTag } from '../shared/components/ui'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { StatCards } from '../shared/components/StatStrip'
@@ -27,7 +28,17 @@ export default function Feedbacks(props: Props) {
   const { range, label } = useTimeRange()
   // CHII Feedbacks is the same in every portal: every pillar's responses, as MELA sees them.
   // Pillar-only feedback is the pillar's own Feedback sheet (consolidated-sheet.frame).
-  const inScope = feedbackRows
+  // Page filters (in the header's Filters, under the period): pillar and intervention.
+  const [pick, setPick] = useState<Record<'pillar' | 'intervention', string[]>>({ pillar: [], intervention: [] })
+  const flip = (k: keyof typeof pick, v: string) => setPick((p) => ({ ...p, [k]: p[k].includes(v) ? p[k].filter((x) => x !== v) : [...p[k], v] }))
+  const inScope = useMemo(
+    () => feedbackRows.filter((f) => (!pick.pillar.length || pick.pillar.includes(f.pillar)) && (!pick.intervention.length || pick.intervention.includes(f.intervention))),
+    [pick],
+  )
+  const groups: FilterGroup[] = [
+    { key: 'pillar', label: 'Pillar', options: ['HENT', 'HEMP', 'HECO'].map((v) => ({ value: v })), selected: pick.pillar, onToggle: (v) => flip('pillar', v) },
+    { key: 'intervention', label: 'Intervention', options: [...new Set(feedbackRows.map((f) => f.intervention))].sort().map((v) => ({ value: v })), selected: pick.intervention, onToggle: (v) => flip('intervention', v) },
+  ]
   const inPeriod = useMemo(() => inScope.filter((f) => inRange(range, f.date)), [inScope, range])
   const prev = useMemo(() => inScope.filter((f) => inRange(previous(range), f.date)), [inScope, range])
   const rows = inPeriod
@@ -53,6 +64,7 @@ export default function Feedbacks(props: Props) {
         <PageHeader
           crumbs={[portalMeta[portal].label, 'CHII Feedbacks']}
           title="CHII Feedbacks"
+          actions={<PageFilters groups={groups} onClear={() => setPick({ pillar: [], intervention: [] })} />}
           description={
             <>
               Every feedback response across all pillars in <span className="font-medium text-ink">{label.toLowerCase()}</span>. One response per person per session.

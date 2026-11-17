@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { ArrowDownAZ, ArrowUpAZ, ChevronDown, Download, FileSpreadsheet, FileText, FileType2, Filter, Lock, Search, X } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
+import { PageFilters, type FilterGroup } from '../shared/components/PageFilters'
 import { Button, PageHeader, Panel } from '../shared/components/ui'
 import { Popover, MenuItem } from '../shared/components/Popover'
 import { ExportModal } from '../shared/components/ExportModal'
@@ -88,6 +89,8 @@ export default function ConsolidatedSheet(props: Props) {
           }
           actions={
             <>
+              {/* The ventures sheet shows each venture's latest values, so it has no period. */}
+              {kind !== 'ventures' && <PageFilters />}
               <div className="flex flex-1 gap-0.5 rounded-lg bg-surface p-0.5 shadow-[0_0_0_1px_var(--color-line)] sm:flex-none">
                 {['participants', 'feedback', ...(venturesOk ? ['ventures'] : [])].map((s) => (
                   <button

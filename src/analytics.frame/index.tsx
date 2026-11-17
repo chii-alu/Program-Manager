@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { AreaChart as AreaIcon, BarChart3, BookOpen, Download, Layers, LineChart as LineIcon, X } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AppShell } from '../shared/components/AppShell'
+import { PageFilters, type FilterGroup } from '../shared/components/PageFilters'
 import { Button, PageHeader, Panel, PillarTag, PanelHeader } from '../shared/components/ui'
 import { ChartTooltip, axisProps, categoryAxisProps, chartColors, gridProps, lineProps, valueAxisProps, valueLabelProps } from '../shared/components/charts'
 import { DonutRing } from '../shared/components/DonutRing'
@@ -136,6 +137,7 @@ export default function Analytics(props: Props) {
           description={<>{portal === 'admin' ? 'Reach, completion and satisfaction across CHII' : `How ${portalMeta[portal].label} is reaching young people`} · <span className="font-medium text-ink">{label}</span></>}
           actions={
             <>
+              <PageFilters />
               <Button className="flex-1 sm:flex-none" onClick={() => setDefs(true)}>
                 <BookOpen className="h-4 w-4" /> Definitions
               </Button>

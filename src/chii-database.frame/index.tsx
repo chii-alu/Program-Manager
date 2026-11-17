@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Copy, Database, RefreshCw, UserRound } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
+import { PageFilters, type FilterGroup } from '../shared/components/PageFilters'
 import { AdminOnly, Button, PageHeader, PillarTag } from '../shared/components/ui'
 import { Column, DataTable } from '../shared/components/DataTable'
 import { CountUp } from '../shared/components/StatStrip'
@@ -55,6 +56,8 @@ export default function ChiiDatabase(props: Props) {
             title="CHII Database"
             description={<>The consolidated, cross-pillar registries that feed MELA reporting · <span className="font-medium text-ink">{label.toLowerCase()}</span>.</>}
             actions={
+              <>
+              <PageFilters />
               <Button
                 className="w-full sm:w-auto"
                 onClick={() => {
@@ -68,6 +71,7 @@ export default function ChiiDatabase(props: Props) {
               >
                 <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> {refreshing ? 'Refreshing…' : `Refreshed ${refreshedAt}`}
               </Button>
+              </>
             }
           />
 

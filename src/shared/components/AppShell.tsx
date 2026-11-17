@@ -49,7 +49,6 @@ import { EmptyState } from './EmptyState'
 import { Toaster } from './Toaster'
 import { HelpWidget } from './HelpWidget'
 import { CountUp } from './StatStrip'
-import { RangePanel, TimeFilter } from './TimeFilter'
 import { useTheme } from '../hooks/useTheme'
 import { startRealtime, timeAgo, toast, useNotifications } from '../lib/notify'
 import { bounds, totals, useTimeRange } from '../lib/time'
@@ -57,6 +56,7 @@ import { useInstall } from '../lib/pwa'
 import { canUseVentures } from '../ventures/store'
 import { Portal, Role, applications, interventions, participants, pillarStats, pillarsFor, portalMeta, sessions } from '../data/mela'
 import { useSessions } from '../data/sessionStore'
+import { TopBarSlotContext } from './TopBarSlot'
 import { userFor } from '../lib/auth'
 
 export type ShellProps = {
@@ -120,6 +120,8 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
   const [loading, setLoading] = useState(true)
   const { theme, toggle } = useTheme()
   const { range } = useTimeRange()
+  // The top-bar spot the page's Filters render into (see TopBarSlot).
+  const [topSlot, setTopSlot] = useState<HTMLElement | null>(null)
   const runs = useSessions()
   const runCounts = useMemo(() => runs.reduce<Record<string, number>>((m, s) => ((m[s.intervention] = (m[s.intervention] ?? 0) + 1), m), {}), [runs])
   const groups = navFor(role, portal, runCounts)
@@ -320,16 +322,8 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
           </button>
 
           <div className="ml-auto flex items-center gap-0.5 sm:gap-1.5">
-            {role !== 'none' && (
-              <>
-                <span className="hidden sm:block">
-                  <TimeFilter />
-                </span>
-                <span className="sm:hidden">
-                  <TimeFilter compact />
-                </span>
-              </>
-            )}
+            {/* The page's Filters (period and its own filters) sit here, beside Create. */}
+            <div ref={setTopSlot} className="flex items-center" />
             {role !== 'none' && role !== 'reviewer' && (
               <Popover
                 width="w-56"
@@ -381,7 +375,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
                 animate={loading ? { opacity: 0, y: 6 } : { opacity: 1, y: 0 }}
                 transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
               >
-                {children}
+                <TopBarSlotContext.Provider value={topSlot}>{children}</TopBarSlotContext.Provider>
               </motion.div>
             </>
           )}
@@ -916,9 +910,6 @@ function MoreSheet(props: {
                       <span className="font-semibold">{portalMeta[portal].label}</span> <span className="text-muted">· {dept.scope}</span>
                     </div>
                   )}
-                </div>
-                <div className="overflow-hidden rounded-xl border border-line">
-                  <RangePanel from={from} to={to} setFrom={setFrom} setTo={setTo} preset={range.preset} year={range.year} setRange={setRange} onDone={onClose} />
                 </div>
               </div>
             )}
