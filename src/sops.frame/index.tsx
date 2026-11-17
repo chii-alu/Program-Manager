@@ -239,12 +239,15 @@ function SopRow({ x, showPillar, canEdit, canDelete, onOpen, onEdit, onDelete }:
         </span>
       </span>
       <div className="flex shrink-0 items-center gap-1">
-        {x.document?.dataUrl ? (
-          <a href={x.document.dataUrl} download={x.document.name} aria-label="Download document" title={`Download ${x.document.name}`} className="grid h-8 w-8 place-items-center rounded-md text-muted hover:bg-surface hover:text-ink">
+        {/* An uploaded-only SOP downloads its own file; otherwise the SOP as a PDF. */}
+        {!x.steps.length && x.document?.dataUrl ? (
+          <a href={x.document.dataUrl} download={x.document.name} aria-label="Download" title={`Download ${x.document.name}`} className="grid h-8 w-8 place-items-center rounded-md text-muted hover:bg-surface hover:text-ink">
             <Download className="h-4 w-4" />
           </a>
         ) : (
-          <span className="h-8 w-8" aria-hidden />
+          <button type="button" onClick={() => downloadOne(x)} aria-label="Download" title="Download as PDF" className="grid h-8 w-8 place-items-center rounded-md text-muted hover:bg-surface hover:text-ink">
+            <Download className="h-4 w-4" />
+          </button>
         )}
         {canEdit ? (
           <button type="button" onClick={onEdit} aria-label="Edit" title="Edit" className="grid h-8 w-8 place-items-center rounded-md text-muted hover:bg-surface hover:text-ink">
@@ -350,6 +353,9 @@ function SopView({
           {done.length} of {x.steps.length} steps ticked · ticks are just for you, to follow along
         </span>
         <span className="ml-auto" />
+        <Button className="h-9 text-xs" onClick={() => downloadOne(x)}>
+          <Download className="h-4 w-4" /> Download PDF
+        </Button>
         {canDelete && (
           <Button className="h-9 text-xs text-bad" onClick={onDelete}>
             <Trash2 className="h-4 w-4" /> Delete
