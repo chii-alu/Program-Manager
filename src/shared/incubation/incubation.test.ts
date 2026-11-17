@@ -30,8 +30,8 @@ const A = () => d().cohorts.find((c) => c.id === 'coh-2025a')!
 const B = () => d().cohorts.find((c) => c.id === 'coh-2025b')!
 
 describe('cohorts from the template', () => {
-  it('creating “Incubation 2027 A: Expose” creates 40 sessions, I1 S01 to I4 S10', () => {
-    const c = createCohort({ name: 'Incubation 2027 A: Expose', stage: 'expose', startsOn: '2027-02-01', fillDates: true, threshold: 0.75, canvas: { mode: 'one', courses: {} } }, 'Tendai')
+  it('creating “Incubator 2027 A: Expose” creates 40 sessions, I1 S01 to I4 S10', () => {
+    const c = createCohort({ name: 'Incubator 2027 A: Expose', stage: 'expose', startsOn: '2027-02-01', fillDates: true, threshold: 0.75, canvas: { mode: 'one', courses: {} } }, 'Tendai')
     const ss = cohortSessions(d(), c.id)
     expect(ss).toHaveLength(40)
     expect(`${ss[0].moduleCode} S${ss[0].no}`).toBe('I1 S1')
@@ -39,11 +39,11 @@ describe('cohorts from the template', () => {
     expect(ss.every((s) => s.date && s.date >= '2027-02-01')).toBe(true)
   })
   it('a Build cohort has no sessions until Build has a curriculum', () => {
-    const c = createCohort({ name: 'Incubation 2026 A: Build', stage: 'build', startsOn: '2026-01-12', fillDates: true, threshold: 0.75, canvas: { mode: 'one', courses: {} } }, 'Tendai')
+    const c = createCohort({ name: 'Incubator 2026 A: Build', stage: 'build', startsOn: '2026-01-12', fillDates: true, threshold: 0.75, canvas: { mode: 'one', courses: {} } }, 'Tendai')
     expect(cohortSessions(d(), c.id)).toHaveLength(0)
   })
   it('refuses a duplicate name', () => {
-    expect(() => createCohort({ name: 'Incubation 2025 B: Expose', stage: 'expose', startsOn: '2027-02-01', fillDates: false, threshold: 0.75, canvas: { mode: 'one', courses: {} } }, 'T')).toThrow(IncubationError)
+    expect(() => createCohort({ name: 'Incubator 2025 B: Expose', stage: 'expose', startsOn: '2027-02-01', fillDates: false, threshold: 0.75, canvas: { mode: 'one', courses: {} } }, 'T')).toThrow(IncubationError)
   })
 })
 
@@ -119,12 +119,12 @@ describe('module feedback', () => {
 })
 
 describe('gate', () => {
-  it('“build” into a Build cohort moves the venture’s track to Incubation – Build', () => {
-    const build = createCohort({ name: 'Incubation 2026 A: Build', stage: 'build', startsOn: '2026-01-12', fillDates: false, threshold: 0.75, canvas: { mode: 'one', courses: {} } }, 'T')
+  it('“build” into a Build cohort moves the venture’s track to Incubator – Build', () => {
+    const build = createCohort({ name: 'Incubator 2026 A: Build', stage: 'build', startsOn: '2026-01-12', fillDates: false, threshold: 0.75, canvas: { mode: 'one', courses: {} } }, 'T')
     const f = foundersIn(d(), 'coh-2025a').find((x) => x.ventureId && !d().gate.some((g) => g.ventureId === x.ventureId))!
     expect(() => decideGate({ cohortId: 'coh-2025a', chiiId: f.chiiId, ventureId: f.ventureId, decision: 'build', decidedOn: '2025-06-20', notes: '' }, 'T')).toThrow(/Build cohort/)
     decideGate({ cohortId: 'coh-2025a', chiiId: f.chiiId, ventureId: f.ventureId, decision: 'build', decidedOn: '2025-06-20', nextCohortId: build.id, notes: '' }, 'T')
-    expect(getRegistry().ventures.find((v) => v.id === f.ventureId)!.track).toBe('Incubation – Build')
+    expect(getRegistry().ventures.find((v) => v.id === f.ventureId)!.track).toBe('Incubator – Build')
     expect(foundersIn(d(), build.id).some((x) => x.chiiId === f.chiiId)).toBe(true)
     // Participation in the Expose cohort doesn't change.
     expect(foundersIn(d(), 'coh-2025a').some((x) => x.chiiId === f.chiiId)).toBe(true)

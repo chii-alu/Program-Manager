@@ -51,7 +51,7 @@ export function GatePage({ data, me, onOpenCohort }: { data: IncubationData; me:
 
   return (
     <>
-      <PageHeader crumbs={['HENT', 'Incubation', 'Gate']} title="EBI Evidence Gate" description="After I4, CHII decides for each venture: Build, more ideation, or another pathway. One decision per venture; it never changes their place in the Expose cohort." />
+      <PageHeader crumbs={['HENT', 'Incubator', 'Gate']} title="EBI Evidence Gate" description="After I4, CHII decides for each venture: Build, more ideation, or another pathway. One decision per venture; it never changes their place in the Expose cohort." />
       <StatCards
         items={[
           { label: 'Waiting for a decision', value: waiting.length, icon: Hourglass, hint: 'Ventures that finished I4' },
@@ -234,7 +234,7 @@ function DecisionForm({ data, t, me, ventureName, onDone }: { data: IncubationDa
       </Field>
       {decision === 'build' &&
         (builds.length ? (
-          <Field label="Build cohort they join" required hint="The founders are added to it, and the venture’s track in the registry becomes “Incubation – Build”.">
+          <Field label="Build cohort they join" required hint="The founders are added to it, and the venture’s track in the registry becomes “Incubator – Build”.">
             <select value={next} onChange={(e) => setNext(e.target.value)} className={inputCls}>
               <option value="">Choose…</option>
               {builds.map((c) => (

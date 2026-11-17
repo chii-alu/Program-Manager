@@ -49,8 +49,8 @@ export function CohortsPage({ data, me, onOpen }: { data: IncubationData; me: st
   return (
     <>
       <PageHeader
-        crumbs={['HENT', 'Incubation', 'Cohorts']}
-        title="Incubation Cohorts"
+        crumbs={['HENT', 'Incubator', 'Cohorts']}
+        title="Incubator Cohorts"
         description="Expose → Build → Scale. Each cohort is one intake round of one stage; Expose cohorts follow the 40-session curriculum."
         actions={
           <Button variant="primary" onClick={() => setCreating(true)}>
@@ -165,7 +165,7 @@ function GateSummary({ s }: { s: ReturnType<typeof cohortSummary> }) {
 function nextName(d: IncubationData, stage: IncStage) {
   const year = Number(TODAY.slice(0, 4)) + 1
   for (const letter of 'ABCDEF') {
-    const name = `Incubation ${year} ${letter}: ${STAGE_LABEL[stage]}`
+    const name = `Incubator ${year} ${letter}: ${STAGE_LABEL[stage]}`
     if (!d.cohorts.some((c) => c.name === name)) return name
   }
   return ''
@@ -224,7 +224,7 @@ function NewCohort({ open, onClose, data, me, onCreated }: { open: boolean; onCl
             ))}
           </div>
         </Field>
-        <Field label="Cohort name" required hint="Year, intake letter and stage, e.g. “Incubation 2027 A: Expose”.">
+        <Field label="Cohort name" required hint="Year, intake letter and stage, e.g. “Incubator 2027 A: Expose”.">
           <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">

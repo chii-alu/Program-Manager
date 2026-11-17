@@ -222,7 +222,9 @@ export function addAward(row: Omit<FundingAward, 'id'>, by: string) {
 
 /** Registries saved before the public forms existed get empty form data. */
 function withFormData(d: RegistryData): RegistryData {
-  const out = { ...d, submissions: d.submissions ?? [], links: d.links ?? [], settings: d.settings ?? defaultSettings() }
+  // "Incubation" was renamed "Incubator": rename the track on ventures saved before.
+  const ventures = d.ventures.map((v) => (/^Incubation\b/.test(v.track) ? { ...v, track: v.track.replace(/^Incubation/, 'Incubator') } : v))
+  const out = { ...d, ventures, submissions: d.submissions ?? [], links: d.links ?? [], settings: d.settings ?? defaultSettings() }
   return { ...out, activity: d.activity ?? rebuildActivity(out) }
 }
 

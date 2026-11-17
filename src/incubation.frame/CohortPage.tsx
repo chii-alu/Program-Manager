@@ -76,7 +76,7 @@ export function CohortPage({
         <ArrowLeft className="h-4 w-4" /> All cohorts
       </button>
       <PageHeader
-        crumbs={['HENT', 'Incubation', 'Cohorts', c.name]}
+        crumbs={['HENT', 'Incubator', 'Cohorts', c.name]}
         title={c.name}
         description={
           <span className="flex flex-wrap items-center gap-2">

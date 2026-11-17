@@ -36,6 +36,8 @@ const median = (xs: number[]) => {
   return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2
 }
 const r1 = (x: number | null) => (x == null ? null : Math.round(x * 10) / 10)
+/** A point with no scores yet shows “Not yet” rather than 0. */
+const noData = (v: number | null) => (v == null ? { value: 0, note: 'Not yet' } : { value: v })
 const def = (code: string) => INC_INDICATORS.find((i) => i.code === code)?.definition
 
 export function IncubationAnalytics({ data, onOpenCohort: _open }: { data: IncubationData; onOpenCohort: (id: string) => void }) {
@@ -80,8 +82,8 @@ export function IncubationAnalytics({ data, onOpenCohort: _open }: { data: Incub
       const xs = data.feedback.filter((y) => y.moduleCode === m && enrolled.some((r) => r.c.id === y.cohortId && r.f.chiiId === y.chiiId))
       return { label: m, value: xs.length, rating: r1(avg(xs.map((y) => y.rating))) }
     })
-    const quiz = (['intake', 'end_i1', 'end_i4'] as const).map((t) => ({ label: t === 'intake' ? 'Intake' : t === 'end_i1' ? 'End of I1' : 'End of I4', value: r1(avg(enrolled.map(({ c, f: x }) => resultScore(resultOf(data, c.id, `QUIZ-${t}`, x.chiiId))))) ?? 0 }))
-    const conf = (['intake', 'end_i4'] as const).map((t) => ({ label: t === 'intake' ? 'Intake' : 'End of I4', value: r1(avg(enrolled.map(({ c, f: x }) => resultScore(resultOf(data, c.id, `CONF-${t}`, x.chiiId))))) ?? 0 }))
+    const quiz = (['intake', 'end_i1', 'end_i4'] as const).map((t) => ({ label: t === 'intake' ? 'Intake' : t === 'end_i1' ? 'End of I1' : 'End of I4', ...noData(r1(avg(enrolled.map(({ c, f: x }) => resultScore(resultOf(data, c.id, `QUIZ-${t}`, x.chiiId)))))) }))
+    const conf = (['intake', 'end_i4'] as const).map((t) => ({ label: t === 'intake' ? 'Intake' : 'End of I4', ...noData(r1(avg(enrolled.map(({ c, f: x }) => resultScore(resultOf(data, c.id, `CONF-${t}`, x.chiiId)))))) }))
     const qGain = enrolled.map(({ c, f: x }) => skillsGain(data, c.id, x.chiiId, 'QUIZ')?.gain ?? null)
     const cGain = enrolled.map(({ c, f: x }) => skillsGain(data, c.id, x.chiiId, 'CONF')?.gain ?? null)
     const rubric = mods.map((m) => ({ label: m, value: r1(avg(enrolled.map(({ c, f: x }) => moduleMean(data, c.id, x.chiiId, m)))) ?? 0 }))
@@ -131,7 +133,7 @@ export function IncubationAnalytics({ data, onOpenCohort: _open }: { data: Incub
       <PageFilters
         onClear={() => setF({ cohort: [], module: [], pathway: [], gender: [], country: [] })}
         groups={[
-          { key: 'cohort', label: 'Cohort', options: data.cohorts.filter((c) => c.stage === 'expose').map((c) => ({ value: c.id, label: c.name.replace('Incubation ', '') })), selected: f.cohort, onToggle: toggle('cohort') },
+          { key: 'cohort', label: 'Cohort', options: data.cohorts.filter((c) => c.stage === 'expose').map((c) => ({ value: c.id, label: c.name.replace('Incubator ', '') })), selected: f.cohort, onToggle: toggle('cohort') },
           { key: 'module', label: 'Module', options: EXPOSE_MODULES.map((m) => ({ value: m })), selected: f.module, onToggle: toggle('module') },
           { key: 'pathway', label: 'Pathway', options: PATHWAYS.map((p) => ({ value: p, label: PATHWAY_LABEL[p] })), selected: f.pathway, onToggle: toggle('pathway') },
           { key: 'gender', label: 'Gender', options: genders.map((g) => ({ value: g, label: g === 'F' ? 'Women' : g === 'M' ? 'Men' : g })), selected: f.gender, onToggle: toggle('gender') },
@@ -139,8 +141,8 @@ export function IncubationAnalytics({ data, onOpenCohort: _open }: { data: Incub
         ]}
       />
       <PageHeader
-        crumbs={['HENT', 'Incubation', 'Analytics']}
-        title="Incubation Analytics"
+        crumbs={['HENT', 'Incubator', 'Analytics']}
+        title="Incubator Analytics"
         description={`${cohorts.length} Expose cohort${cohorts.length === 1 ? '' : 's'} that ran in ${periodLabel.toLowerCase()}. Founders are counted once each; groups under ${MIN_N} are hidden.`}
         actions={
           <Button onClick={() => setDefs(true)}>
@@ -193,7 +195,7 @@ export function IncubationAnalytics({ data, onOpenCohort: _open }: { data: Incub
               </ResponsiveContainer>
             </ChartPanel>
             <ChartPanel title="Module feedback" sub="Responses per module (one per founder), with the mean rating out of 5" info={def('INC-R04')}>
-              <Bars data={a.fb.map((x) => ({ label: x.label, value: x.value, note: x.rating != null ? `★ ${x.rating}` : '' }))} />
+              <Bars data={a.fb.map((x) => ({ label: x.label, value: x.value, note: x.rating != null ? `avg ${x.rating}` : '' }))} />
             </ChartPanel>
           </Grid>
           <LevelHead level={2} />
@@ -274,7 +276,7 @@ export function IncubationAnalytics({ data, onOpenCohort: _open }: { data: Incub
       <DefinitionsModal
         open={defs}
         onClose={() => setDefs(false)}
-        title="Incubation indicators"
+        title="Incubator indicators"
         description="How each figure on this page is worked out, by level. Tags show the implementation-research frame (RE-AIM or Proctor)."
         items={INC_INDICATORS.map((i) => ({ name: i.name, code: i.code, definition: `${i.definition}${i.numerator ? ` Numerator: ${i.numerator}. Denominator: ${i.denominator}.` : ''} Source: ${i.source}.${i.tag ? ` ${i.tag}.` : ''}`, group: `Level ${i.level} · ${LEVELS[i.level]}` }))}
       />

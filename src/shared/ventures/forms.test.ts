@@ -71,14 +71,14 @@ describe('venture registration form', () => {
 
   it('accepting creates the venture, matches founders to CHII IDs, and stores the numbers as the baseline', () => {
     const s = submitRegistration(reg())
-    const v = acceptSubmission(s.id, { intakeYear: 2025, track: 'Incubation' }, 'Staff')
+    const v = acceptSubmission(s.id, { intakeYear: 2025, track: 'Incubator' }, 'Staff')
     const d = getRegistry()
     const members = d.members.filter((m) => m.ventureId === v.id)
     expect(members.map((m) => m.role)).toEqual(['lead_founder', 'co_founder'])
     expect(members[0].chiiId).toBe('CHII-000279') // matched by email, any case
     expect(d.updates.find((u) => u.ventureId === v.id)).toMatchObject({ updateType: 'baseline', source: 'founder_form', jobsTotal: 3 })
     expect(d.submissions!.find((x) => x.id === s.id)).toMatchObject({ status: 'accepted', ventureId: v.id })
-    expect(() => acceptSubmission(s.id, { intakeYear: 2025, track: 'Incubation' }, 'Staff')).toThrow(/already been reviewed/)
+    expect(() => acceptSubmission(s.id, { intakeYear: 2025, track: 'Incubator' }, 'Staff')).toThrow(/already been reviewed/)
   })
 
   it('a declined registration keeps its reason and never enters the registry', () => {

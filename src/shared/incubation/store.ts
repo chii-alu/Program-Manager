@@ -2,8 +2,8 @@
  * Incubation storage and write operations (browser-only, like the Venture Registry).
  *
  * The seed has two Expose cohorts built from the registry's ventures and their founders:
- *  - Incubation 2025 A: Expose (finished in May; some gate decisions still to make)
- *  - Incubation 2025 B: Expose (running; in I4 on the prototype's "today", 10 Nov 2025)
+ *  - Incubator 2025 A: Expose (finished in May; some gate decisions still to make)
+ *  - Incubator 2025 B: Expose (running; in I4 on the prototype's "today", 10 Nov 2025)
  *
  * Canvas isn't connected: `canvasFeed` stands in for the Canvas API with a fixed, repeatable set
  * of enrolments and submissions, so "Run sync now" behaves like the real sync (matching by
@@ -230,8 +230,8 @@ export function seedIncubation(): IncubationData {
   const d: IncubationData = { curriculum: defaultCurriculum(), cohorts: [], sessions: [], founders: [], results: [], exemptions: [], gate: [], feedback: [], canvas: { mapping: {}, links: {}, unmatched: {}, runs: [] }, log: [] }
   const reg = getRegistry()
   const expose = reg.ventures.filter((v) => foundersOf(reg, v.id).length > 0).sort((a, b) => a.code.localeCompare(b.code))
-  const a = seedCohort(d, { id: 'coh-2025a', name: 'Incubation 2025 A: Expose', start: '2025-03-03', ventures: expose.slice(2, 7).map((v) => v.id), createdAt: '2025-02-10T09:00:00.000Z' })
-  const b = seedCohort(d, { id: 'coh-2025b', name: 'Incubation 2025 B: Expose', start: '2025-08-18', ventures: expose.slice(7, 13).map((v) => v.id), createdAt: '2025-07-21T09:00:00.000Z' })
+  const a = seedCohort(d, { id: 'coh-2025a', name: 'Incubator 2025 A: Expose', start: '2025-03-03', ventures: expose.slice(2, 7).map((v) => v.id), createdAt: '2025-02-10T09:00:00.000Z' })
+  const b = seedCohort(d, { id: 'coh-2025b', name: 'Incubator 2025 B: Expose', start: '2025-08-18', ventures: expose.slice(7, 13).map((v) => v.id), createdAt: '2025-07-21T09:00:00.000Z' })
 
   // Recognition of prior learning: one approved and one declined in A; one approved and one waiting in B.
   const fa = foundersIn(d, a.id)
@@ -284,11 +284,13 @@ export function seedIncubation(): IncubationData {
 
 let cache: IncubationData | null = null
 const listeners = new Set<() => void>()
+/** "Incubation" was renamed "Incubator": rename cohorts saved before. */
+const renamed = (d: IncubationData): IncubationData => ({ ...d, cohorts: d.cohorts.map((c) => (/^Incubation /.test(c.name) ? { ...c, name: c.name.replace(/^Incubation /, 'Incubator ') } : c)) })
 function load(): IncubationData {
   if (cache) return cache
   try {
     const raw = localStorage.getItem(KEY)
-    cache = raw ? (JSON.parse(raw) as IncubationData) : seedIncubation()
+    cache = raw ? renamed(JSON.parse(raw) as IncubationData) : seedIncubation()
   } catch {
     cache = seedIncubation()
   }
@@ -321,7 +323,7 @@ export type CohortInput = { name: string; stage: IncStage; startsOn: string; fil
 export function createCohort(x: CohortInput, by: string): Cohort {
   const d = load()
   const name = x.name.trim()
-  if (!name) throw new IncubationError('Give the cohort a name, e.g. “Incubation 2027 A: Expose”.')
+  if (!name) throw new IncubationError('Give the cohort a name, e.g. “Incubator 2027 A: Expose”.')
   if (d.cohorts.some((c) => c.name.toLowerCase() === name.toLowerCase())) throw new IncubationError(`There’s already a cohort called “${name}”.`)
   if (!x.startsOn) throw new IncubationError('Choose the start date.')
   if (!(x.threshold > 0 && x.threshold <= 1)) throw new IncubationError('The completion threshold should be between 1% and 100%.')
@@ -513,7 +515,7 @@ export function decideGate(x: GateInput, by: string) {
   // The venture's registry track follows them into Build.
   if (next.nextCohortId && x.ventureId) {
     try {
-      editVenture(x.ventureId, { track: 'Incubation – Build' }, by)
+      editVenture(x.ventureId, { track: 'Incubator – Build' }, by)
     } catch {
       /* registry rules failed for an unrelated field; the gate decision still stands */
     }
@@ -528,7 +530,7 @@ export function recordSnapshot(cohortId: string, ventureId: string, asOf: string
   if (!last) throw new IncubationError('This venture has no baseline in the registry yet.')
   if (reg.updates.some((u) => u.ventureId === ventureId && u.source === 'incubation_snapshot' && u.asOf === asOf)) throw new IncubationError('A snapshot for this date is already recorded.')
   const { id: _i, ventureId: _v, updateType: _t, source: _s, fundingUsd: _f, revenueUsd: _r, submittedBy: _b, acceptedBy: _a, acceptedAt: _at, ...values } = last
-  addUpdate(ventureId, { ...values, asOf, notes: 'Incubation I4 snapshot (Expose)' }, by, 'incubation_snapshot')
+  addUpdate(ventureId, { ...values, asOf, notes: 'Incubator I4 snapshot (Expose)' }, by, 'incubation_snapshot')
   const d = load()
   persist({ ...d, log: logged(d, by, 'snapshot', `${ventureId} · I4 snapshot as of ${asOf}`, cohortId) })
 }

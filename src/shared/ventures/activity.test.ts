@@ -36,7 +36,7 @@ describe('registrations log', () => {
 
   it('accepting logs who did it and the Venture ID it became', () => {
     const s = pending()[0]
-    const v = acceptSubmission(s.id, { intakeYear: 2025, track: 'Incubation' }, 'Tendai Moyo')
+    const v = acceptSubmission(s.id, { intakeYear: 2025, track: 'Incubator' }, 'Tendai Moyo')
     expect(last()).toMatchObject({ area: 'registrations', action: 'registration_accepted', by: 'Tendai Moyo', ventureId: v.id, submissionId: s.id })
     expect(last().detail).toContain(v.code)
   })

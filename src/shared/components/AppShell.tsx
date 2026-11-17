@@ -78,7 +78,7 @@ export type ShellProps = {
   children: React.ReactNode
 }
 
-type NavItem = { key: string; label: string; short?: string; icon: React.ComponentType<{ className?: string }>; count?: number; children?: NavItem[] }
+type NavItem = { key: string; label: string; short?: string; icon: React.ComponentType<{ className?: string }>; count?: number; children?: NavItem[]; /** Other pages that light this item up. */ also?: string[] }
 
 /** Sub-pages listed on their own, for the command palette and the phone menu. */
 const flat = (items: NavItem[]) => items.flatMap((i) => (i.children ? i.children.map((c) => ({ ...c, label: `${i.label} · ${c.label}` })) : [i]))
@@ -268,7 +268,7 @@ export function AppShell({ role, portal, active, onNavigate, onPortalChange, onS
                       <SideLink
                         item={it}
                         wide={wide}
-                        active={active === it.key || childOn}
+                        active={active === it.key || childOn || !!it.also?.includes(active)}
                         expanded={it.children ? open : undefined}
                         onClick={() => {
                           if (!it.children) return go(it.key)
@@ -1055,7 +1055,7 @@ function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = 
           ? [
               {
                 key: 'incubation-group',
-                label: 'Incubation',
+                label: 'Incubator',
                 icon: Sprout,
                 children: [
                   { key: 'incubation', label: 'Cohorts', icon: GraduationCap },
@@ -1083,6 +1083,8 @@ function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = 
             ...(portal === 'hemp' || portal === 'heco' ? [{ key: 'interventions-log', label: 'Activity log', icon: History }] : []),
           ],
         },
+        // Pillar portals: one database item. Participants, Feedback and Ventures are switched in the page header.
+        ...(portal === 'admin' ? [] : [{ key: 'db-participants', label: `${portalMeta[portal].label} Database`, short: 'Database', icon: Database, also: ['db-feedback', 'db-ventures'] }]),
         // CHII Feedbacks is in the MELA view only; pillars use their own Feedback sheet.
         ...(portal === 'admin'
           ? [
@@ -1093,15 +1095,16 @@ function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = 
         ...(role === 'admin' ? [{ key: 'chii-db', label: 'CHII database', icon: Database }] : []),
       ],
     },
-    {
-      title: portal === 'admin' ? 'Consolidated databases' : `${portalMeta[portal].label} database`,
+    // MELA keeps its Consolidated databases section; pillars have one Database item under Workspace.
+    ...(portal !== 'admin' ? [] : [{
+      title: 'Consolidated databases',
       items: [
         { key: 'db-participants', label: sheetName(portal, 'Participants'), icon: Table2 },
         { key: 'db-feedback', label: sheetName(portal, 'Feedback'), icon: Sheet },
         // The Ventures sheet (VENTURE-REGISTRY-SPEC §8 step 7): same audience as the registry.
-        ...(canUseVentures({ role, pillars: pillarsFor(portal) }) && (portal === 'hent' || portal === 'admin') ? [{ key: 'db-ventures', label: portal === 'admin' ? 'Ventures sheet' : 'HENT Ventures Sheet', icon: Rocket }] : []),
+        ...(canUseVentures({ role, pillars: pillarsFor(portal) }) ? [{ key: 'db-ventures', label: 'Ventures sheet', icon: Rocket }] : []),
       ],
-    },
+    }]),
     {
       title: 'Tools',
       items: [

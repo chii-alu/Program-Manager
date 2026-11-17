@@ -40,7 +40,7 @@ export function CurriculumPage({ data, me }: { data: IncubationData; me: string 
   return (
     <>
       <PageHeader
-        crumbs={['HENT', 'Incubation', 'Curriculum']}
+        crumbs={['HENT', 'Incubator', 'Curriculum']}
         title="Curriculum Template"
         description={`The modules, sessions and assessed work every new cohort is built from. Expose version ${draft.version}${data.curriculum.updatedBy ? ` · last saved by ${data.curriculum.updatedBy}` : ''}.`}
         actions={

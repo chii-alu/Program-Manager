@@ -17,7 +17,7 @@ const NAMES = [
 ]
 const SECTORS = ['Digital health', 'Diagnostics', 'Pharma & supply chain', 'Primary care', 'Maternal & child health', 'Mental health', 'Nutrition', 'Health financing', 'Medical devices']
 const SOURCES = ['Hackathon', 'Masterclass', 'Venture Funding', 'Mentorship', 'Referral', 'Open call']
-const TRACKS = ['Incubation', 'Acceleration', 'Venture Funding', 'Alumni']
+const TRACKS = ['Incubator', 'Acceleration', 'Venture Funding', 'Alumni']
 const COUNTRY_POOL = ['RW', 'RW', 'RW', 'NG', 'NG', 'KE', 'KE', 'GH', 'UG', 'ZA', 'SN', 'ET', 'TZ', 'CM']
 const CURRENCY: Record<string, string> = { KE: 'KES', NG: 'NGN' }
 const FUNDERS = ['Villgro Africa', 'Grand Challenges Africa', 'Angel investor', 'Seedstars', 'Local bank', 'Bill & Melinda Gates Foundation', 'Startup prize']

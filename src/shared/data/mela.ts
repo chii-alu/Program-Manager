@@ -114,7 +114,7 @@ const first = { F: ['Amina', 'Zainab', 'Esther', 'Ngozi', 'Akosua', 'Halima', 'R
 const last = ['Okoro', 'Mensah', 'Uwimana', 'Njoroge', 'Adeyemi', 'Banda', 'Mugisha', 'Ndlovu', 'Sow', 'Kariuki', 'Boateng', 'Nyirenda', 'Abubakar', 'Ochieng', 'Mutesi', 'Diop', 'Iradukunda', 'Owusu']
 const countryPool = ['Rwanda', 'Rwanda', 'Rwanda', 'Nigeria', 'Nigeria', 'Kenya', 'Kenya', 'Ghana', 'Uganda', 'Tanzania', 'South Africa', 'Senegal', 'Ethiopia', 'Zimbabwe', 'Cameroon']
 const byPillar: Record<Pillar, string[]> = {
-  HENT: ['Masterclass', 'Hackathon', 'Mentorship', 'Venture Funding', 'Incubation'],
+  HENT: ['Masterclass', 'Hackathon', 'Mentorship', 'Venture Funding', 'Incubator'],
   HEMP: ['SIE', 'Career Exposure', 'Internships', 'Career Workshops'],
   HECO: ['Public Sector Fellowship', 'Health Expert in Residence', 'Executive Courses'],
 }
@@ -202,8 +202,8 @@ export const interventions: Intervention[] = [
   { id: 'i2', name: 'Hackathon', pillar: 'HENT', kind: 'selective', sessions: 2, people: 298, completion: 76, last: '20 Oct' },
   { id: 'i3', name: 'Mentorship', pillar: 'HENT', kind: 'selective', sessions: 4, people: 96, completion: 88, last: '6 Nov' },
   { id: 'i4', name: 'Venture Funding', pillar: 'HENT', kind: 'selective', sessions: 5, people: 61, completion: 92, last: '30 Sep' },
-  // Expose → Build → Scale, with its own pages under HENT → Incubation. Intake mode: selective (MELA to confirm).
-  { id: 'i12', name: 'Incubation', pillar: 'HENT', kind: 'selective', sessions: 80, people: 22, completion: 64, last: '7 Nov', ownPage: 'incubation' },
+  // Expose → Build → Scale, with its own pages under HENT → Incubator. Intake mode: selective (MELA to confirm).
+  { id: 'i12', name: 'Incubator', pillar: 'HENT', kind: 'selective', sessions: 80, people: 22, completion: 64, last: '7 Nov', ownPage: 'incubation' },
   { id: 'i5', name: 'SIE', pillar: 'HEMP', kind: 'selective', sessions: 4, people: 520, completion: 71, last: '3 Nov' },
   { id: 'i6', name: 'Career Exposure', pillar: 'HEMP', kind: 'open', sessions: 9, people: 604, completion: 77, last: '28 Oct' },
   { id: 'i7', name: 'Internships', pillar: 'HEMP', kind: 'selective', sessions: 3, people: 142, completion: 95, last: '1 Oct' },

@@ -1,5 +1,5 @@
 /**
- * HENT → Incubation: Cohorts | Curriculum | Gate | Canvas sync | Analytics (build addendum §7).
+ * HENT → Incubator: Cohorts | Curriculum | Gate | Canvas sync | Analytics (build addendum §7).
  * HENT staff and the MELA admin only; HEMP and HECO get "no access", even with a direct link.
  */
 import React, { useEffect, useState } from 'react'
@@ -50,8 +50,8 @@ export default function Incubation(props: Props) {
       <div className="grid min-h-[50vh] place-items-center">
         <EmptyState
           icon={ShieldOff}
-          title="You don’t have access to Incubation"
-          body="Incubation is for the HENT team and the MELA team. Ask MELA if you need incubation numbers for a report."
+          title="You don’t have access to the Incubator"
+          body="The Incubator is for the HENT team and the MELA team. Ask MELA if you need incubator numbers for a report."
           action={{ label: 'Go to the overview', onClick: () => onNavigate?.('overview') }}
         />
       </div>,

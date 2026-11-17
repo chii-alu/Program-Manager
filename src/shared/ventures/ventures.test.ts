@@ -19,7 +19,7 @@ const venture = (over: Partial<VentureInput> = {}): VentureInput => ({
   yearFounded: 2023,
   intakeYear: 2024,
   institution: 'ALU',
-  track: 'Incubation',
+  track: 'Incubator',
   legalStatus: 'Registered',
   inAccelerator: false,
   youthLedOverride: null,

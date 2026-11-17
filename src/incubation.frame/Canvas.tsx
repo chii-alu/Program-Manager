@@ -24,7 +24,7 @@ export function CanvasPage({ data, me, onOpenCohort }: { data: IncubationData; m
   if (!c)
     return (
       <>
-        <PageHeader crumbs={['HENT', 'Incubation', 'Canvas sync']} title="Canvas Sync" />
+        <PageHeader crumbs={['HENT', 'Incubator', 'Canvas sync']} title="Canvas Sync" />
         <Note>Create an Expose cohort first; each one links to its Canvas course.</Note>
       </>
     )
@@ -48,7 +48,7 @@ export function CanvasPage({ data, me, onOpenCohort }: { data: IncubationData; m
   return (
     <>
       <PageHeader
-        crumbs={['HENT', 'Incubation', 'Canvas sync']}
+        crumbs={['HENT', 'Incubator', 'Canvas sync']}
         title="Canvas Sync"
         description="Courses are delivered on Canvas. MELA pulls enrolments, submissions, rubric scores, quiz scores and attendance from it, so nobody retypes them."
         actions={

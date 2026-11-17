@@ -346,7 +346,7 @@ function OutcomesTab({ data, ventureId, me }: { data: RegistryData; ventureId: s
   )
 }
 
-const SOURCE: Record<VentureUpdate['source'], string> = { import: 'Sheet import', staff: 'Staff', founder_form: 'Founder form', survey: 'Bi-annual survey', incubation_snapshot: 'Incubation snapshot' }
+const SOURCE: Record<VentureUpdate['source'], string> = { import: 'Sheet import', staff: 'Staff', founder_form: 'Founder form', survey: 'Bi-annual survey', incubation_snapshot: 'Incubator snapshot' }
 
 /* ---------- Funding ---------- */
 
