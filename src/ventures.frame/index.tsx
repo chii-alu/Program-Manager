@@ -127,7 +127,6 @@ export default function Ventures(props: Props) {
           </>
         }
       />
-      <SubmissionsPanel data={data} me={me} showIdentity={showIdentity} onOpen={(id) => setPage({ kind: 'venture', id })} />
       <ShareLink
         open={sharing}
         onClose={() => setSharing(false)}
@@ -138,7 +137,14 @@ export default function Ventures(props: Props) {
         onToggle={(open) => setRegistrationOpen(open, me)}
         fileName="hent-venture-registration"
       />
-      <Registry data={data} showIdentity={showIdentity} onOpen={(id) => setPage({ kind: 'venture', id })} onEdit={(id) => setPage({ kind: 'edit', id })} />
+      {/* Stat cards first, then registrations from the form, then the registry table. */}
+      <Registry
+        data={data}
+        showIdentity={showIdentity}
+        onOpen={(id) => setPage({ kind: 'venture', id })}
+        onEdit={(id) => setPage({ kind: 'edit', id })}
+        afterStats={<SubmissionsPanel data={data} me={me} showIdentity={showIdentity} onOpen={(id) => setPage({ kind: 'venture', id })} />}
+      />
     </>,
   )
 }

@@ -28,7 +28,8 @@ const VIEWS = [
 type ViewKey = (typeof VIEWS)[number]['key']
 const VIEW_KEY = 'mela-venture-view'
 
-export function Registry({ data, showIdentity, onOpen, onEdit }: { data: RegistryData; showIdentity: boolean; onOpen: (id: string) => void; onEdit: (id: string) => void }) {
+/** `afterStats`: shown between the stat cards and the table (the Registrations panel). */
+export function Registry({ data, showIdentity, onOpen, onEdit, afterStats }: { data: RegistryData; showIdentity: boolean; onOpen: (id: string) => void; onEdit: (id: string) => void; afterStats?: React.ReactNode }) {
   const [view, setView] = useState<ViewKey>(() => {
     try {
       return (localStorage.getItem(VIEW_KEY) as ViewKey) || 'all'
@@ -173,6 +174,8 @@ export function Registry({ data, showIdentity, onOpen, onEdit }: { data: Registr
           { label: 'CHII funding', value: deployed, display: money(deployed), icon: Banknote, hint: 'awards to date', tip: 'CHII Venture Funding awards (dashboard: Funding Deployed). External funding is counted separately.' },
         ]}
       />
+
+      {afterStats}
 
       <DataTable
         heading="Venture registry"
