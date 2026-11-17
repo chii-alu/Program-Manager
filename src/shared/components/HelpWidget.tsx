@@ -4,55 +4,63 @@ import { ArrowRight, ArrowUp, Mail, RotateCcw, X } from 'lucide-react'
 import { addMessage, askLaura, clearChat, startChat, useLauraChat, type LauraContext } from '../lib/laura'
 
 /**
- * Laura: a friendly female robot. Round white head with a navy face screen, cyan eyes with lashes,
- * a smile and blush, pink ear pods and a bow, on a navy-to-blue disc in the theme colours. `live` (the launcher) adds a
- * gentle glow, a slow bob and an occasional blink; motion is skipped for people who prefer reduced motion.
+ * Laura: a friendly cartoon woman in a dress. Warm brown skin, dark hair in a bun, gold earrings and
+ * a coral dress with a white collar, on a navy-to-blue disc in the theme colours. `live` (the launcher)
+ * adds a soft glow, a slow bob and an occasional blink; motion is skipped for people who prefer
+ * reduced motion.
  */
 function LauraBot({ size = 28, live = false }: { size?: number; live?: boolean }) {
   return (
     <span className="relative block shrink-0" style={{ width: size, height: size }} aria-hidden>
       {live && <span className="absolute -inset-1 rounded-full bg-[#479bd6] opacity-40 blur-md motion-safe:animate-[pulse_2.8s_ease-in-out_infinite]" />}
-      <svg viewBox="0 0 64 64" width={size} height={size} className={`relative ${live ? 'motion-safe:animate-[laura-bob_3.2s_ease-in-out_infinite]' : ''}`}>
+      <svg viewBox="0 0 64 64" width={size} height={size} className="relative">
         <defs>
           <linearGradient id="laura-bg" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#102c5e" />
             <stop offset="1" stopColor="#185fa5" />
           </linearGradient>
-          <linearGradient id="laura-head" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#ffffff" />
-            <stop offset="1" stopColor="#e0e7ff" />
-          </linearGradient>
+          <clipPath id="laura-clip">
+            <circle cx="32" cy="32" r="32" />
+          </clipPath>
         </defs>
         <circle cx="32" cy="32" r="32" fill="url(#laura-bg)" />
-        {/* antenna */}
-        <line x1="32" y1="17" x2="32" y2="11" stroke="#e0e7ff" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="32" cy="9.5" r="2.8" fill="#f472b6" />
-        {/* ear pods */}
-        <rect x="10" y="28" width="6" height="11" rx="3" fill="#f472b6" />
-        <rect x="48" y="28" width="6" height="11" rx="3" fill="#f472b6" />
-        {/* head */}
-        <rect x="14" y="17" width="36" height="32" rx="14" fill="url(#laura-head)" />
-        {/* bow */}
-        <path d="M41 17.5 L47 14 L47 21 Z M41 17.5 L35.5 14.5 L36 20.5 Z" fill="#ec4899" />
-        <circle cx="41" cy="17.5" r="1.8" fill="#be185d" />
-        {/* face screen */}
-        <rect x="19" y="24" width="26" height="19" rx="9" fill="#1e1b4b" />
-        {/* eyes (blink) with lashes */}
-        <g className={live ? 'motion-safe:animate-[laura-blink_5s_ease-in-out_infinite]' : ''} style={{ transformOrigin: '32px 31px', transformBox: 'view-box' }}>
-          <ellipse cx="26.5" cy="31" rx="2.6" ry="3.2" fill="#7dd3fc" />
-          <ellipse cx="37.5" cy="31" rx="2.6" ry="3.2" fill="#7dd3fc" />
-          <circle cx="27.3" cy="30" r="0.9" fill="#ffffff" />
-          <circle cx="38.3" cy="30" r="0.9" fill="#ffffff" />
+        <g clipPath="url(#laura-clip)">
+          <g className={live ? 'motion-safe:animate-[laura-bob_3.2s_ease-in-out_infinite]' : ''}>
+            {/* hair behind */}
+            <path d="M19 30 C18 18 25 13 32 13 C39 13 46 18 45 30 L46 44 C42 47 22 47 18 44 Z" fill="#2b1a14" />
+            {/* dress */}
+            <path d="M10 66 C11 55 17 50 25 48.5 L32 54 L39 48.5 C47 50 53 55 54 66 Z" fill="#fb7185" />
+            <path d="M25 48.5 L32 54 L39 48.5 L36.5 47.3 L32 51 L27.5 47.3 Z" fill="#ffffff" />
+            <circle cx="32" cy="58" r="1.1" fill="#ffe4e6" />
+            <circle cx="32" cy="62" r="1.1" fill="#ffe4e6" />
+            {/* neck */}
+            <path d="M28.5 40 L35.5 40 L35.5 47.5 L32 50.5 L28.5 47.5 Z" fill="#9a5c3d" />
+            {/* face */}
+            <ellipse cx="32" cy="31" rx="10.5" ry="11.8" fill="#b06e4b" />
+            {/* earrings */}
+            <circle cx="21.6" cy="35.5" r="1.6" fill="#facc15" />
+            <circle cx="42.4" cy="35.5" r="1.6" fill="#facc15" />
+            {/* hair on top: side-swept fringe and a bun */}
+            <circle cx="32" cy="12.5" r="5" fill="#2b1a14" />
+            <path d="M21.2 29 C20.5 20 25.5 17.3 32 17.3 C38.5 17.3 43.5 20 42.8 29 C40 24.5 35 22.5 29 23.5 C26 24 23 26 21.2 29 Z" fill="#2b1a14" />
+            {/* brows */}
+            <path d="M26 27.3 Q28 26.3 30 27.1 M34 27.1 Q36 26.3 38 27.3" stroke="#2b1a14" strokeWidth="1" fill="none" strokeLinecap="round" />
+            {/* eyes (blink) with lashes */}
+            <g className={live ? 'motion-safe:animate-[laura-blink_5s_ease-in-out_infinite]' : ''} style={{ transformOrigin: '32px 31px', transformBox: 'view-box' }}>
+              <ellipse cx="28" cy="31" rx="1.4" ry="1.8" fill="#1f130e" />
+              <ellipse cx="36" cy="31" rx="1.4" ry="1.8" fill="#1f130e" />
+              <circle cx="28.5" cy="30.4" r="0.45" fill="#ffffff" />
+              <circle cx="36.5" cy="30.4" r="0.45" fill="#ffffff" />
+            </g>
+            <path d="M26.4 30.2 l-1.1 -0.8 M29.6 30.2 l1.1 -0.8 M34.4 30.2 l-1.1 -0.8 M37.6 30.2 l1.1 -0.8" stroke="#1f130e" strokeWidth="0.7" strokeLinecap="round" />
+            {/* blush and smile */}
+            <circle cx="25.6" cy="35" r="1.6" fill="#f472b6" opacity="0.45" />
+            <circle cx="38.4" cy="35" r="1.6" fill="#f472b6" opacity="0.45" />
+            <path d="M28.6 36.4 Q32 39.4 35.4 36.4" stroke="#7a2e1f" strokeWidth="1.3" fill="#ffffff" strokeLinecap="round" strokeLinejoin="round" />
+          </g>
         </g>
-        <path d="M23.4 27.6 l-1.6 -1.4 M24.6 26.9 l-0.9 -1.8 M40.6 27.6 l1.6 -1.4 M39.4 26.9 l0.9 -1.8" stroke="#bfdbfe" strokeWidth="1.1" strokeLinecap="round" />
-        {/* blush and smile */}
-        <circle cx="22.8" cy="37" r="1.7" fill="#f472b6" opacity="0.75" />
-        <circle cx="41.2" cy="37" r="1.7" fill="#f472b6" opacity="0.75" />
-        <path d="M28.5 37 Q32 40.2 35.5 37" stroke="#f9a8d4" strokeWidth="1.8" fill="none" strokeLinecap="round" />
-        {/* neck */}
-        <rect x="27" y="49" width="10" height="4" rx="2" fill="#c7d2fe" />
       </svg>
-      <style>{`@keyframes laura-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(0.1)}}@keyframes laura-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}`}</style>
+      <style>{`@keyframes laura-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(0.1)}}@keyframes laura-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}`}</style>
     </span>
   )
 }
@@ -100,7 +108,7 @@ export function HelpWidget({ onGo, context }: { onGo?: (key: string) => void; co
 
   return (
     <>
-      {/* Launcher: Laura the robot. On hover (or keyboard focus) the button itself grows into a pill
+      {/* Launcher: Laura (a cartoon of her). On hover (or keyboard focus) the button itself grows into a pill
           reading "Ask Laura"; while the chat is open it's a round close button. */}
       <button
         type="button"
