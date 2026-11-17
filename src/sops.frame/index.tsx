@@ -56,6 +56,20 @@ export default function Sops(props: Props) {
   const pillarChoices: Sop['pillar'][] = portal === 'admin' ? ['HENT', 'HEMP', 'HECO', 'MELA'] : (pillarsFor(portal) as Sop['pillar'][])
   const [mode, setMode] = useState<null | { kind: 'new' } | { kind: 'edit'; sop: Sop } | { kind: 'upload' }>(null)
   const [confirmDelete, setConfirmDelete] = useState<Sop | null>(null)
+  // SOPs ticked for download. Kept while searching or switching tabs; deleted ones drop out.
+  const [selected, setSelected] = useState<string[]>([])
+  const sorted = [...mine].sort((a, b) => GROUP_ORDER.indexOf(a.pillar) - GROUP_ORDER.indexOf(b.pillar) || (a.no ?? 0) - (b.no ?? 0))
+  const picked = sorted.filter((x) => selected.includes(x.id))
+  const hidden = picked.filter((x) => !rows.includes(x)).length
+  const allShown = rows.length > 0 && rows.every((x) => selected.includes(x.id))
+  const download = () => {
+    const list = picked.length ? picked : rows
+    const name = list.length === 1 ? sopFileName(list[0]) : `SOPs ${portal === 'admin' ? 'CHII' : portal.toUpperCase()}${picked.length ? ' selected' : view === 'all' ? '' : ` ${view}`} ${new Date().toISOString().slice(0, 10)}`
+    void downloadSopsPdf(list, name).then(
+      () => toast({ title: `Downloaded ${list.length} SOP${list.length === 1 ? '' : 's'}`, body: list.length === 1 ? sopRef(list[0]) : 'One PDF, each SOP on its own page.', tone: 'good' }),
+      () => toast({ title: 'Couldn’t make the PDF', body: 'Try again.', tone: 'bad' }),
+    )
+  }
 
   return (
     <AppShell role={role} portal={portal} active="sops" onNavigate={onNavigate} onPortalChange={onPortalChange} onSignOut={onSignOut}>
@@ -148,6 +162,8 @@ export default function Sops(props: Props) {
                   key={x.id}
                   x={x}
                   showPillar={portal === 'admin'}
+                  selected={selected.includes(x.id)}
+                  onSelect={() => setSelected(selected.includes(x.id) ? selected.filter((id) => id !== x.id) : [...selected, x.id])}
                   canEdit={canEdit(x)}
                   canDelete={canDelete(x)}
                   onOpen={() => setOpenId(x.id)}
@@ -240,10 +256,11 @@ export default function Sops(props: Props) {
 }
 
 /** One SOP as a row, like the Resource Bank: status, title and purpose, pillar, owner, actions. */
-function SopRow({ x, showPillar, canEdit, canDelete, onOpen, onEdit, onDelete }: { x: Sop; showPillar: boolean; canEdit: boolean; canDelete: boolean; onOpen: () => void; onEdit: () => void; onDelete: () => void }) {
+function SopRow({ x, showPillar, selected, onSelect, canEdit, canDelete, onOpen, onEdit, onDelete }: { x: Sop; showPillar: boolean; selected: boolean; onSelect: () => void; canEdit: boolean; canDelete: boolean; onOpen: () => void; onEdit: () => void; onDelete: () => void }) {
   const what = x.steps.length ? `${x.steps.length} step${x.steps.length === 1 ? '' : 's'}${x.document ? ' + document' : ''}` : x.document ? 'Document' : 'No steps yet'
   return (
-    <li className="flex flex-col gap-2 px-4 py-3 hover:bg-canvas/60 sm:flex-row sm:items-center sm:gap-4">
+    <li className={`flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 ${selected ? 'bg-brand-50/50' : 'hover:bg-canvas/60'}`}>
+      <input type="checkbox" checked={selected} onChange={onSelect} aria-label={`Select ${sopRef(x)}`} className="h-4 w-4 shrink-0 accent-brand-600" />
       <span className="w-[104px] shrink-0 font-mono text-[12px] font-semibold text-brand-600">{sopRef(x)}</span>
       <span className="w-[76px] shrink-0">
         <StatusTag x={x} />
