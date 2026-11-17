@@ -46,7 +46,7 @@ export function HelpWidget({ onGo, context }: { onGo?: (key: string) => void; co
     try {
       addMessage(await askLaura(q, messages, context))
     } catch {
-      addMessage({ from: 'laura', text: 'Sorry, something went wrong on my side. Please try again.' })
+      addMessage({ from: 'laura', text: 'Oh no, something went wrong on my side. Sorry about that! Could you try again?' })
     } finally {
       setThinking(false)
     }
@@ -85,7 +85,7 @@ export function HelpWidget({ onGo, context }: { onGo?: (key: string) => void; co
                     Preview
                   </span>
                 </div>
-                <div className="truncate text-xs text-white/70">Your MELA assistant</div>
+                <div className="truncate text-xs text-white/70">Your friendly MELA assistant · here to help</div>
               </div>
               <button type="button" onClick={() => clearChat(context.user)} aria-label="New chat" title="New chat" className="grid h-8 w-8 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white">
                 <RotateCcw className="h-4 w-4" />
@@ -165,7 +165,7 @@ export function HelpWidget({ onGo, context }: { onGo?: (key: string) => void; co
                       send(draft)
                     }
                   }}
-                  placeholder="Ask Laura…"
+                  placeholder="Ask Laura anything…"
                   aria-label="Message Laura"
                   className="max-h-28 min-h-[24px] flex-1 resize-none bg-transparent text-sm text-ink outline-none placeholder:text-faint"
                 />

@@ -13,7 +13,7 @@ describe('Laura (guide answers until the AI is connected)', () => {
   })
   it('says when she doesn’t know, and points to MELA', async () => {
     const r = await askLaura('how do I plan a budget?', [], ctx)
-    expect(r.text).toMatch(/don’t have an answer/)
+    expect(r.text).toMatch(/not sure about that one/)
     expect(r.text).toMatch(/mela@chii\.alu\.edu/)
   })
 })
