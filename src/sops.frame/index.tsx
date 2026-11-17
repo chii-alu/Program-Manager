@@ -108,19 +108,32 @@ export default function Sops(props: Props) {
                 ))}
               </select>
             )}
-            <Button
-              className="h-9 text-xs sm:ml-auto"
-              disabled={!rows.length}
-              onClick={() =>
-                downloadSopsPdf(rows, `SOPs ${portal === 'admin' ? 'CHII' : portal.toUpperCase()}${view === 'all' ? '' : ` ${view}`} ${new Date().toISOString().slice(0, 10)}`).then(
-                  () => toast({ title: `Downloaded ${rows.length} SOP${rows.length === 1 ? '' : 's'}`, body: 'One PDF, each SOP on its own page.', tone: 'good' }),
-                  () => toast({ title: 'Couldn’t make the PDF', body: 'Try again.', tone: 'bad' }),
-                )
-              }
-            >
-              <Download className="h-4 w-4" /> Download {rows.length === mine.length ? 'all' : `these ${rows.length}`}
-            </Button>
+            {(picked.length > 0 || rows.length > 0) && (
+              <Button variant={picked.length ? 'primary' : 'secondary'} className="h-9 text-xs sm:ml-auto" onClick={download}>
+                <Download className="h-4 w-4" /> {picked.length ? `Download selected (${picked.length})` : `Download ${rows.length === mine.length ? 'all' : `these ${rows.length}`}`}
+              </Button>
+            )}
           </div>
+          {rows.length > 0 && (
+            <div className="flex items-center gap-3 border-b border-line bg-canvas/60 px-4 py-2 text-xs text-muted">
+              <input
+                type="checkbox"
+                aria-label="Select all shown"
+                checked={allShown}
+                ref={(el) => {
+                  if (el) el.indeterminate = !allShown && rows.some((x) => selected.includes(x.id))
+                }}
+                onChange={() => setSelected(allShown ? selected.filter((id) => !rows.some((x) => x.id === id)) : [...new Set([...selected, ...rows.map((x) => x.id)])])}
+                className="h-4 w-4 accent-brand-600"
+              />
+              <span>{picked.length ? `${picked.length} selected${hidden ? ` (${hidden} not shown by this search or tab)` : ''}` : 'Tick the SOPs you want to download'}</span>
+              {picked.length > 0 && (
+                <button type="button" onClick={() => setSelected([])} className="font-semibold text-brand-600 hover:underline">
+                  Clear
+                </button>
+              )}
+            </div>
+          )}
           {rows.length === 0 ? (
             <EmptyState
               icon={ClipboardList}

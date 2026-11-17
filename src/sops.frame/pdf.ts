@@ -6,6 +6,17 @@ import { sopRef, type Sop } from '../shared/data/sops'
 
 const fmt = (d?: string) => (d ? new Date(`${d.slice(0, 10)}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '')
 
+/** The built-in PDF font only draws Latin characters (WinAnsi): swap or drop the rest. */
+const WIN_ANSI_EXTRA = '€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ'
+const safe = (s: string) =>
+  s
+    .replace(/[→⇒]/g, '>')
+    .replace(/[←⇐]/g, '<')
+    .replace(/≥/g, '>=')
+    .replace(/≤/g, '<=')
+    .replace(/[✓✔]/g, 'v')
+    .replace(/[^\u0000-ÿ]/g, (c) => (WIN_ANSI_EXTRA.includes(c) ? c : ''))
+
 export const sopFileName = (x: Sop) => `${sopRef(x)} ${x.title}`.replace(/[\\/:*?"<>|]+/g, '-').trim()
 
 /** Build one PDF holding the given SOPs, each starting on a new page, and download it. */
@@ -29,7 +40,7 @@ export async function downloadSopsPdf(sops: Sop[], fileName: string) {
     doc.setFont('helvetica', o.bold ? 'bold' : 'normal')
     doc.setFontSize(size)
     doc.setTextColor(...(o.color ?? [40, 44, 52]))
-    const lines = doc.splitTextToSize(s, width - (o.indent ?? 0)) as string[]
+    const lines = doc.splitTextToSize(safe(s), width - (o.indent ?? 0)) as string[]
     const lh = size * 1.4
     for (const line of lines) {
       room(lh)

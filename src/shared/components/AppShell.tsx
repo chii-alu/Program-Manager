@@ -1023,7 +1023,8 @@ function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = 
       title: 'Workspace',
       items: [
         { key: 'overview', label: 'Overview', icon: LayoutGrid },
-        // Analytics sits right after Overview in every portal's sidebar.
+        // Pillar portals: CHII Participants right after Overview, then Analytics. MELA keeps Analytics second.
+        ...(portal === 'admin' ? [] : [{ key: 'participants', label: 'CHII Participants', short: 'People', icon: Users }]),
         { key: 'analytics', label: 'Analytics', icon: BarChart3 },
         // In the HENT portal only. The MELA view keeps the Ventures sheet (below) but not this menu;
         // MELA admins still reach the registry by switching to the HENT portal.
@@ -1059,8 +1060,13 @@ function navFor(role: Role, portal: Portal, runCounts: Record<string, number> = 
             ...(portal === 'hemp' || portal === 'heco' ? [{ key: 'interventions-log', label: 'Activity log', icon: History }] : []),
           ],
         },
-        { key: 'participants', label: 'CHII Participants', short: 'People', icon: Users },
-        { key: 'feedback', label: 'CHII Feedbacks', short: 'Feedback', icon: MessageSquareText },
+        // CHII Feedbacks is in the MELA view only; pillars use their own Feedback sheet.
+        ...(portal === 'admin'
+          ? [
+              { key: 'participants', label: 'CHII Participants', short: 'People', icon: Users },
+              { key: 'feedback', label: 'CHII Feedbacks', short: 'Feedback', icon: MessageSquareText },
+            ]
+          : []),
         ...(role === 'admin' ? [{ key: 'chii-db', label: 'CHII database', icon: Database }] : []),
       ],
     },

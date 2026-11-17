@@ -154,6 +154,8 @@ export default function MelaManager(props: Props) {
       setNewSession(true)
       return setStep(INTERVENTIONS)
     }
+    // CHII Feedbacks is in the MELA view only; a pillar portal goes to its own Feedback sheet.
+    if (to === 'feedback' && effectivePortal !== 'admin') to = 'db-feedback'
     if (to.startsWith('ventures')) setVentureView((to.split('-')[1] as VentureView) ?? 'registry')
     if (to === 'db-participants') setSheet('participants')
     if (to === 'db-feedback') setSheet('feedback')
