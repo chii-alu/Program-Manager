@@ -1,17 +1,62 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ArrowRight, ArrowUp, Mail, MessageCircle, RotateCcw, Sparkles, X } from 'lucide-react'
+import { ArrowRight, ArrowUp, Mail, RotateCcw, X } from 'lucide-react'
 import { addMessage, askLaura, clearChat, startChat, useLauraChat, type LauraContext } from '../lib/laura'
 
-/** Laura's avatar: the chat bubble with a spark, on navy (same symbol as the launcher). */
-function Avatar({ size = 28 }: { size?: number }) {
+/**
+ * Laura: a friendly female robot. Round white head with a navy face screen, cyan eyes with lashes,
+ * a smile and blush, pink ear pods and a bow, on a navy-to-blue disc in the theme colours. `live` (the launcher) adds a
+ * gentle glow, a slow bob and an occasional blink; motion is skipped for people who prefer reduced motion.
+ */
+function LauraBot({ size = 28, live = false }: { size?: number; live?: boolean }) {
   return (
-    <span className="relative grid shrink-0 place-items-center rounded-full bg-brand text-white" style={{ width: size, height: size }} aria-hidden>
-      <MessageCircle style={{ width: size * 0.55, height: size * 0.55 }} />
-      <Sparkles className="absolute text-[#9cc3ff]" style={{ width: size * 0.36, height: size * 0.36, right: size * 0.06, top: size * 0.04 }} />
+    <span className="relative block shrink-0" style={{ width: size, height: size }} aria-hidden>
+      {live && <span className="absolute -inset-1 rounded-full bg-[#479bd6] opacity-40 blur-md motion-safe:animate-[pulse_2.8s_ease-in-out_infinite]" />}
+      <svg viewBox="0 0 64 64" width={size} height={size} className={`relative ${live ? 'motion-safe:animate-[laura-bob_3.2s_ease-in-out_infinite]' : ''}`}>
+        <defs>
+          <linearGradient id="laura-bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#102c5e" />
+            <stop offset="1" stopColor="#185fa5" />
+          </linearGradient>
+          <linearGradient id="laura-head" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="1" stopColor="#e0e7ff" />
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r="32" fill="url(#laura-bg)" />
+        {/* antenna */}
+        <line x1="32" y1="17" x2="32" y2="11" stroke="#e0e7ff" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="32" cy="9.5" r="2.8" fill="#f472b6" />
+        {/* ear pods */}
+        <rect x="10" y="28" width="6" height="11" rx="3" fill="#f472b6" />
+        <rect x="48" y="28" width="6" height="11" rx="3" fill="#f472b6" />
+        {/* head */}
+        <rect x="14" y="17" width="36" height="32" rx="14" fill="url(#laura-head)" />
+        {/* bow */}
+        <path d="M41 17.5 L47 14 L47 21 Z M41 17.5 L35.5 14.5 L36 20.5 Z" fill="#ec4899" />
+        <circle cx="41" cy="17.5" r="1.8" fill="#be185d" />
+        {/* face screen */}
+        <rect x="19" y="24" width="26" height="19" rx="9" fill="#1e1b4b" />
+        {/* eyes (blink) with lashes */}
+        <g className={live ? 'motion-safe:animate-[laura-blink_5s_ease-in-out_infinite]' : ''} style={{ transformOrigin: '32px 31px', transformBox: 'view-box' }}>
+          <ellipse cx="26.5" cy="31" rx="2.6" ry="3.2" fill="#7dd3fc" />
+          <ellipse cx="37.5" cy="31" rx="2.6" ry="3.2" fill="#7dd3fc" />
+          <circle cx="27.3" cy="30" r="0.9" fill="#ffffff" />
+          <circle cx="38.3" cy="30" r="0.9" fill="#ffffff" />
+        </g>
+        <path d="M23.4 27.6 l-1.6 -1.4 M24.6 26.9 l-0.9 -1.8 M40.6 27.6 l1.6 -1.4 M39.4 26.9 l0.9 -1.8" stroke="#bfdbfe" strokeWidth="1.1" strokeLinecap="round" />
+        {/* blush and smile */}
+        <circle cx="22.8" cy="37" r="1.7" fill="#f472b6" opacity="0.75" />
+        <circle cx="41.2" cy="37" r="1.7" fill="#f472b6" opacity="0.75" />
+        <path d="M28.5 37 Q32 40.2 35.5 37" stroke="#f9a8d4" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        {/* neck */}
+        <rect x="27" y="49" width="10" height="4" rx="2" fill="#c7d2fe" />
+      </svg>
+      <style>{`@keyframes laura-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(0.1)}}@keyframes laura-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}`}</style>
     </span>
   )
 }
+const Avatar = ({ size = 28 }: { size?: number }) => <LauraBot size={size} />
 
 /**
  * Floating chat with Laura, the platform assistant. For now she answers from the platform guide;
@@ -55,24 +100,26 @@ export function HelpWidget({ onGo, context }: { onGo?: (key: string) => void; co
 
   return (
     <>
-      {/* Launcher: a "Laura AI" pill with a chat bubble; a round close button while the chat is open. */}
+      {/* Launcher: Laura the robot. On hover (or keyboard focus) the button itself grows into a pill
+          reading "Ask Laura"; while the chat is open it's a round close button. */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        aria-label={open ? 'Close chat with Laura' : 'Chat with Laura AI'}
-        className={`fixed bottom-20 right-4 z-40 flex h-12 items-center justify-center gap-2 rounded-full bg-brand text-white shadow-[0_8px_24px_-6px_rgba(19,48,107,0.5)] transition-[transform,width] duration-150 ease-out active:scale-95 md:bottom-6 md:right-6 ${open ? 'w-12' : 'pl-3.5 pr-4'}`}
+        aria-label={open ? 'Close chat with Laura' : 'Ask Laura'}
+        className={`group fixed bottom-20 right-4 z-40 flex h-14 items-center rounded-full transition-[background-color,box-shadow,transform] duration-200 ease-out active:scale-95 md:bottom-6 md:right-6 ${
+          open
+            ? 'w-14 justify-center bg-brand text-white shadow-[0_8px_24px_-6px_rgba(19,48,107,0.5)]'
+            : 'p-px hover:bg-brand hover:shadow-[0_10px_28px_-8px_rgba(24,95,165,0.6)] focus-visible:bg-brand'
+        }`}
       >
         {open ? (
           <X className="h-5 w-5" />
         ) : (
           <>
-            <span className="relative">
-              <MessageCircle className="h-5 w-5" />
-              <Sparkles className="absolute -right-1.5 -top-1.5 h-3 w-3 text-[#9cc3ff]" />
+            <span className="grid max-w-0 overflow-hidden whitespace-nowrap text-sm font-semibold text-white opacity-0 transition-[max-width,opacity,padding] duration-200 ease-out group-hover:max-w-[110px] group-hover:pl-4 group-hover:pr-2 group-hover:opacity-100 group-focus-visible:max-w-[110px] group-focus-visible:pl-4 group-focus-visible:pr-2 group-focus-visible:opacity-100">
+              Ask Laura
             </span>
-            <span className="text-sm font-semibold">
-              Laura <span className="font-bold text-[#9cc3ff]">AI</span>
-            </span>
+            <LauraBot size={54} live />
           </>
         )}
       </button>
@@ -88,15 +135,12 @@ export function HelpWidget({ onGo, context }: { onGo?: (key: string) => void; co
             className="fixed inset-x-3 bottom-36 z-40 flex h-[66dvh] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_24px_64px_-16px_rgba(0,0,0,0.35)] md:inset-x-auto md:bottom-20 md:right-6 md:h-[600px] md:max-h-[calc(100dvh-120px)] md:w-[400px]"
           >
             <div className="flex items-center gap-3 bg-brand px-4 py-3 text-white">
-              <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-brand">
-                <MessageCircle className="h-[18px] w-[18px]" />
-                <Sparkles className="absolute right-0.5 top-0.5 h-3 w-3 text-brand-600" />
+              <span className="shrink-0 rounded-full bg-white/15 p-0.5">
+                <LauraBot size={34} />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 text-sm font-semibold">
-                  <span>
-                    Laura <span className="text-[#9cc3ff]">AI</span>
-                  </span>
+                  <span>Laura</span>
                   <span title="For now Laura answers from the platform guide; the full AI comes later." className="rounded-full bg-white/15 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
                     Preview
                   </span>
