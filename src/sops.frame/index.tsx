@@ -12,6 +12,7 @@ import { Portal, Role, pillarsFor, type Pillar } from '../shared/data/mela'
 import { userFor } from '../shared/lib/auth'
 import { toast } from '../shared/lib/notify'
 import { Modal } from '../shared/components/Modal'
+import { downloadSopsPdf, sopFileName } from './pdf'
 import { MAX_KEEP_MB, SOP_FILE_TYPES, SOP_PAGES, SopError, approveSop, createSop, deleteSop, sopRef, sopsFor, updateSop, useSops, type Sop, type SopDocument, type SopInput, type SopStep } from '../shared/data/sops'
 
 export const args = { role: 'pillar_lead', portal: 'hemp' }
@@ -107,6 +108,18 @@ export default function Sops(props: Props) {
                 ))}
               </select>
             )}
+            <Button
+              className="h-9 text-xs sm:ml-auto"
+              disabled={!rows.length}
+              onClick={() =>
+                downloadSopsPdf(rows, `SOPs ${portal === 'admin' ? 'CHII' : portal.toUpperCase()}${view === 'all' ? '' : ` ${view}`} ${new Date().toISOString().slice(0, 10)}`).then(
+                  () => toast({ title: `Downloaded ${rows.length} SOP${rows.length === 1 ? '' : 's'}`, body: 'One PDF, each SOP on its own page.', tone: 'good' }),
+                  () => toast({ title: 'Couldn’t make the PDF', body: 'Try again.', tone: 'bad' }),
+                )
+              }
+            >
+              <Download className="h-4 w-4" /> Download {rows.length === mine.length ? 'all' : `these ${rows.length}`}
+            </Button>
           </div>
           {rows.length === 0 ? (
             <EmptyState
@@ -269,6 +282,10 @@ function SopRow({ x, showPillar, canEdit, canDelete, onOpen, onEdit, onDelete }:
       </div>
     </li>
   )
+}
+
+function downloadOne(x: Sop) {
+  downloadSopsPdf([x], sopFileName(x)).catch(() => toast({ title: 'Couldn’t make the PDF', body: 'Try again.', tone: 'bad' }))
 }
 
 function StatusTag({ x }: { x: Sop }) {
