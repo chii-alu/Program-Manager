@@ -47,7 +47,7 @@ export const sessions: Session[] = [
   { id: 's2', name: 'SIE Cohort 4', intervention: 'SIE', pillar: 'HEMP', kind: 'selective', dates: '3 Nov – 15 Dec', status: 'open', registered: 312, attended: 186, feedback: 41 },
   { id: 's3', name: 'Career Exposure · Kigali', intervention: 'Career Exposure', pillar: 'HEMP', kind: 'open', dates: '28 Oct', status: 'completed', registered: 96, attended: 74, feedback: 19 },
   { id: 's4', name: 'Public Sector Fellowship 2026', intervention: 'Public Sector Fellowship', pillar: 'HECO', kind: 'selective', dates: '20 Nov – 30 Jan', status: 'upcoming', registered: 58, attended: 0, feedback: 0 },
-  { id: 's5', name: 'HealthTech Hackathon', intervention: 'Hackathon', pillar: 'HENT', kind: 'open', dates: '18–20 Oct', status: 'completed', registered: 204, attended: 167, feedback: 88 },
+  { id: 's5', name: 'HealthTech Hackathon', intervention: 'Hackathon', pillar: 'HENT', kind: 'selective', dates: '18–20 Oct', status: 'completed', registered: 204, attended: 167, feedback: 88 },
   { id: 's6', name: 'SFH Internship · Cohort 4', intervention: 'Internships', pillar: 'HEMP', kind: 'selective', dates: '1 Oct – 20 Dec', status: 'open', registered: 64, attended: 61, feedback: 0 },
   { id: 's7', name: 'Exec Course · Health financing', intervention: 'Executive Courses', pillar: 'HECO', kind: 'open', dates: '2 Dec', status: 'draft', registered: 0, attended: 0, feedback: 0 },
   { id: 's9', name: 'Career Workshop · CV & interview skills', intervention: 'Career Workshops', pillar: 'HEMP', kind: 'open', dates: '22 Oct', status: 'completed', registered: 74, attended: 58, feedback: 21 },
@@ -199,7 +199,7 @@ export const feedbackGiven = [
 export type Intervention = { id: string; name: string; pillar: Pillar; kind: 'open' | 'selective'; sessions: number; people: number; completion: number; last: string }
 export const interventions: Intervention[] = [
   { id: 'i1', name: 'Masterclass', pillar: 'HENT', kind: 'open', sessions: 7, people: 412, completion: 81, last: '12 Nov' },
-  { id: 'i2', name: 'Hackathon', pillar: 'HENT', kind: 'open', sessions: 2, people: 298, completion: 76, last: '20 Oct' },
+  { id: 'i2', name: 'Hackathon', pillar: 'HENT', kind: 'selective', sessions: 2, people: 298, completion: 76, last: '20 Oct' },
   { id: 'i3', name: 'Mentorship', pillar: 'HENT', kind: 'selective', sessions: 4, people: 96, completion: 88, last: '6 Nov' },
   { id: 'i4', name: 'Venture Funding', pillar: 'HENT', kind: 'selective', sessions: 5, people: 61, completion: 92, last: '30 Sep' },
   { id: 'i5', name: 'SIE', pillar: 'HEMP', kind: 'selective', sessions: 4, people: 520, completion: 71, last: '3 Nov' },

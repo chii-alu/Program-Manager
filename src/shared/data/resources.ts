@@ -31,6 +31,18 @@ export type Resource = {
   pillars: Pillar[]
   addedBy: string
   addedAt: string
+  /** Reference number (R-001), kept when the list is filtered; new resources take the next one. */
+  no?: number
+}
+
+export const resourceRef = (x: Pick<Resource, 'no'>) => `R-${String(x.no ?? 0).padStart(3, '0')}`
+
+/** Give unnumbered resources a number, oldest first, after the highest already used. */
+function numbered(items: Resource[]): Resource[] {
+  let next = Math.max(0, ...items.map((x) => x.no ?? 0))
+  const order = items.filter((x) => x.no == null).sort((a, b) => a.addedAt.localeCompare(b.addedAt) || a.id.localeCompare(b.id)).map((x) => x.id)
+  const nos = new Map(order.map((id) => [id, ++next]))
+  return items.map((x) => (x.no != null ? x : { ...x, no: nos.get(x.id) }))
 }
 
 const KEY = 'mela-resources-v1'
@@ -138,9 +150,10 @@ function load(): State {
   if (cache) return cache
   try {
     const raw = localStorage.getItem(KEY)
-    cache = raw ? (JSON.parse(raw) as State) : { items: seedResources(), saved: {} }
+    const st = raw ? (JSON.parse(raw) as State) : { items: seedResources(), saved: {} }
+    cache = { ...st, items: numbered(st.items) }
   } catch {
-    cache = { items: seedResources(), saved: {} }
+    cache = { items: numbered(seedResources()), saved: {} }
   }
   return cache
 }
@@ -162,7 +175,7 @@ export function addResource(x: Omit<Resource, 'id' | 'addedAt'>): Resource {
   if (!x.title.trim()) throw new ResourceError('Give it a title.')
   if (x.url && !/^https?:\/\/\S+\.\S+/.test(x.url.trim())) throw new ResourceError('The link should start with http:// or https://')
   const s = load()
-  const item: Resource = { ...x, title: x.title.trim(), url: x.url?.trim() || undefined, id: `r-${Date.now().toString(36)}`, addedAt: new Date().toISOString().slice(0, 10) }
+  const item: Resource = { ...x, title: x.title.trim(), url: x.url?.trim() || undefined, id: `r-${Date.now().toString(36)}`, addedAt: new Date().toISOString().slice(0, 10), no: Math.max(0, ...s.items.map((i) => i.no ?? 0)) + 1 }
   persist({ ...s, items: [item, ...s.items] })
   return item
 }
@@ -183,5 +196,5 @@ export function toggleSaved(user: string, id: string) {
 }
 
 export function resetResources() {
-  persist({ items: seedResources(), saved: {} })
+  persist({ items: numbered(seedResources()), saved: {} })
 }

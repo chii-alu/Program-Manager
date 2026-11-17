@@ -22,6 +22,7 @@ import {
   addPartner,
   daysToEnd,
   interventionsOf,
+  partnerRef,
   partnersFor,
   removePartner,
   updatePartner,
@@ -78,8 +79,9 @@ export default function Partners(props: Props) {
       (iv === 'all' || x.interventions.includes(iv)) &&
       (type === 'all' || x.type === type) &&
       (pillarF === 'all' || x.pillar === pillarF) &&
-      (!q.trim() || `${x.name} ${x.type} ${x.notes ?? ''} ${x.contactName ?? ''} ${x.country ?? ''} ${x.interventions.join(' ')} ${x.offers.join(' ')}`.toLowerCase().includes(q.trim().toLowerCase())),
+      (!q.trim() || `${partnerRef(x)} ${x.name} ${x.type} ${x.notes ?? ''} ${x.contactName ?? ''} ${x.country ?? ''} ${x.interventions.join(' ')} ${x.offers.join(' ')}`.toLowerCase().includes(q.trim().toLowerCase())),
   )
+  rows.sort((a, b) => a.pillar.localeCompare(b.pillar) || (a.no ?? 0) - (b.no ?? 0))
   const open = mine.find((x) => x.id === openId)
 
   return (
@@ -118,7 +120,7 @@ export default function Partners(props: Props) {
           <div className="flex flex-col gap-2.5 border-b border-line px-4 py-3 lg:flex-row lg:items-center">
             <label className="relative min-w-0 flex-1 lg:max-w-sm">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, contact, country or what they offer" className="h-9 w-full rounded-md border border-line-strong bg-surface pl-9 pr-3 text-[13px] outline-none placeholder:text-faint focus:border-brand-600 focus:ring-2 focus:ring-brand-100" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search number, name, contact, country or offer" className="h-9 w-full rounded-md border border-line-strong bg-surface pl-9 pr-3 text-[13px] outline-none placeholder:text-faint focus:border-brand-600 focus:ring-2 focus:ring-brand-100" />
             </label>
             <select value={iv} onChange={(e) => setIv(e.target.value)} aria-label="Intervention" className="h-9 rounded-md border border-line-strong bg-surface px-2.5 text-[13px] outline-none focus:border-brand-600">
               <option value="all">All interventions</option>
@@ -158,7 +160,7 @@ export default function Partners(props: Props) {
         </Panel>
       </div>
 
-      <Modal open={!!open && !form} onClose={() => setOpenId(null)} size="lg" title={open?.name ?? ''} icon={<Handshake className="h-4 w-4" />} footer={open && writer ? <Button onClick={() => setForm({ partner: open })}><Pencil className="h-4 w-4" /> Edit</Button> : undefined}>
+      <Modal open={!!open && !form} onClose={() => setOpenId(null)} size="lg" title={open ? `${partnerRef(open)} · ${open.name}` : ''} icon={<Handshake className="h-4 w-4" />} footer={open && writer ? <Button onClick={() => setForm({ partner: open })}><Pencil className="h-4 w-4" /> Edit</Button> : undefined}>
         {open && <PartnerView x={open} renew={renewal(open)} />}
       </Modal>
 
@@ -221,6 +223,7 @@ const Status = ({ s }: { s: PartnerStatus }) => <span className={`inline-flex w-
 function PartnerRow({ x, showPillar, renew, canEdit, canDelete, onOpen, onEdit, onDelete }: { x: Partner; showPillar: boolean; renew: boolean; canEdit: boolean; canDelete: boolean; onOpen: () => void; onEdit: () => void; onDelete: () => void }) {
   return (
     <li className="flex flex-col gap-2 px-4 py-3 hover:bg-canvas/60 sm:flex-row sm:items-center sm:gap-4">
+      <span className="w-[86px] shrink-0 font-mono text-[12px] font-semibold text-brand-600">{partnerRef(x)}</span>
       <span className="shrink-0">
         <Status s={x.status} />
       </span>

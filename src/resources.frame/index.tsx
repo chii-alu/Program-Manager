@@ -12,7 +12,7 @@ import { EmptyState } from '../shared/components/EmptyState'
 import { Portal, Role, type Pillar } from '../shared/data/mela'
 import { userFor } from '../shared/lib/auth'
 import { toast } from '../shared/lib/notify'
-import { RESOURCE_TYPES, ResourceError, TOPICS, addResource, removeResource, toggleSaved, useResources, type Resource, type ResourceType } from '../shared/data/resources'
+import { RESOURCE_TYPES, ResourceError, TOPICS, addResource, removeResource, resourceRef, toggleSaved, useResources, type Resource, type ResourceType } from '../shared/data/resources'
 
 export const args = { role: 'pillar_lead', portal: 'hemp' }
 
@@ -47,10 +47,10 @@ export default function Resources(props: Props) {
           (type === 'all' || x.type === type) &&
           (topic === 'all' || x.topics.includes(topic)) &&
           (!pillarOnly || !myPillar || x.pillars.length === 0 || x.pillars.includes(myPillar)) &&
-          (!q.trim() || `${x.title} ${x.source} ${x.summary} ${x.why ?? ''} ${x.topics.join(' ')} ${x.addedBy}`.toLowerCase().includes(q.trim().toLowerCase())),
+          (!q.trim() || `${resourceRef(x)} ${x.title} ${x.source} ${x.summary} ${x.why ?? ''} ${x.topics.join(' ')} ${x.addedBy}`.toLowerCase().includes(q.trim().toLowerCase())),
       ),
     [items, view, mySaved, me, type, topic, pillarOnly, myPillar, q],
-  )
+  ).sort((a, b) => (a.no ?? 0) - (b.no ?? 0))
 
   return (
     <AppShell role={role} portal={portal} active="resources" onNavigate={onNavigate} onPortalChange={onPortalChange} onSignOut={onSignOut}>
@@ -85,7 +85,7 @@ export default function Resources(props: Props) {
           <div className="flex flex-col gap-2.5 border-b border-line px-4 py-3 lg:flex-row lg:items-center">
             <label className="relative min-w-0 flex-1 lg:max-w-sm">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, source, topic or who added it" className="h-9 w-full rounded-md border border-line-strong bg-surface pl-9 pr-3 text-[13px] outline-none placeholder:text-faint focus:border-brand-600 focus:ring-2 focus:ring-brand-100" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search number, title, source, topic or who added it" className="h-9 w-full rounded-md border border-line-strong bg-surface pl-9 pr-3 text-[13px] outline-none placeholder:text-faint focus:border-brand-600 focus:ring-2 focus:ring-brand-100" />
             </label>
             <select value={type} onChange={(e) => setType(e.target.value as ResourceType | 'all')} aria-label="Type" className="h-9 rounded-md border border-line-strong bg-surface px-2.5 text-[13px] outline-none focus:border-brand-600">
               <option value="all">All types</option>
@@ -142,6 +142,7 @@ function ResourceRow({ x, saved, mine, onSave, onRemove }: { x: Resource; saved:
   const note = x.why ?? (x.summary || '')
   return (
     <li className="group flex flex-col gap-2 px-4 py-3 hover:bg-canvas/60 sm:flex-row sm:items-center sm:gap-4">
+      <span className="w-[52px] shrink-0 font-mono text-[12px] font-semibold text-brand-600">{resourceRef(x)}</span>
       <span className={`w-[92px] shrink-0 self-start rounded px-1.5 py-0.5 text-center text-[10.5px] font-bold sm:self-center ${TYPE_TONE[x.type]}`}>{x.type}</span>
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-baseline gap-2">

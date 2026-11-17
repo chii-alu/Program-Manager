@@ -40,3 +40,14 @@ describe('partnership bank', () => {
     expect(daysToEnd({ ...sfh, agreement: undefined }, '2025-11-10')).toBeNull()
   })
 })
+
+describe('partner reference numbers', () => {
+  it('are numbered within each pillar, oldest first, and new ones take the next number', async () => {
+    const { partnerRef } = await import('./partners')
+    const hemp = getPartners().items.filter((x) => x.pillar === 'HEMP').sort((a, b) => a.no! - b.no!)
+    expect(hemp.map(partnerRef)).toEqual(['HEMP-P-01', 'HEMP-P-02', 'HEMP-P-03'])
+    expect(hemp[0].name).toBe('SFH')
+    const p = addPartner(base, 'x')
+    expect(partnerRef(p)).toBe('HEMP-P-04')
+  })
+})

@@ -41,6 +41,19 @@ export type Partner = {
   addedBy: string
   addedAt: string
   updatedBy?: string
+  /** Reference number within its pillar (HEMP-P-01), kept when the list is filtered. */
+  no?: number
+}
+
+export const partnerRef = (x: Pick<Partner, 'pillar' | 'no'>) => `${x.pillar}-P-${String(x.no ?? 0).padStart(2, '0')}`
+
+/** Number unnumbered partners within each pillar, oldest first, after the highest used. */
+function numbered(items: Partner[]): Partner[] {
+  const next: Record<string, number> = {}
+  for (const x of items) next[x.pillar] = Math.max(next[x.pillar] ?? 0, x.no ?? 0)
+  const order = items.filter((x) => x.no == null).sort((a, b) => a.addedAt.localeCompare(b.addedAt) || a.id.localeCompare(b.id))
+  const nos = new Map(order.map((x) => [x.id, (next[x.pillar] = (next[x.pillar] ?? 0) + 1)]))
+  return items.map((x) => (x.no != null ? x : { ...x, no: nos.get(x.id) }))
 }
 
 /** The interventions a pillar's partners can be linked to. */
@@ -148,9 +161,9 @@ function load(): State {
   if (cache) return cache
   try {
     const raw = localStorage.getItem(KEY)
-    cache = raw ? (JSON.parse(raw) as State) : { items: seedPartners() }
+    cache = { items: numbered(raw ? (JSON.parse(raw) as State).items : seedPartners()) }
   } catch {
-    cache = { items: seedPartners() }
+    cache = { items: numbered(seedPartners()) }
   }
   return cache
 }
@@ -187,7 +200,8 @@ const tidy = (x: PartnerInput): PartnerInput => ({ ...x, name: x.name.trim(), ur
 
 export function addPartner(x: PartnerInput, by: string): Partner {
   check(x)
-  const p: Partner = { ...tidy(x), id: `p-${Date.now().toString(36)}`, addedBy: by, addedAt: new Date().toISOString().slice(0, 10) }
+  const no = Math.max(0, ...load().items.filter((i) => i.pillar === x.pillar).map((i) => i.no ?? 0)) + 1
+  const p: Partner = { ...tidy(x), id: `p-${Date.now().toString(36)}`, no, addedBy: by, addedAt: new Date().toISOString().slice(0, 10) }
   persist({ items: [p, ...load().items] })
   return p
 }
@@ -212,5 +226,5 @@ export function daysToEnd(p: Partner, today: string) {
 }
 
 export function resetPartners() {
-  persist({ items: seedPartners() })
+  persist({ items: numbered(seedPartners()) })
 }

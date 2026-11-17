@@ -29,6 +29,17 @@ export type Sop = {
   createdBy?: string
   updatedBy?: string
   updatedAt?: string
+  /** Reference number within its pillar (HEMP-SOP-01), kept when the list is filtered. */
+  no?: number
+}
+
+export const sopRef = (x: Pick<Sop, 'pillar' | 'no'>) => `${x.pillar}-SOP-${String(x.no ?? 0).padStart(2, '0')}`
+
+/** Number unnumbered SOPs within each pillar, in the order they were added, after the highest used. */
+function numbered(list: Sop[]): Sop[] {
+  const next: Record<string, number> = {}
+  for (const x of list) next[x.pillar] = Math.max(next[x.pillar] ?? 0, x.no ?? 0)
+  return list.map((x) => (x.no != null ? x : { ...x, no: (next[x.pillar] = (next[x.pillar] ?? 0) + 1) }))
 }
 
 export type SopDocument = { name: string; size: number; type: string; /** Kept for files up to MAX_KEEP_MB. */ dataUrl?: string }
@@ -189,10 +200,11 @@ export function seedSops(): Sop[] {
       title: 'Running a hackathon',
       pillar: 'HENT',
       owner: 'HENT staff',
-      purpose: 'Run hackathons that feed promising teams into Mentorship and Venture Funding.',
+      purpose: 'Select and run hackathons that feed promising teams into Mentorship and Venture Funding.',
       appliesTo: ['Hackathon', 'Masterclass'],
       steps: [
-        { title: 'Create the session and open registration', detail: 'Teams register individually so everyone gets a CHII ID.', to: 'interventions', toLabel: 'Interventions' },
+        { title: 'Create the session and open applications', detail: 'Hackathon is selective: each team member applies individually, so everyone gets a CHII ID.', to: 'interventions', toLabel: 'Interventions' },
+        { title: 'Score and select teams', detail: 'Reviewers score applications blind; use the Hackathon selection worksheet to agree the final teams.', to: 'applications', toLabel: 'Applications' },
         { title: 'Take attendance each day', detail: 'QR at the door; judges and mentors don’t check in.' },
         { title: 'Record winning teams as ventures', detail: 'Add teams that continue to the Venture Registry, with their founders.', to: 'ventures', toLabel: 'Venture Registry' },
         { title: 'Collect feedback before prizes', detail: 'Response rates are highest before the closing ceremony.' },
@@ -209,9 +221,9 @@ function load(): Sop[] {
   try {
     const raw = localStorage.getItem(KEY)
     // SOPs saved before they were split by pillar called MELA's own "CHII"; carry them over.
-    cache = raw ? (JSON.parse(raw) as (Omit<Sop, 'pillar'> & { pillar: string })[]).map((x) => ({ ...x, pillar: (x.pillar === 'CHII' ? 'MELA' : x.pillar) as Sop['pillar'] })) : seedSops()
+    cache = numbered(raw ? (JSON.parse(raw) as (Omit<Sop, 'pillar'> & { pillar: string })[]).map((x) => ({ ...x, pillar: (x.pillar === 'CHII' ? 'MELA' : x.pillar) as Sop['pillar'] })) : seedSops())
   } catch {
-    cache = seedSops()
+    cache = numbered(seedSops())
   }
   return cache
 }
@@ -256,7 +268,8 @@ const clean = (x: SopInput): SopInput => ({
 /** A new SOP (written here or uploaded). It starts as a draft for the pillar lead to approve. */
 export function createSop(x: SopInput, by: string): Sop {
   check(x)
-  const sop: Sop = { ...clean(x), id: `sop-${Date.now().toString(36)}`, version: 1, status: 'Draft', createdBy: by, updatedBy: by, updatedAt: new Date().toISOString().slice(0, 10) }
+  const no = Math.max(0, ...load().filter((s) => s.pillar === x.pillar).map((s) => s.no ?? 0)) + 1
+  const sop: Sop = { ...clean(x), id: `sop-${Date.now().toString(36)}`, no, version: 1, status: 'Draft', createdBy: by, updatedBy: by, updatedAt: new Date().toISOString().slice(0, 10) }
   persist([...load(), sop])
   return sop
 }
@@ -277,5 +290,5 @@ export function deleteSop(id: string) {
 }
 
 export function resetSops() {
-  persist(seedSops())
+  persist(numbered(seedSops()))
 }

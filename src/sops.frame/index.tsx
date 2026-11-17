@@ -12,7 +12,7 @@ import { Portal, Role, pillarsFor, type Pillar } from '../shared/data/mela'
 import { userFor } from '../shared/lib/auth'
 import { toast } from '../shared/lib/notify'
 import { Modal } from '../shared/components/Modal'
-import { MAX_KEEP_MB, SOP_FILE_TYPES, SOP_PAGES, SopError, approveSop, createSop, deleteSop, sopsFor, updateSop, useSops, type Sop, type SopDocument, type SopInput, type SopStep } from '../shared/data/sops'
+import { MAX_KEEP_MB, SOP_FILE_TYPES, SOP_PAGES, SopError, approveSop, createSop, deleteSop, sopRef, sopsFor, updateSop, useSops, type Sop, type SopDocument, type SopInput, type SopStep } from '../shared/data/sops'
 
 export const args = { role: 'pillar_lead', portal: 'hemp' }
 
@@ -41,9 +41,9 @@ export default function Sops(props: Props) {
       (x) =>
         (view === 'all' || x.status === view) &&
         (pillarF === 'all' || x.pillar === pillarF) &&
-        (!q.trim() || `${x.title} ${x.purpose} ${x.owner} ${x.appliesTo.join(' ')} ${x.steps.map((s) => s.title).join(' ')}`.toLowerCase().includes(q.trim().toLowerCase())),
+        (!q.trim() || `${sopRef(x)} ${x.title} ${x.purpose} ${x.owner} ${x.appliesTo.join(' ')} ${x.steps.map((s) => s.title).join(' ')}`.toLowerCase().includes(q.trim().toLowerCase())),
     )
-    .sort((a, b) => GROUP_ORDER.indexOf(a.pillar) - GROUP_ORDER.indexOf(b.pillar))
+    .sort((a, b) => GROUP_ORDER.indexOf(a.pillar) - GROUP_ORDER.indexOf(b.pillar) || (a.no ?? 0) - (b.no ?? 0))
   const [openId, setOpenId] = useState<string | null>(null)
   const open = mine.find((x) => x.id === openId)
   // Pillar leads approve their own pillar's SOPs; MELA approves any (including its own).
@@ -95,7 +95,7 @@ export default function Sops(props: Props) {
           <div className="flex flex-col gap-2.5 border-b border-line px-4 py-3 sm:flex-row sm:items-center">
             <label className="relative min-w-0 flex-1 sm:max-w-sm">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, purpose, steps or owner" className="h-9 w-full rounded-md border border-line-strong bg-surface pl-9 pr-3 text-[13px] outline-none placeholder:text-faint focus:border-brand-600 focus:ring-2 focus:ring-brand-100" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search number, title, purpose, steps or owner" className="h-9 w-full rounded-md border border-line-strong bg-surface pl-9 pr-3 text-[13px] outline-none placeholder:text-faint focus:border-brand-600 focus:ring-2 focus:ring-brand-100" />
             </label>
             {portal === 'admin' && (
               <select value={pillarF} onChange={(e) => setPillarF(e.target.value)} aria-label="Pillar" className="h-9 rounded-md border border-line-strong bg-surface px-2.5 text-[13px] outline-none focus:border-brand-600">
@@ -135,7 +135,7 @@ export default function Sops(props: Props) {
       </div>
 
       {/* Reading an SOP: its steps and document, with Edit and Approve. */}
-      <Modal open={!!open && !mode} onClose={() => setOpenId(null)} size="lg" title={open?.title ?? ''} icon={<ClipboardList className="h-4 w-4" />}>
+      <Modal open={!!open && !mode} onClose={() => setOpenId(null)} size="lg" title={open ? `${sopRef(open)} · ${open.title}` : ''} icon={<ClipboardList className="h-4 w-4" />}>
         {open && (
           <SopView
             key={open.id}
@@ -218,6 +218,7 @@ function SopRow({ x, showPillar, canEdit, canDelete, onOpen, onEdit, onDelete }:
   const what = x.steps.length ? `${x.steps.length} step${x.steps.length === 1 ? '' : 's'}${x.document ? ' + document' : ''}` : x.document ? 'Document' : 'No steps yet'
   return (
     <li className="flex flex-col gap-2 px-4 py-3 hover:bg-canvas/60 sm:flex-row sm:items-center sm:gap-4">
+      <span className="w-[104px] shrink-0 font-mono text-[12px] font-semibold text-brand-600">{sopRef(x)}</span>
       <span className="w-[76px] shrink-0">
         <StatusTag x={x} />
       </span>

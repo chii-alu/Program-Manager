@@ -74,3 +74,23 @@ describe('uploading and editing SOPs', () => {
     expect(getSops().some((x) => x.id === 'sop-hent-hackathon')).toBe(false)
   })
 })
+
+describe('reference numbers', () => {
+  it('resources are R-001… in the order added; a new one takes the next number', async () => {
+    const { resourceRef } = await import('./resources')
+    const items = getResources().items
+    const nos = items.map((x) => x.no!).sort((a, b) => a - b)
+    expect(nos).toEqual(Array.from({ length: items.length }, (_, i) => i + 1))
+    const r = addResource({ title: 'New', type: 'Article', source: 'x', summary: '', topics: [], pillars: [], addedBy: 'x' })
+    expect(resourceRef(r)).toBe(`R-${String(items.length + 1).padStart(3, '0')}`)
+  })
+  it('SOPs are numbered within each pillar and keep their number when others are deleted', async () => {
+    const { sopRef, createSop, deleteSop } = await import('./sops')
+    const hemp = getSops().filter((x) => x.pillar === 'HEMP')
+    expect(hemp.map(sopRef)).toEqual(['HEMP-SOP-01', 'HEMP-SOP-02'])
+    deleteSop(hemp[0].id)
+    expect(sopRef(getSops().find((x) => x.id === hemp[1].id)!)).toBe('HEMP-SOP-02')
+    const s = createSop({ title: 'New', pillar: 'HEMP', owner: '', purpose: '', appliesTo: [], steps: [{ title: 'a', detail: '' }] }, 'x')
+    expect(sopRef(s)).toBe('HEMP-SOP-03')
+  })
+})
