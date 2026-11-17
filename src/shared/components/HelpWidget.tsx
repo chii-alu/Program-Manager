@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ArrowRight, ArrowUp, Mail, RotateCcw, Sparkles, X } from 'lucide-react'
+import { ArrowRight, ArrowUp, Mail, MessageCircle, RotateCcw, Sparkles, X } from 'lucide-react'
 import { addMessage, askLaura, clearChat, startChat, useLauraChat, type LauraContext } from '../lib/laura'
 
-/** Laura's avatar: a navy circle with her initial and a small spark. */
+/** Laura's avatar: the chat bubble with a spark, on navy (same symbol as the launcher). */
 function Avatar({ size = 28 }: { size?: number }) {
   return (
-    <span className="relative grid shrink-0 place-items-center rounded-full bg-brand font-display font-semibold text-white" style={{ width: size, height: size, fontSize: size * 0.46 }} aria-hidden>
-      L
-      <Sparkles className="absolute -right-0.5 -top-0.5 rounded-full bg-surface p-[1px] text-brand-600" style={{ width: size * 0.42, height: size * 0.42 }} />
+    <span className="relative grid shrink-0 place-items-center rounded-full bg-brand text-white" style={{ width: size, height: size }} aria-hidden>
+      <MessageCircle style={{ width: size * 0.55, height: size * 0.55 }} />
+      <Sparkles className="absolute text-[#9cc3ff]" style={{ width: size * 0.36, height: size * 0.36, right: size * 0.06, top: size * 0.04 }} />
     </span>
   )
 }
@@ -55,15 +55,26 @@ export function HelpWidget({ onGo, context }: { onGo?: (key: string) => void; co
 
   return (
     <>
+      {/* Launcher: a "Laura AI" pill with a chat bubble; a round close button while the chat is open. */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        aria-label={open ? 'Close chat with Laura' : 'Chat with Laura'}
-        title={open ? undefined : 'Ask Laura'}
-        className="fixed bottom-20 right-4 z-40 grid h-12 w-12 place-items-center rounded-full bg-brand text-white shadow-[0_8px_24px_-6px_rgba(19,48,107,0.5)] transition-transform duration-150 ease-out active:scale-95 md:bottom-6 md:right-6"
+        aria-label={open ? 'Close chat with Laura' : 'Chat with Laura AI'}
+        className={`fixed bottom-20 right-4 z-40 flex h-12 items-center justify-center gap-2 rounded-full bg-brand text-white shadow-[0_8px_24px_-6px_rgba(19,48,107,0.5)] transition-[transform,width] duration-150 ease-out active:scale-95 md:bottom-6 md:right-6 ${open ? 'w-12' : 'pl-3.5 pr-4'}`}
       >
-        {open ? <X className="h-5 w-5" /> : <span className="font-display text-lg font-semibold">L</span>}
-        {!open && <Sparkles className="absolute -right-0.5 -top-0.5 h-4 w-4 rounded-full bg-surface p-[2px] text-brand-600" />}
+        {open ? (
+          <X className="h-5 w-5" />
+        ) : (
+          <>
+            <span className="relative">
+              <MessageCircle className="h-5 w-5" />
+              <Sparkles className="absolute -right-1.5 -top-1.5 h-3 w-3 text-[#9cc3ff]" />
+            </span>
+            <span className="text-sm font-semibold">
+              Laura <span className="font-bold text-[#9cc3ff]">AI</span>
+            </span>
+          </>
+        )}
       </button>
       <AnimatePresence>
         {open && (
@@ -77,15 +88,20 @@ export function HelpWidget({ onGo, context }: { onGo?: (key: string) => void; co
             className="fixed inset-x-3 bottom-36 z-40 flex h-[66dvh] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_24px_64px_-16px_rgba(0,0,0,0.35)] md:inset-x-auto md:bottom-20 md:right-6 md:h-[600px] md:max-h-[calc(100dvh-120px)] md:w-[400px]"
           >
             <div className="flex items-center gap-3 bg-brand px-4 py-3 text-white">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white font-display text-base font-semibold text-brand">L</span>
+              <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-brand">
+                <MessageCircle className="h-[18px] w-[18px]" />
+                <Sparkles className="absolute right-0.5 top-0.5 h-3 w-3 text-brand-600" />
+              </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 text-sm font-semibold">
-                  Laura
+                  <span>
+                    Laura <span className="text-[#9cc3ff]">AI</span>
+                  </span>
                   <span title="For now Laura answers from the platform guide; the full AI comes later." className="rounded-full bg-white/15 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
                     Preview
                   </span>
                 </div>
-                <div className="truncate text-xs text-white/70">Your friendly MELA assistant · here to help</div>
+                <div className="truncate text-xs text-white/70">Your friendly MELA assistant</div>
               </div>
               <button type="button" onClick={() => clearChat(context.user)} aria-label="New chat" title="New chat" className="grid h-8 w-8 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white">
                 <RotateCcw className="h-4 w-4" />
