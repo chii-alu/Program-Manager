@@ -17,6 +17,7 @@ import { logAction, type LogAction } from '../shared/lib/interventionLog'
 import { userFor } from '../shared/lib/auth'
 import { hasPreCourse } from '../shared/data/preCourse'
 import { PreCourseTab } from './PreCourse'
+import { MeetingsAttendance } from './Meetings'
 
 type Log = (action: LogAction, detail: string) => void
 import { CheckCheck, UserRound, Users, XCircle } from 'lucide-react'
@@ -110,7 +111,9 @@ export default function Session(props: Props) {
           {tab === 'forms' && <FormsTab sessionId={s.id} log={log} kind={s.kind} intervention={s.intervention} cohort={s.name} registered={s.registered} attended={s.attended} feedback={s.feedback} onPreview={onOpenForm} onShare={setShare} />}
           {tab === 'people' && <PeopleTab sessionId={s.id} limit={s.created ? s.registered : undefined} log={log} role={role} selective={s.kind === 'selective'} intervention={s.intervention} session={s.name} onOpenPerson={onOpenPerson} />}
           {tab === 'course' && hasPreCourse(s.intervention) && <PreCourseTab s={s} me={userFor(role, portal).user} showId={canSeeIdentity(role)} log={log} onOpenPerson={onOpenPerson} />}
-          {tab === 'attendance' && <AttendanceTab sessionDates={s.dateList} sessionId={s.id} limit={s.created ? s.registered : undefined} log={log} role={role} intervention={s.intervention} onQr={() => setShare('Attendance check-in')} />}
+          {/* Selective cohorts take attendance per meeting; open sessions per date. */}
+          {tab === 'attendance' && s.kind === 'selective' && <MeetingsAttendance s={s} me={userFor(role, portal).user} showId={canSeeIdentity(role)} log={log} onQr={() => setShare('Attendance check-in')} />}
+          {tab === 'attendance' && s.kind !== 'selective' && <AttendanceTab sessionDates={s.dateList} sessionId={s.id} limit={s.created ? s.registered : undefined} log={log} role={role} intervention={s.intervention} onQr={() => setShare('Attendance check-in')} />}
           {tab === 'feedback' &&
             (templateFor(s.intervention, 'feedback', s.name) ? (
               <TemplateFeedbackTab template={templateFor(s.intervention, 'feedback', s.name)!} attended={s.attended} feedback={s.feedback} cohort={s.name} intervention={s.intervention} />
