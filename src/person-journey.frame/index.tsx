@@ -4,11 +4,37 @@ import { ExportModal } from '../shared/components/ExportModal'
 import { ArrowLeft, ArrowRight, Check, Copy, Download, EyeOff, Lock, MessageSquareText, Rocket, UserX } from 'lucide-react'
 import { AppShell } from '../shared/components/AppShell'
 import { Button, Panel, PillarTag } from '../shared/components/ui'
-import { JourneyStep, Portal, Role, canSeeIdentity, feedbackGiven, journey, participants, pillarsFor, portalMeta } from '../shared/data/mela'
+import { JourneyStep, Portal, Role, canSeeIdentity, emailsOf, feedbackGiven, journey, participants, pillarsFor, portalMeta } from '../shared/data/mela'
 import { canUseVentures, useRegistry } from '../shared/ventures/store'
 import type { MemberRole } from '../shared/ventures/types'
 import { StagePill, VentureStatusPill, fmtDate } from '../ventures.frame/parts'
 import { useIncubation } from '../shared/incubation/store'
+import { personById } from '../shared/ventures/people'
+
+/** Fixed 0–1 value from a string, so a person's sample record is the same on every visit. */
+const h01 = (s: string) => {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619)
+  h ^= h >>> 16
+  h = Math.imul(h, 0x85ebca6b)
+  h ^= h >>> 13
+  return (h >>> 0) / 4294967296
+}
+
+/**
+ * Standing (from ALU's student records) and the sensitive answers from registration, using the
+ * registration form's options. Sample values for the prototype; the server reads the real ones.
+ */
+function recordOf(chiiId: string) {
+  const r = (k: string) => h01(`${chiiId}|${k}`)
+  const disabled = personById(chiiId)?.disability
+  return {
+    academic: r('acad') < 0.88 ? 'Good standing' : 'Academic probation',
+    financial: r('fin') < 0.8 ? 'Cleared' : 'Outstanding balance',
+    humanitarian: r('hum') < 0.85 ? 'No' : r('hum') < 0.95 ? 'Yes' : 'Prefer not to say',
+    disability: disabled ? 'Yes' : r('dis') < 0.95 ? 'No' : 'Prefer not to say',
+  }
+}
 
 const ROLE_LABEL: Record<MemberRole, string> = { lead_founder: 'Founder', co_founder: 'Co-founder', team: 'Team member' }
 const ROLE_CLS: Record<MemberRole, string> = { lead_founder: 'bg-brand text-white', co_founder: 'bg-brand-50 text-brand-600', team: 'bg-canvas text-body' }
@@ -37,6 +63,7 @@ export default function Person(props: Props) {
   const [exporting, setExporting] = useState(false)
   const [anon, setAnon] = useState(false)
   const [anonymised, setAnonymised] = useState(false)
+  const rec = recordOf(person.id)
   // Founder roles (from the Venture Registry) show to everyone; only HENT staff and MELA can open the venture itself.
   const seesVentures = true
   const canOpenVenture = canUseVentures({ role, pillars: pillarsFor(portal) })
@@ -70,6 +97,14 @@ export default function Person(props: Props) {
         columns={[
           { key: 'chiiId', label: 'CHII ID' },
           { key: 'name', label: 'Name', restricted: true },
+          // Student ID and standing are restricted like name: staff can include them, reviewers can't.
+          { key: 'studentEmail', label: 'Student email', restricted: true },
+          { key: 'personalEmail', label: 'Personal email', restricted: true },
+          { key: 'studentId', label: 'Student ID', restricted: true },
+          { key: 'academicStanding', label: 'Academic standing', restricted: true },
+          { key: 'financialStanding', label: 'Financial standing', restricted: true },
+          { key: 'humanitarian', label: 'Humanitarian status', restricted: true },
+          { key: 'disability', label: 'Disability status', restricted: true },
           { key: 'session', label: 'Session' },
           { key: 'intervention', label: 'Intervention' },
           { key: 'pillar', label: 'Pillar' },
@@ -78,7 +113,7 @@ export default function Person(props: Props) {
           { key: 'attendance', label: 'Attendance' },
           { key: 'feedback', label: 'Feedback given' },
         ]}
-        rows={journey.map((j) => ({ ...j, chiiId: person.id, name: person.name, feedback: j.feedback ? 'Yes' : 'No' }))}
+        rows={journey.map((j) => ({ ...j, chiiId: person.id, name: person.name, studentEmail: emailsOf(person).student ?? '', personalEmail: emailsOf(person).personal ?? '', studentId: 'ALU-2022-0871', academicStanding: rec.academic, financialStanding: rec.financial, humanitarian: rec.humanitarian, disability: rec.disability, feedback: j.feedback ? 'Yes' : 'No' }))}
         canSeeRestricted={showId}
       />
       <Modal
@@ -167,15 +202,20 @@ export default function Person(props: Props) {
           ))}
         </dl>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="mt-5 grid gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
           {/* Profile */}
           <Panel className="lg:self-start">
             <h2 className="border-b border-line px-4 py-3 text-sm font-semibold sm:px-5">Profile</h2>
             <dl className="divide-y divide-line text-sm">
-              <Field label="Email" value={person.email} restricted={!showId} />
+              <Field label="Student email" value={emailsOf(person).student ?? 'Not recorded'} muted={!emailsOf(person).student} restricted={!showId} />
+              <Field label="Personal email" value={emailsOf(person).personal ?? 'Not recorded'} muted={!emailsOf(person).personal} restricted={!showId} />
               <Field label="Phone" value="+234 803 555 0142" restricted={!showId} />
-              <Field label="Student ID" value="ALU-2022-0871" restricted={role !== 'admin'} />
-              <Field label="Standing" value="Good standing" restricted={role !== 'admin'} />
+              {/* Student ID, standing, humanitarian and disability status show to all staff, like name and email; reviewers see Restricted. */}
+              <Field label="Student ID" value="ALU-2022-0871" restricted={!showId} />
+              <Field label="Academic standing" value={rec.academic} restricted={!showId} />
+              <Field label="Financial standing" value={rec.financial} restricted={!showId} />
+              <Field label="Humanitarian status" value={rec.humanitarian} restricted={!showId} />
+              <Field label="Disability status" value={rec.disability} restricted={!showId} />
               <Field label="Gender" value={person.gender === 'F' ? 'Female' : 'Male'} />
               <Field label="Age" value={String(person.age)} />
               <Field label="Country" value={person.country} />
@@ -183,11 +223,6 @@ export default function Person(props: Props) {
               <Field label="First seen" value="14 Aug 2025 · Masterclass" />
               <Field label="Consent" value="Given · 14 Aug 2025" />
             </dl>
-            {role !== 'admin' && (
-              <p className="flex gap-2 border-t border-line px-4 py-3 text-xs leading-5 text-muted sm:px-5">
-                <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Student ID and standing are visible to MELA admins only.
-              </p>
-            )}
           </Panel>
 
           <div className="min-w-0 space-y-5">
@@ -275,15 +310,17 @@ export default function Person(props: Props) {
   )
 }
 
-function Field({ label, value, restricted }: { label: string; value: string; restricted?: boolean }) {
+function Field({ label, value, restricted, muted }: { label: string; value: string; restricted?: boolean; muted?: boolean }) {
   return (
-    <div className="grid grid-cols-[100px_minmax(0,1fr)] gap-3 px-4 py-2.5 sm:px-5">
+    <div className="grid grid-cols-[150px_minmax(0,1fr)] gap-3 px-4 py-2.5 sm:px-5">
       <dt className="text-muted">{label}</dt>
-      <dd className="min-w-0 truncate text-right font-medium lg:text-left">
+      <dd className="min-w-0 break-words text-right font-medium lg:text-left">
         {restricted ? (
           <span className="inline-flex items-center gap-1 text-faint">
             <Lock className="h-3 w-3" /> Restricted
           </span>
+        ) : muted ? (
+          <span className="font-normal text-faint">{value}</span>
         ) : (
           value
         )}

@@ -77,6 +77,15 @@ export type Participant = {
   /** Most recent attendance or submission. */
   lastActive: string
   status: 'Active' | 'Alumni' | 'Inactive'
+  /** Separate addresses, when known. Otherwise `email` is used for whichever kind it is (see emailsOf). */
+  studentEmail?: string
+  personalEmail?: string
+}
+
+/** A person's student (ALU) and personal emails. An @alustudent.com / @alu.edu address counts as the student email. */
+export function emailsOf(p: Pick<Participant, 'email' | 'studentEmail' | 'personalEmail'>) {
+  const isStudent = /@(alustudent\.com|alu\.edu)$/i.test(p.email)
+  return { student: p.studentEmail ?? (isStudent ? p.email : undefined), personal: p.personalEmail ?? (isStudent ? undefined : p.email) }
 }
 
 type SeedParticipant = Omit<Participant, 'joined' | 'lastActive' | 'status'>

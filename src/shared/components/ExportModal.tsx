@@ -153,7 +153,7 @@ export function ExportModal({
                 <input type="checkbox" checked={restricted} onChange={(e) => setRestricted(e.target.checked)} className="mt-0.5 accent-brand" />
                 <span>
                   <span className="block text-sm font-medium">Include restricted columns</span>
-                  <span className="block text-xs leading-5 text-muted">Names and contacts. Logged as a restricted export.</span>
+                  <span className="block text-xs leading-5 text-muted">Names, contacts, student ID, standing, humanitarian and disability status. Logged as a restricted export.</span>
                 </span>
               </label>
             ) : (
